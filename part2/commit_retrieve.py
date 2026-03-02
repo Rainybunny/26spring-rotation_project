@@ -144,26 +144,6 @@ def retrieve_commit_info(repo_path, commit_hash, repo_url=None):
 
     return ci
 
-
 if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print("Usage: python commit_retrieve.py <repo_path> <commit_hash> [repo_url]", file=sys.stderr)
-        sys.exit(1)
-
-    repo_path = sys.argv[1]
-    commit_hash = sys.argv[2]
-    repo_url = sys.argv[3] if len(sys.argv) > 3 else None
-
-    info = retrieve_commit_info(repo_path, commit_hash, repo_url)
-    if info is None:
-        print("Failed to retrieve commit info", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"Commit: {info.commit_hash}")
-    print(f"Message: {info.commit_message}")
-    for change in info.changes:
-        print(f"File: {change.path} Status: {change.status}")
-        print(f"Diff:\n{change.diff}")
-        print(f"Content Before:\n{change.content_before}")
-        print(f"Content After:\n{change.content_after}")
-
+    ci = retrieve_commit_info("../repos/ClickHouse", "32dcbfb6273fffacda1ec09c8cbf737f82ca0d04")
+    print(ci)
