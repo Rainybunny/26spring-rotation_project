@@ -35,7 +35,8 @@ def is_optimization_commit(ci):
     return answer_value[answer]
 
 if __name__ == "__main__":
-    repo_path = "../repos/ClickHouse"
-    commit_hash = "8ab98c8db0003272fcd572c500fd12e966aac3f8"
-    ci = cr.retrieve_commit_info(repo_path, commit_hash)
+    commit_hash = "cc8d318aa1ab380166aa8183dba84a8d2a9ab2aa"
+    repo_url = "https://github.com/swaywm/sway.git"
+    ci = cr.retrieve_commit_info(commit_hash, repo_url=repo_url)
+    print(ci)
     print(is_optimization_commit(ci))

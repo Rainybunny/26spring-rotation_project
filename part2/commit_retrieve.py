@@ -65,20 +65,20 @@ def download_repo(repo_url, dest_path):
         print(f"Error cloning repository: {e.stderr}", file=sys.stderr)
         return False
 
-def retrieve_commit_info(repo_path, commit_hash, repo_url=None, download_if_missing=False):
-    if not os.path.exists(repo_path):
-        if repo_url is None:
+def retrieve_commit_info(commit_hash, repo_path=None, repo_url=None, download_if_missing=False):
+    if repo_path is not None and os.path.exists(repo_path):
+        return github_commit_via_local_git(repo_path, commit_hash)
+    elif repo_url is None:
+        return None
+    elif repo_path is not None and download_if_missing:
+        if not download_repo(repo_url, repo_path):
             return None
-        if download_if_missing:
-            if not download_repo(repo_url, repo_path):
-                return None
-        else: # call GitHub API
-            try:
-                ci = github_commit_via_api(repo_url, commit_hash)
-                return ci
-            except Exception:
-                return None
+        else:
+            return github_commit_via_local_git(repo_path, commit_hash)
+    else:
+        return github_commit_via_api(repo_url, commit_hash)
 
+def github_commit_via_local_git(repo_path, commit_hash):
     ci = CommitInfo(commit_hash)
 
     # commit message
@@ -272,7 +272,6 @@ def github_commit_via_api(repo_url, commit_hash):
     return ci
 
 if __name__ == '__main__':
-    ci = retrieve_commit_info("../repos/ClickHouse",
-                              "32dcbfb6273fffacda1ec09c8cbf737f82ca0d04",
-                              repo_url="https://github.com/ClickHouse/ClickHouse.git", download_if_missing=False)
+    ci = retrieve_commit_info(commit_hash="32dcbfb6273fffacda1ec09c8cbf737f82ca0d04",
+                              repo_url="https://github.com/ClickHouse/ClickHouse.git")
     print(ci)
