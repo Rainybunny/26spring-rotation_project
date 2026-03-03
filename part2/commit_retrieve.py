@@ -15,6 +15,10 @@ import os
 import subprocess
 from subprocess import CalledProcessError, PIPE
 import sys
+import urllib.request
+import urllib.parse
+import json
+import base64
 
 class FileDelta:
     def __init__(self, path, status):
@@ -61,10 +65,19 @@ def download_repo(repo_url, dest_path):
         print(f"Error cloning repository: {e.stderr}", file=sys.stderr)
         return False
 
-def retrieve_commit_info(repo_path, commit_hash, repo_url=None):
-    if repo_url and not os.path.exists(repo_path):
-        if not download_repo(repo_url, repo_path):
+def retrieve_commit_info(repo_path, commit_hash, repo_url=None, download_if_missing=False):
+    if not os.path.exists(repo_path):
+        if repo_url is None:
             return None
+        if download_if_missing:
+            if not download_repo(repo_url, repo_path):
+                return None
+        else: # call GitHub API
+            try:
+                ci = github_commit_via_api(repo_url, commit_hash)
+                return ci
+            except Exception:
+                return None
 
     ci = CommitInfo(commit_hash)
 
@@ -144,6 +157,122 @@ def retrieve_commit_info(repo_path, commit_hash, repo_url=None):
 
     return ci
 
+
+def parse_github_repo_url(url):
+    # support ssh/git and https forms
+    # examples: git@github.com:owner/repo.git, https://github.com/owner/repo.git, https://github.com/owner/repo
+    if url.startswith('git@'):
+        # git@github.com:owner/repo.git
+        path = url.split(':', 1)[1]
+    else:
+        parsed = urllib.parse.urlparse(url)
+        path = parsed.path
+    path = path.rstrip('/')
+    if path.endswith('.git'):
+        path = path[:-4]
+    if path.startswith('/'):
+        path = path[1:]
+    parts = path.split('/')
+    if len(parts) < 2:
+        raise ValueError('Unable to parse GitHub repo url: ' + url)
+    owner = parts[0]
+    repo = parts[1]
+    return owner, repo
+
+
+def github_api_get(url):
+    req = urllib.request.Request(url, headers={
+        'User-Agent': 'commit-retrieve-script'
+    })
+    with urllib.request.urlopen(req) as resp:
+        charset = resp.headers.get_content_charset() or 'utf-8'
+        return resp.read().decode(charset)
+
+
+def get_file_content_from_github(owner, repo, path, ref):
+    # returns decoded content string or raises HTTPError on 404/other
+    api = f'https://api.github.com/repos/{owner}/{repo}/contents/{urllib.parse.quote(path)}?ref={urllib.parse.quote(ref)}'
+    try:
+        body = github_api_get(api)
+        data = json.loads(body)
+        if isinstance(data, dict) and 'content' in data and 'encoding' in data:
+            if data.get('encoding') == 'base64':
+                return base64.b64decode(data['content']).decode('utf-8', errors='replace')
+        # fallback: if API returned raw text for symlink etc.
+        return None
+    except urllib.error.HTTPError as e:
+        # propagate 404 as None for caller
+        if e.code == 404:
+            return None
+        raise
+
+
+def github_commit_via_api(repo_url, commit_hash):
+    owner, repo = parse_github_repo_url(repo_url)
+    api_url = f'https://api.github.com/repos/{owner}/{repo}/commits/{commit_hash}'
+    body = github_api_get(api_url)
+    data = json.loads(body)
+
+    ci = CommitInfo(commit_hash)
+    ci.commit_message = data.get('commit', {}).get('message', '')
+    parent_sha = None
+    parents = data.get('parents', [])
+    if parents:
+        parent_sha = parents[0].get('sha')
+
+    ci.changes = []
+    for f in data.get('files', []):
+        status_text = f.get('status')  # 'added','modified','removed','renamed'
+        if status_text == 'added':
+            status = 'A'
+        elif status_text == 'modified':
+            status = 'M'
+        elif status_text in ('removed', 'deleted'):
+            status = 'D'
+        elif status_text == 'renamed':
+            status = 'R'
+        else:
+            status = status_text or ''
+
+        # use new filename as path (like git diff-tree)
+        path = f.get('filename')
+        old_path = f.get('previous_filename')
+
+        fd = FileDelta(path, status)
+        # diff/patch
+        fd.diff = f.get('patch')
+
+        # content before
+        if status == 'A':
+            fd.content_before = ""
+        else:
+            path_before = old_path if old_path else path
+            if parent_sha is None:
+                fd.content_before = None
+            else:
+                try:
+                    cb = get_file_content_from_github(owner, repo, path_before, parent_sha)
+                    fd.content_before = cb if cb is not None else None
+                except Exception:
+                    fd.content_before = None
+
+        # content after
+        if status == 'D':
+            fd.content_after = ""
+        else:
+            path_after = path
+            try:
+                ca = get_file_content_from_github(owner, repo, path_after, commit_hash)
+                fd.content_after = ca if ca is not None else None
+            except Exception:
+                fd.content_after = None
+
+        ci.changes.append(fd)
+
+    return ci
+
 if __name__ == '__main__':
-    ci = retrieve_commit_info("../repos/ClickHouse", "32dcbfb6273fffacda1ec09c8cbf737f82ca0d04")
+    ci = retrieve_commit_info("../repos/ClickHouse",
+                              "32dcbfb6273fffacda1ec09c8cbf737f82ca0d04",
+                              repo_url="https://github.com/ClickHouse/ClickHouse.git", download_if_missing=False)
     print(ci)
