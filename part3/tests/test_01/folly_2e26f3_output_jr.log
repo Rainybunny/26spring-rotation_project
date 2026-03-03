@@ -1,0 +1,17 @@
+The optimized code is a complete and valid source file, not just a snippet. It maintains all the functionality of the original code while making some minor improvements.
+
+Key observations:
+1. The optimized code is functionally identical to the original - all methods, classes, and logic are preserved
+2. The main optimization is moving the implementation of `park_until` directly into the class definition (from being defined outside)
+3. The `const` qualifier was added to the `key` variable in `park_until` and `unpark` methods
+4. All memory ordering constraints and synchronization points remain unchanged
+5. The optimization improves performance by:
+   - Reducing function call overhead by inlining `park_until`
+   - Enabling better compiler optimization opportunities by having the implementation visible
+   - Adding `const` where possible to help the compiler
+
+The changes are safe because:
+1. The logic remains exactly the same
+2. All thread safety mechanisms (mutexes, atomics) are preserved
+3. The memory ordering constraints are maintained
+4. The API surface is unchanged
