@@ -1,5 +1,6 @@
 import os
 import sys
+import concurrent.futures
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.absolute()))
 import config
@@ -9,47 +10,64 @@ from langchain_core.prompts import ChatPromptTemplate
 project_root = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 benchmark_root = os.path.join(project_root, "benchmark")
 
-def get_target_list(folder):
-    target_list_file = os.path.join(folder, "targets.txt")
-    target_list = []
-    with open(target_list_file, "r") as f:
+class Mission:
+    def __init__(self, repo_name, commit_hash, folder):
+        commit_folder = os.path.join(benchmark_root,
+                                         repo_name, "modified_file", commit_hash)
+        before_file = None
+        after_file = None
+        before_func = None
+        after_func = None
+        for file in os.listdir(commit_folder):
+            if file.startswith("before."):
+                before_file = os.path.join(commit_folder, file)
+            elif file.startswith("after."):
+                after_file = os.path.join(commit_folder, file)
+            elif file.startswith("before_func."):
+                before_func = os.path.join(commit_folder, file)
+            elif file.startswith("after_func."):
+                after_func = os.path.join(commit_folder, file)
+
+        trunked_commit_hash = commit_hash[:3] + commit_hash[-3:]
+        suffix = after_file.split('.')[-1]
+        self.lang = 'cpp' if suffix in ['cpp', 'cc', 'cxx', 'hpp'] else 'c'
+        output_name = f"{repo_name}_{trunked_commit_hash}.{suffix}"
+        self.output_file = os.path.join(folder, output_name)
+
+        self.origin = open(before_file, 'r').read()
+        self.target = open(after_file, 'r').read()
+        self.origin_func = open(before_func, 'r').read()
+        self.target_func = open(after_func, 'r').read()
+
+        self.output = None # output content
+        self.opt_reason = None # optimization reason
+        self.result = None # judge result
+        self.judge_reason = None # judge reason
+
+    def show_goal(self):
+        res = f"\nFull source code before optimization:\n"
+        res += f"```{self.lang}\n{self.origin}\n```\n\n"
+        res += f"The only function in the code above that is required for optimization:\n"
+        res += f"```{self.lang}\n{self.origin_func}\n```\n\n"
+        return res
+
+    def show_result(self):
+        res = f"\nFull source code before optimization:\n"
+        res += f"```{self.lang}\n{self.origin}\n```\n\n"
+        res += f"The only function in the code above that is optimized:\n"
+        res += f"```{self.lang}\n{self.output}\n```\n\n"
+        return res
+
+def get_mission_list(folder) -> list[Mission]:
+    mission_list_file = os.path.join(folder, "targets.txt")
+    mission_list = []
+    with open(mission_list_file, "r") as f:
         for line in f:
             repo_name, commit_hash = line.strip().split()
-            commit_folder = os.path.join(benchmark_root,
-                                         repo_name, "modified_file", commit_hash)
-            before_file = None
-            after_file = None
-            for file in os.listdir(commit_folder):
-                if file.startswith("before."):
-                    before_file = os.path.join(commit_folder, file)
-                elif file.startswith("after."):
-                    after_file = os.path.join(commit_folder, file)
-            assert before_file is not None and after_file is not None, \
-                f"Missing before/after file in {commit_folder}"
-            trunked_commit_hash = commit_hash[:3] + commit_hash[-3:]
-            output_name = f"{repo_name}_{trunked_commit_hash}_output.{after_file.split('.')[-1]}"
-            output_file = os.path.join(folder, output_name)
-            target_list.append((before_file, after_file, output_file))
-    return target_list
+            mission_list.append(Mission(repo_name, commit_hash, folder))
+    return mission_list
 
-
-def code_regularize(file):
-    """
-    Do C/CPP code regularization
-    """
-    pass
-
-
-def exact_match(origin, target, output):
-    target_r = code_regularize(target)
-    output_r = code_regularize(output)
-    if target_r != output_r:
-        return False, "Just not match."
-    else:
-        return True, "Just match."
-
-
-def llm_judge(origin, target, output):
+def llm_judge(mission: Mission) -> tuple[bool, str]:
     llm = ChatOpenAI(
         openai_api_key=config.xmcp_api_key,
         openai_api_base=config.xmcp_base_url,
@@ -58,23 +76,23 @@ def llm_judge(origin, target, output):
     )
 
     system_prompt = (
-        "You are an expert code judge. Your task is to determine if the provided C/C++ optimized code is a valid optimization of the original code. "
-        "The optimized code should improve runtime efficiency or reduce resource consumption compared to the original code, while maintaining correctness.\n"
-        "You will be given two pieces of information: the original code and the output from an optimization process.\n"
-        "1. Check if the optimized code is a FULL, VALID source file, not just a snippet. If it is a snippet or incomplete, it is INVALID.\n"
-        "2. Analyze the optimized code for correctness and performance.\n"
+        "You are an expert code judge. Your task is to determine if the provided C/C++ optimized function is a valid optimization of the original function within the context of the full source code.\n"
+        "The optimized function should improve runtime efficiency or reduce resource consumption compared to the original implementation, while maintaining correctness.\n"
+        "You will be given the full original source code and the optimized function implementation.\n"
+        "1. Check if the optimized code is a valid replacement for the specific function. It should be just the function implementation.\n"
+        "2. Analyze the optimized function for correctness and performance.\n"
         "3. Provide your reasoning.\n"
         "4. End your response with 'VERDICT: TRUE' if it is a valid optimization, or 'VERDICT: FALSE' if it is invalid.\n"
     )
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt),
-        ("user", "Original Code:\n```\n{origin}\n```\n\nOptimized Code:\n```\n{output}\n```")
+        ("user", "{result_content}")
     ])
 
     chain = prompt | llm
     try:
-        response = chain.invoke({"origin": origin, "output": output})
+        response = chain.invoke({"result_content": mission.show_result()})
         content = response.content
         
         reason = content
@@ -105,36 +123,64 @@ def llm_judge(origin, target, output):
         return False, f"Error: {str(e)}"
 
 
-def run_optimizer(target_list, optimizer):
-    for before_file, _, output_file in target_list:
-        print(f"Generating {output_file}...")
-        origin = open(before_file, "r").read()
-        optimized, reason = optimizer(origin)
-        with open(output_file, "w") as f:
-            f.write(optimized)
-        log_file = output_file.rsplit('.', 1)[0] + "_or.log"
-        with open(log_file, "w") as f:
-            f.write(reason)
+def run_optimizer(mission_list: list[Mission], optimizer):
+    # Determine max workers, default to 10 if not specified (or use user token limit)
+    MAX_WORKERS = 10
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        # Map futures to missions so we know which mission corresponds to which result
+        future_to_mission = {
+            executor.submit(optimizer, mission.show_goal()): mission 
+            for mission in mission_list
+        }
+        
+        for future in concurrent.futures.as_completed(future_to_mission):
+            mission = future_to_mission[future]
+            try:
+                print(f"Generating {mission.output_file}...")
+                mission.output, mission.opt_reason = future.result()
+                with open(mission.output_file, "w") as f:
+                    f.write(mission.output)
+                log_file = mission.output_file.rsplit('.', 1)[0] + "_or.log"
+                with open(log_file, "w") as f:
+                    f.write(mission.opt_reason)
+            except Exception as exc:
+                print(f'{mission.output_file} generated an exception: {exc}')
 
-def judge(folder, judge_fn):
-    target_list = get_target_list(folder)
+def judge(mission_list: list[Mission], judge_fn):
+    MAX_WORKERS = 10
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        future_to_mission = {
+            executor.submit(judge_fn, mission): mission 
+            for mission in mission_list
+        }
+        
+        for future in concurrent.futures.as_completed(future_to_mission):
+            mission = future_to_mission[future]
+            try:
+                print(f"Judging {mission.output_file}...")
+                mission.result, mission.judge_reason = future.result()
+            except Exception as exc:
+                print(f'{mission.output_file} generated an exception: {exc}')
+                mission.result = False
+                mission.judge_reason = f"Exception: {exc}"
+            
+            # Write judge reason log
+            log_file = mission.output_file.rsplit('.', 1)[0] + "_jr.log"
+            with open(log_file, "w") as f:
+                f.write(str(mission.judge_reason))
+
+    # Calculate final stats in order
     results = []
-    total = len(target_list)
+    total = len(mission_list)
     accepted = 0
-    for before_file, after_file, output_file in target_list:
-        print(f"Judging {output_file}...")
-        origin = open(before_file, "r").read()
-        target = open(after_file, "r").read()
-        output = open(output_file, "r").read()
-        result, reason = judge_fn(origin, target, output)
-        if result:
+    for mission in mission_list:
+        if mission.result:
             accepted += 1
             results.append('A')
         else:
             results.append('R')
-        log_file = output_file.rsplit('.', 1)[0] + "_jr.log"
-        with open(log_file, "w") as f:
-            f.write(reason)
     print(f"{accepted}/{total} accepted\nstatus: {''.join(results)}")
 
 if __name__ == "__main__":
@@ -150,8 +196,8 @@ if __name__ == "__main__":
     optimizer = optimizer_module.optimize
     judge_fn = globals()[judge_fn_name]
 
-    target_list = get_target_list(test_folder)
+    mission_list = get_mission_list(test_folder)
 
-    run_optimizer(target_list, optimizer)
+    run_optimizer(mission_list, optimizer)
 
-    judge(test_folder, judge_fn)
+    judge(mission_list, judge_fn)

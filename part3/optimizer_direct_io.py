@@ -10,7 +10,7 @@ import config
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
-def optimize(origin: str) -> tuple[str, str]:
+def optimize(user_prompt: str) -> tuple[str, str]:
     """
     Optimizes the provided C/C++ code using an LLM with Chain of Thought (CoT).
     
@@ -30,27 +30,26 @@ def optimize(origin: str) -> tuple[str, str]:
     # Define the prompt that encourages CoT and code optimization
     system_prompt = (
         "You are an expert C/C++ optimization engineer. "
-        "Your goal is to optimize the provided code for maximum runtime efficiency and minimal resource usage.\n"
+        "Your goal is to optimize a specific function within the provided code for maximum runtime efficiency and minimal resource usage.\n"
         "Do NOT strictly focus on readability or style; focus on performance.\n\n"
         "You MUST use Chain of Thought (CoT) reasoning:\n"
-        # This section is potentially harmful?
-        "1. Analyze the original code to identify bottlenecks. Pay special attention to:\n"
+        "1. Analyze the original code and the specific function to identify bottlenecks. Pay special attention to:\n"
         "   - Unnecessary object copying (e.g., in loops, function arguments, or lambda captures).\n"
         "   - Redundant memory allocations.\n"
         "   - Inefficient loop logic.\n"
-        "2. Propose optimizations. Prioritize simple, high-impact changes (like adding 'const &' or '&') over complex algorithmic rewrites unless necessary.\n"
+        "2. Propose optimizations for the specific function. Prioritize simple, high-impact changes (like adding 'const &' or '&') over complex algorithmic rewrites unless necessary.\n"
         "3. Select EXACTLY ONE optimization idea to apply. Even if multiple valid ideas exist, pick only the most impactful one.\n"
-        "4. Apply the chosen optimization. Changes should be as simple as possible and must NOT modify the overall logic structure of the given code drastically.\n\n"
+        "4. Apply the chosen optimization to the function. Changes should be as simple as possible and must NOT modify the overall logic structure drastically.\n\n"
         "Output Format:\n"
         "First, output your thought process/analysis.\n"
         "Second, output a clear description of the final optimization idea.\n"
-        "Then, output the final optimized code inside a single markdown code block (```cpp ... ``` or ```c ... ```).\n"
-        "The code block must contain the FULL, COMPILABLE source code, not just snippets. Do NOT omit any unchanged parts. The output must be a direct replacement for the original file."
+        "Then, output the final optimized COMPETE FUNCTION IMPLEMENTATION inside a single markdown code block (```cpp ... ``` or ```c ... ```).\n"
+        "The code block must contain ONLY the optimized function. It must be a direct replacement for the original function."
     )
     
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt),
-        ("user", "Here is the C/C++ code to optimize:\n\n{origin}")
+        ("user", "{user_prompt}")
     ])
     
     # Create the chain
@@ -58,7 +57,7 @@ def optimize(origin: str) -> tuple[str, str]:
     
     # Execute the chain
     try:
-        response = chain.invoke({"origin": origin})
+        response = chain.invoke({"user_prompt": user_prompt})
         content = response.content
 
         # Extract the logical code block from the response
