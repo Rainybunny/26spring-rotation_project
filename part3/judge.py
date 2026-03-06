@@ -1,80 +1,19 @@
 import os
 import sys
 import concurrent.futures
-from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent.absolute()))
-import config
-from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
+import utils
 
-project_root = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-benchmark_root = os.path.join(project_root, "benchmark")
-
-class Mission:
-    def __init__(self, repo_name, commit_hash, folder):
-        commit_folder = os.path.join(benchmark_root,
-                                         repo_name, "modified_file", commit_hash)
-        before_file = None
-        after_file = None
-        before_func = None
-        after_func = None
-        for file in os.listdir(commit_folder):
-            if file.startswith("before."):
-                before_file = os.path.join(commit_folder, file)
-            elif file.startswith("after."):
-                after_file = os.path.join(commit_folder, file)
-            elif file.startswith("before_func."):
-                before_func = os.path.join(commit_folder, file)
-            elif file.startswith("after_func."):
-                after_func = os.path.join(commit_folder, file)
-
-        trunked_commit_hash = commit_hash[:3] + commit_hash[-3:]
-        suffix = after_file.split('.')[-1]
-        self.lang = 'cpp' if suffix in ['cpp', 'cc', 'cxx', 'hpp'] else 'c'
-        output_name = f"{repo_name}_{trunked_commit_hash}.{suffix}"
-        self.output_file = os.path.join(folder, output_name)
-
-        self.origin = open(before_file, 'r').read()
-        self.target = open(after_file, 'r').read()
-        self.origin_func = open(before_func, 'r').read()
-        self.target_func = open(after_func, 'r').read()
-
-        self.output = None # output content
-        self.opt_reason = None # optimization reason
-        self.result = None # judge result
-        self.judge_reason = None # judge reason
-
-    def show_goal(self):
-        res = f"\nFull source code before optimization:\n"
-        res += f"```{self.lang}\n{self.origin}\n```\n\n"
-        res += f"The only function in the code above that is required for optimization:\n"
-        res += f"```{self.lang}\n{self.origin_func}\n```\n\n"
-        return res
-
-    def show_result(self):
-        res = f"\nFull source code before optimization:\n"
-        res += f"```{self.lang}\n{self.origin}\n```\n\n"
-        res += f"The only function in the code above that is optimized:\n"
-        res += f"```{self.lang}\n{self.output}\n```\n\n"
-        return res
-
-def get_mission_list(folder) -> list[Mission]:
-    mission_list_file = os.path.join(folder, "targets.txt")
+def get_mission_list(test_folder) -> list[utils.Mission]:
+    mission_list_file = os.path.join(test_folder, "targets.txt")
     mission_list = []
     with open(mission_list_file, "r") as f:
         for line in f:
             repo_name, commit_hash = line.strip().split()
-            mission_list.append(Mission(repo_name, commit_hash, folder))
+            mission_list.append(utils.Mission(repo_name, commit_hash, test_folder))
     return mission_list
 
-def llm_judge(mission: Mission) -> tuple[bool, str]:
-    llm = ChatOpenAI(
-        openai_api_key=config.xmcp_api_key,
-        openai_api_base=config.xmcp_base_url,
-        model_name=config.xmcp_model,
-        temperature=0.0
-    )
-
+def llm_judge(mission: utils.Mission) -> tuple[bool, str]:
     system_prompt = (
         "You are an expert code judge. Your task is to determine if the provided C/C++ optimized function is a valid optimization of the original function within the context of the full source code.\n"
         "The optimized function should improve runtime efficiency or reduce resource consumption compared to the original implementation, while maintaining correctness.\n"
@@ -90,7 +29,7 @@ def llm_judge(mission: Mission) -> tuple[bool, str]:
         ("user", "{result_content}")
     ])
 
-    chain = prompt | llm
+    chain = prompt | utils.llm
     try:
         response = chain.invoke({"result_content": mission.show_result()})
         content = response.content
@@ -123,14 +62,14 @@ def llm_judge(mission: Mission) -> tuple[bool, str]:
         return False, f"Error: {str(e)}"
 
 
-def run_optimizer(mission_list: list[Mission], optimizer):
+def run_optimizer(mission_list: list[utils.Mission], optimizer):
     # Determine max workers, default to 10 if not specified (or use user token limit)
     MAX_WORKERS = 10
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         # Map futures to missions so we know which mission corresponds to which result
         future_to_mission = {
-            executor.submit(optimizer, mission.show_goal()): mission 
+            executor.submit(optimizer, mission): mission 
             for mission in mission_list
         }
         
@@ -147,7 +86,7 @@ def run_optimizer(mission_list: list[Mission], optimizer):
             except Exception as exc:
                 print(f'{mission.output_file} generated an exception: {exc}')
 
-def judge(mission_list: list[Mission], judge_fn):
+def judge(mission_list: list[utils.Mission], judge_fn):
     MAX_WORKERS = 10
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
