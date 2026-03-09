@@ -121,6 +121,9 @@ def judge(mission_list: list[utils.Mission], judge_fn):
         else:
             results.append('R')
     print(f"{accepted}/{total} accepted\nstatus: {''.join(results)}")
+    print("== details ==")
+    for mission in mission_list:
+        print(f"> {mission.repo_name}/{mission.commit_hash}: {'A' if mission.result else 'R'}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:

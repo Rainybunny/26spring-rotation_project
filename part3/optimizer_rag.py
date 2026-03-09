@@ -3,28 +3,15 @@ from langchain_core.prompts import ChatPromptTemplate
 import chromadb
 import utils
 
-def c_func_embed(input):
-    """
-    Embedding function compatible with ChromaDB.
-    Handles both single string (query) and list of strings (documents).
-    """
-
-    if isinstance(input, str):
-        return utils.embeddings_model.embed_query(input)
-    elif isinstance(input, list):
-        return utils.embeddings_model.embed_documents(input)
-    else:
-        # Fallback for other iterables
-        return utils.embeddings_model.embed_documents(list(input))
-
 def init_knowledge_base():
-    chroma_client = chromadb.Client()
+    persist_directory = os.path.join(utils.project_root, "chroma_db")
+    chroma_client = chromadb.PersistentClient(path=persist_directory)
     collection = chroma_client.get_or_create_collection(
         name="code_optimizations",
-        embedding_function=c_func_embed
+        embedding_function=utils.MyEmbeddingFunction()
     )
     if collection.count() != 0:
-        print("Knowledge base already initialized.")
+        print("Knowledge base loaded from disk.")
         return collection
 
     print("Initializing knowledge base...")
@@ -34,24 +21,55 @@ def init_knowledge_base():
     # Ensure knowledge_base_root exists
     for repo_name in os.listdir(utils.knowledge_base_root):
         commits_path = os.path.join(utils.knowledge_base_root, repo_name, "modified_file")
+        if not os.path.exists(commits_path):
+            continue # repos without modified_file folder are ignored
         for commit_hash in os.listdir(commits_path):
             commit = utils.CommitInfo(utils.knowledge_base_root, repo_name, commit_hash)
             documents.append(commit.origin_func)
-            metadatas.append({"commit_info": commit})
+            metadatas.append({"repo_name": repo_name, "commit_hash": commit_hash})
 
     if documents:
         # Generate IDs as strings
         ids = [str(i) for i in range(len(documents))]
-        collection.add(documents=documents, metadatas=metadatas, ids=ids)
-        print(f"Added {len(documents)} documents.")
+
+        def add_batch_safe(batch_docs, batch_metas, batch_ids):
+            try:
+                collection.add(
+                    documents=batch_docs,
+                    metadatas=batch_metas,
+                    ids=batch_ids
+                )
+            except Exception as e:
+                # If a single document failed, drop it
+                if len(batch_docs) == 1:
+                    print(f"Skipping document {batch_ids[0]} due to error: {e}")
+                    return
+                
+                # Otherwise, split and retry
+                mid = len(batch_docs) // 2
+                add_batch_safe(batch_docs[:mid], batch_metas[:mid], batch_ids[:mid])
+                add_batch_safe(batch_docs[mid:], batch_metas[mid:], batch_ids[mid:])
+        
+        # Batch adding documents to avoid RateLimitError and ContextLengthExceeded
+        batch_size = 5  # Small batch size to stay within token limits
+        for i in range(0, len(documents), batch_size):
+            batch_end = min(i + batch_size, len(documents))
+            print(f"Adding batch {i} to {batch_end}...")
+            add_batch_safe(
+                documents[i:batch_end],
+                metadatas[i:batch_end],
+                ids[i:batch_end]
+            )
+        print(f"Added {len(documents)} documents (some might have been skipped).")
     else:
         print("No documents found to add.")
-        
+
     return collection
 
 knowledge_base = init_knowledge_base()
 
 def query_context(mission: utils.Mission) -> str:
+    distance_threshold = 0.8
     try:
         similar = knowledge_base.query(
             query_texts=[mission.origin_func],
@@ -61,14 +79,21 @@ def query_context(mission: utils.Mission) -> str:
         print(f"RAG Query failed: {e}")
         similar = None
 
-    similar = map(lambda x: x['metadata']['commit_info'], similar['metadatas'][0])
-    similar = filter(lambda x: x.repo_name != mission.repo_name, similar)
-    similar = list(similar[:3].reverse())
+    similar = zip(similar["distances"][0], similar['metadatas'][0])
+    similar = filter(lambda x: x[0] >= distance_threshold
+                     and x[1]['repo_name'] != mission.repo_name, similar)
+    similar = list(similar)[:3]
+    similar.reverse()
+    similar = map(lambda x: utils.CommitInfo(utils.knowledge_base_root,
+                                             x[1]['repo_name'], x[1]['commit_hash']),
+                  similar)
+    similar = list(similar)
     # at most 3 similar examples from different repos,
     # reverse to have most similar last for better CoT reasoning
 
     if len(similar) == 0:
-        print("[Warning] No similar examples found in knowledge base for mission {mission.id}.")
+        print(f"[Warning] No similar examples found in knowledge base for mission\n"
+              f"> {mission.repo_name}/{mission.commit_hash}.")
         return ""
 
     context = f"Below are {len(similar)} reference examples\n\n"

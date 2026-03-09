@@ -2,8 +2,7 @@ import os
 import re
 import sys
 from pathlib import Path
-
-from sympy import re
+import chromadb
 
 # Add project root to sys.path to allow importing config
 sys.path.append(str(Path(__file__).parent.parent.absolute()))
@@ -25,6 +24,13 @@ embeddings_model = OpenAIEmbeddings(
     model=config.xmcp_embedding_model,
     check_embedding_ctx_length=False
 )
+
+class MyEmbeddingFunction(chromadb.EmbeddingFunction):
+    def __call__(self, input):
+        if isinstance(input, str):
+            return embeddings_model.embed_query(input)
+        else:
+            return embeddings_model.embed_documents(list(input))
 
 project_root = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 benchmark_root = os.path.join(project_root, "benchmark")
@@ -77,9 +83,9 @@ class Mission(CommitInfo):
 
     def show_result(self):
         res = f"\nFull source code before optimization:\n"
-        res += f"```{self.lang}\n{self.target}\n```\n\n"
+        res += f"```{self.lang}\n{self.origin}\n```\n\n"
         res += f"The only function in the code above that is optimized:\n"
-        res += f"```{self.lang}\n{self.target_func}\n```\n\n"
+        res += f"```{self.lang}\n{self.output}\n```\n\n"
         return res
 
 system_prompt_final_output_format = (
