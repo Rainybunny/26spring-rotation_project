@@ -1,4 +1,4 @@
-这是关于本人对轮状项目完成情况的记录和说明. 对于轮状项目本身的介绍请见 `TASK_README.md` 文件.
+这是关于本人对轮转项目完成情况的记录和说明. 对于轮转项目本身的介绍请见 `TASK_README.md` 文件.
 
 # Part 1/2
 
@@ -56,17 +56,6 @@
     - 过滤掉来自 **同一个仓库** 的案例（`x[1]['repo_name'] != mission.repo_name`），防止数据泄露（Test leakage）。
     - 选取相似度阈值（0.8）以上的案例，保留 Top-3。
 - **Prompt 增强**：
-    - 将检索到的 "原始代码 -> 优化后代码" 对作为 Few-Shot Examples 注入到 System Prompt 中。
+    - 将检索到的 "原始代码 -> 优化后代码" 对作为 Few-Shot Examples 注入到 User Prompt 中。
     - 指令模型分析这些参考案例中的优化模式（Pattern），并判断是否可迁移到当前任务。
     - 这种方法能引导模型学习特定的代码变换模式，而不仅仅依赖通用的训练知识。
-
-## 总结
-通过 Part 3 的实践，构建了一个完整的代码优化流水线：
-1. **Input**: Benchmark 中的待优化函数。
-2. **Process**: 
-    - Baseline: 直接利用 LLM 的编程知识进行优化。
-    - RAG: 利用 ChromaDB 检索相似的历史优化 Commit，为 LLM 提供具体的参考范例。
-3. **Output**: 优化后的函数代码。
-4. **Eval**: 使用 LLM Judge 自动化判定优化的有效性。
-
-
