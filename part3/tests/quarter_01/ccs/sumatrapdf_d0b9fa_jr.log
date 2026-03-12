@@ -1,0 +1,53 @@
+Looking at the provided code, the optimized function is `StrVec::FindI`. The original version (from the full source) is:
+
+```cpp
+int StrVec::FindI(const char* s, int startAt) const {
+    auto end = this->end();
+    for (auto it = this->begin() + startAt; it != end; it++) {
+        // TODO(perf): check length firsts
+        char* s2 = *it;
+        if (str::EqI(s, s2)) {
+            return it.idx;
+        }
+    }
+    return -1;
+}
+```
+
+The optimized version adds:
+1. A null check for `s`.
+2. Precomputes the length of `s` (`sLen`).
+3. Uses `Span()` to get the length and string pointer, then compares lengths before doing a case-insensitive comparison.
+
+The optimization is valid because:
+- The null check prevents undefined behavior if `s` is null (though `str::Leni` might handle null, it's safer).
+- Precomputing `sLen` avoids recomputing it in each iteration.
+- Comparing lengths before `str::EqI` can short-circuit quickly if lengths differ, avoiding a more expensive string comparison.
+
+However, there is a potential issue: the original code uses `str::EqI(s, s2)` where `s2` is a null-terminated string (since `*it` returns `char*`). The optimized version uses `s2.CStr()` which should also be null-terminated (as `StrSpan` stores a pointer and length, and the strings are zero-terminated in `StrVecPage`). So the comparison is still valid.
+
+But note: the original code has a `TODO(perf): check length firsts` comment, indicating that the original author intended to add length checks. The optimized version implements that.
+
+Also, the optimized version correctly handles the case where `s` is null by returning -1, which is consistent with `Find` (which uses `str::Leni` that likely returns 0 for null, but `Find` doesn't explicitly check for null). However, the original `FindI` does not check for null, so the optimized version changes behavior slightly. But since `str::EqI` with a null pointer might crash, the optimization adds safety.
+
+But wait: in the original code, `str::EqI` is called with `s` and `s2`. If `s` is null, it would likely cause a crash. So the optimized version prevents that. This is a correctness improvement, not just performance.
+
+However, the optimization might be considered invalid if it changes the behavior for null inputs. But the original code would likely crash on null, so the optimized version is more robust. But does it match the expected behavior? The `Find` method does not check for null, but it uses `str::Leni(s)` which might return 0 for null, and then compares lengths. So if `s` is null, `Find` would compare strings of length 0? Actually, `str::Leni` probably returns 0 for null, and then `Find` would look for an empty string. So the optimized `FindI` returns -1 for null, while `Find` might return an index if there is an empty string. This is inconsistent.
+
+But the optimized function is `FindI`, not `Find`. The original `FindI` didn't handle null, so it's undefined. The optimization adds a defined behavior (return -1). This could be considered an improvement, but it might break existing code that relies on the undefined behavior? However, since the original would crash, it's better to handle null.
+
+But note: the optimized function is meant to replace the original function. So we must ensure it is a drop-in replacement. The change in behavior for null input might be acceptable if the original would crash. But we should check if the original code ever calls `FindI` with null. Without that context, we assume the optimization is safe.
+
+Performance-wise, the optimized version is better because:
+- Avoids recomputing length of `s`.
+- Adds a length check to skip unnecessary `str::EqI` calls.
+
+Therefore, the optimization is valid.
+
+But there's a subtle bug: the optimized version uses `str::Leni(s)` to compute `sLen`. If `s` is null, `str::Leni` might return 0. Then the null check `if (!s)` returns -1, so we never get to `str::Leni`. That's fine. But if `s` is an empty string (not null), `sLen` is 0, and the length check will match any empty string in the vector. That's correct.
+
+Also, the optimized version uses `it.Span()` which might be slightly slower than `*it` because it constructs a `StrSpan` object. But it's necessary to get the length. However, the original code already uses `Span()` in the `Find` method, so it's consistent.
+
+Another issue: the optimized version adds a `const` to `sLen`, which is fine.
+
+Overall, the optimized function is a valid replacement that improves performance and adds safety for null input.

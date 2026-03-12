@@ -1,0 +1,21 @@
+Let me analyze the `finalizeExecution()` function for optimization opportunities:
+
+1. Current Analysis:
+- The function checks if query was killed or cancelled first (fast paths)
+- Then checks if all processors are finished by iterating through the graph
+- If not all finished, it generates an error message with pipeline dump
+- The main bottleneck is the sequential iteration through all nodes to check status
+
+2. Optimization Opportunities:
+- The status check loop could potentially be parallelized, but that would add complexity
+- We could maintain a counter of unfinished processors to avoid full scan
+- The dumpPipeline() call is expensive but only happens in error case
+- The most impactful simple change would be to add early exit in the status check loop
+
+3. Selected Optimization:
+- Add early exit when first unfinished processor is found
+- This avoids unnecessary iterations when pipeline is stuck
+- Maintains same behavior but improves performance in common case
+- Simple change with no side effects
+
+Here's the optimized implementation:

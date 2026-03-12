@@ -1,0 +1,50 @@
+Let's analyze the optimized version of `same_name` against the original.
+
+**Original function:**
+```c
+static int same_name(const struct cache_entry *ce, const char *name, int namelen, int icase)
+{
+    int len = ce_namelen(ce);
+
+    if (len == namelen && !cache_name_compare(name, namelen, ce->name, len))
+        return 1;
+
+    if (!icase)
+        return 0;
+
+    return slow_same_name(name, namelen, ce->name, len);
+}
+```
+
+**Optimized function:**
+- Replaces `ce_namelen(ce)` with `ce->ce_namelen` (direct struct field access).
+- Moves the length check `len != namelen` earlier in the case-insensitive path.
+- Inlines `slow_same_name` directly instead of calling it.
+- Removes the call to `cache_name_compare` in the fast path (but wait — this is a problem).
+
+**Key issues:**
+
+1. **Missing `cache_name_compare` call:**  
+   The original does `!cache_name_compare(...)` for an exact bytewise comparison.  
+   The optimized version completely omits this call — meaning the fast path now only checks length equality and returns 1 without comparing the strings. This is a critical bug.
+
+2. **`ce_namelen` macro vs direct field:**  
+   `ce_namelen` is likely a macro or inline function that accesses `ce->ce_namelen`.  
+   The change is safe if `ce_namelen` is indeed just that, but the performance gain is negligible.
+
+3. **Early length check in case-insensitive path:**  
+   The original calls `slow_same_name` only if `icase` is true, and inside `slow_same_name` the first check is `if (len1 != len2) return 0;`.  
+   The optimized version moves this length check earlier, which is fine and may save calling `slow_same_name` when lengths differ.
+
+4. **Inlining `slow_same_name`:**  
+   This avoids a function call overhead, which is a valid micro-optimization.
+
+**Correctness problem:**
+The optimized version’s fast path is broken — it returns 1 if lengths match, without comparing the actual names. The original uses `cache_name_compare` to compare them.  
+Thus, the optimized function would incorrectly return true for different names of the same length.
+
+**Performance consideration:**
+Even if the `cache_name_compare` call were preserved, the changes (direct field access, early length check, inlining) are minor optimizations. The removal of `cache_name_compare` is not an optimization — it's a bug.
+
+**Conclusion:**
+The optimized function is **not** a valid replacement because it changes behavior (incorrect fast-path comparison).

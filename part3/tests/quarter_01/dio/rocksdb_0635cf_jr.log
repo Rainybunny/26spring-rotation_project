@@ -1,0 +1,21 @@
+Looking at the provided code and the optimized function, I can see that the original `AddInternalKey` function generates a random string for each call using `RandomString(&rnd, 800)`. The optimized version attempts to cache these random strings to avoid regenerating them repeatedly.
+
+However, there are several critical issues with the optimized implementation:
+
+1. **Thread safety problem**: The function uses a `static std::mutex cache_mutex` but the `rnd` object is also declared as `static`. The `rnd.Uniform(cache_size)` call happens outside the mutex lock, which means multiple threads could access the same `rnd` object concurrently, leading to race conditions.
+
+2. **Incorrect caching logic**: The cache is initialized once with 100 random strings, but the original function was meant to generate a new random string each time. The optimized version reuses the same 100 strings, which changes the behavior of the function significantly.
+
+3. **Performance concern**: The mutex lock is taken every time the function is called (after the first initialization), which could actually make the function slower than the original in multi-threaded scenarios, especially since the original just generated a random string without any locking.
+
+4. **Memory usage**: The cache stores 100 strings of 800 characters each, which is 80KB of memory that wasn't used in the original implementation.
+
+5. **Behavioral change**: The original function would generate a truly random suffix each time. The optimized version only provides 100 possible suffixes, which reduces randomness and could affect test coverage.
+
+The optimization attempt fails because:
+- It changes the fundamental behavior of the function (limited randomness vs true randomness)
+- Introduces thread safety issues
+- May not actually improve performance due to mutex contention
+- Adds unnecessary memory overhead
+
+The original function is simple, thread-safe (each thread would have its own static `rnd` due to function-local static initialization), and generates truly random data as intended for testing.

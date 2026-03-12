@@ -1,0 +1,23 @@
+Looking at the provided code, the optimized version of `loadStoredObjects` introduces several changes:
+
+1. **Separate thread pools for tables and dictionaries**: The original uses a single pool for tables, then processes dictionaries sequentially. The optimized version creates two pools: one for tables and a smaller one for dictionaries (half the size, but at least 1).
+
+2. **Parallel processing of dictionaries**: In the original, dictionaries are processed sequentially after tables are attached. The optimized version processes them concurrently with tables.
+
+3. **Changed execution order**: The original attaches tables first, then starts them up, then attaches dictionaries. The optimized version attaches both in parallel, then starts up tables.
+
+**Analysis of correctness**:
+- The separation into two thread pools should maintain correctness since tables and dictionaries don't depend on each other during attachment.
+- The `startupTables` call is moved to after both pools complete, which is correct since tables need to be attached before starting up.
+- The `attachToExternalDictionariesLoader` call is moved to after both pools complete, which maintains the original order relative to dictionary attachment.
+
+**Performance considerations**:
+- Parallelizing dictionary attachment could improve performance when there are many dictionaries.
+- Using separate pools prevents table attachment from being starved by dictionary processing.
+- The dictionary pool size being half the table pool size is a reasonable heuristic.
+
+**Potential issues**:
+- The original code had `startupTables(pool)` using the same pool that was used for table attachment. The optimized version creates a new `table_pool` for startup, which reuses the same pool object - this is fine.
+- The logging progress counters are now updated from both pools concurrently - this should be thread-safe since they're atomic.
+
+**Verdict**: The optimized version maintains correctness while potentially improving performance through better parallelism. The changes are logically sound and don't introduce race conditions or dependency issues.

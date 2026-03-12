@@ -1,0 +1,18 @@
+Let me analyze the `interpolate` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function handles many different Variant types with a large switch statement
+- The most performance-critical cases are likely the numeric types (INT, REAL) and vector types (VECTOR2, VECTOR3) since these are commonly used in interpolation
+- The string interpolation case has some complexity with memory allocation and character-by-character processing
+- The array cases (POOL_VECTOR2_ARRAY, POOL_VECTOR3_ARRAY) involve loops that could benefit from optimization
+
+2. **Optimization Opportunities**:
+- For numeric types, we can optimize the common case where types match by moving the type check outside the switch
+- For vector/array cases, we can ensure memory is accessed sequentially
+- The string case could be optimized by pre-allocating and using memcpy where possible
+- We can add early returns for trivial cases (c == 0 or c == 1)
+
+3. **Selected Optimization**:
+The most impactful optimization would be to handle the common numeric cases (INT, REAL) first with simplified code paths. This avoids the full switch dispatch for these frequent operations.
+
+Here's the optimized function:

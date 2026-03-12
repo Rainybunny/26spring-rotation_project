@@ -1,0 +1,25 @@
+Let me analyze the `Variant::interpolate` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function handles many different Variant types with a switch statement
+- The most performance-critical cases are likely the numeric types (INT, REAL) and vector types (VECTOR2, VECTOR3)
+- The string interpolation case has some complexity with memory allocation and character copying
+- The array cases (POOL_VECTOR2_ARRAY, POOL_VECTOR3_ARRAY) involve loops and could benefit from optimization
+
+2. **Key Observations**:
+- The early type check and numeric fallback is good for handling mixed types
+- Many cases just return one of the inputs unchanged (BOOL, NIL, etc)
+- The array cases do bounds checking and allocation that could be streamlined
+
+3. **Optimization Opportunities**:
+- For numeric types, we can use direct arithmetic rather than temporary variables
+- For vector/array cases, we can pre-check sizes once before loops
+- The string case could be optimized for common scenarios (empty strings, same strings)
+
+4. **Selected Optimization**:
+I'll focus on optimizing the POOL_VECTOR2_ARRAY and POOL_VECTOR3_ARRAY cases since:
+- They are likely used in performance-sensitive graphics/animation code
+- They involve loops that can be optimized
+- The current implementation has some redundant checks
+
+Here's the optimized implementation:

@@ -1,0 +1,29 @@
+Let me analyze the function and potential optimizations:
+
+1. **Bottleneck Analysis**:
+- The function processes logits for each token in the vocabulary (n_vocab can be large, e.g. 32k+)
+- Main operations are:
+  - Copying logits (when grammar is enabled)
+  - Applying logit biases
+  - Applying guidance (if ctx_cfg exists)
+  - Creating token data array
+  - Applying penalties
+  - Applying grammar checks
+
+2. **Key Observations**:
+- The most expensive part is likely the loop creating the token data array (cur.emplace_back)
+- Grammar operations are conditional and may not always execute
+- Penalty application is also conditional
+
+3. **Potential Optimizations**:
+- Pre-allocate the 'cur' vector to avoid reallocations (similar to Example 4's optimization)
+- Move condition checks outside loops where possible
+- Use memcpy instead of element-wise copy for logits when grammar is enabled
+
+4. **Selected Optimization**:
+The highest impact optimization would be to pre-allocate the 'cur' vector since:
+- It's recreated on every call
+- n_vocab is known in advance
+- emplace_back may cause multiple reallocations for large vocabularies
+
+Here's the optimized function:

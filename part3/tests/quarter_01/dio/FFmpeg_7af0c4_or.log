@@ -1,0 +1,24 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes each color component separately, with nested loops over pixels
+- The main computational work happens in the pixel processing loops
+- For each component, there are potentially two full passes over the image (for finding min/max)
+- The most expensive operations are the per-pixel calculations and memory accesses
+
+2. **Key Observations**:
+- The min/max calculations could be combined into a single pass
+- The coefficient calculation is done per component but doesn't change during processing
+- The inner loops have simple arithmetic that could benefit from SIMD optimization
+- The memory access pattern is sequential, which is good for cache efficiency
+
+3. **Potential Optimizations**:
+- Combine min/max finding into a single pass per component
+- Precompute more values outside the loops
+- Use pointer arithmetic instead of array indexing
+- Consider loop unrolling for the inner loop
+
+4. **Selected Optimization**:
+The most impactful change would be to combine the min/max finding passes into a single pass per component. This reduces the number of memory accesses by half for these cases.
+
+Here's the optimized function:

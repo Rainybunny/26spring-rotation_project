@@ -1,0 +1,26 @@
+Let me analyze the `AddInternalKey` function for optimization opportunities:
+
+1. **Analysis**:
+- The function creates an InternalKey by combining a prefix with a random suffix string
+- It uses a static Random object (rnd) initialized once
+- The random string generation happens for every call
+- The key encoding and string concatenation are performed for each call
+
+2. **Bottlenecks**:
+- Random string generation is relatively expensive due to randomness generation
+- String concatenation and encoding operations are performed repeatedly
+- The static Random object access may have some synchronization overhead
+
+3. **Optimization Ideas**:
+- Pre-generate random strings in bulk to reduce per-call overhead
+- Optimize the string concatenation
+- Avoid repeated encoding operations if possible
+- Consider thread-local Random objects if used in multi-threaded context
+
+4. **Selected Optimization**:
+The most impactful optimization would be to pre-generate and cache the random suffix strings since:
+- Random generation is expensive
+- The suffix length is fixed (800 chars)
+- The same suffix could be reused across calls
+
+Here's the optimized implementation:

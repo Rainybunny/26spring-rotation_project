@@ -1,3 +1,0 @@
-ClickHouse 32dcbfb6273fffacda1ec09c8cbf737f82ca0d04
-folly 2e29c4715e0957e44e8e3fdf8e37ca7f4526b6f3
-mysql-server aea6bd5081a4785593512467f504bcf8242ce5be

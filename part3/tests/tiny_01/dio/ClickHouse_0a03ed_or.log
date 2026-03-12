@@ -1,0 +1,26 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. Analysis:
+- The function reads quoted key-value pairs with escape sequence handling
+- Main operations: searching for special characters and copying data
+- The key bottleneck is in the character-by-character copy loop when handling quoted content (marked with "todo" comment)
+- Current implementation uses push_back() in a loop which:
+  * Causes multiple capacity checks/reallocations
+  * Has poor cache locality
+  * Involves repeated bounds checking
+
+2. Potential Optimizations:
+- Pre-calculate required size and reserve capacity
+- Use bulk insert/memcpy instead of character-by-character copy
+- Optimize the escape sequence handling path (but this is more complex)
+- The most impactful and simple change would be optimizing the quoted content copy
+
+3. Selected Optimization:
+Replace the character-by-character push_back loop with a single insert() call. This:
+- Eliminates multiple capacity checks
+- Reduces function call overhead
+- Allows potential memcpy optimization internally
+- Maintains exact same behavior
+- Is simple and low-risk
+
+Here's the optimized function:

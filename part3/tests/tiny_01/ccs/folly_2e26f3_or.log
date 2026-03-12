@@ -1,0 +1,39 @@
+Let me analyze the `wake()` function and identify potential optimizations:
+
+1. **Current Implementation Analysis**:
+   - The function acquires a mutex lock, sets a boolean flag, and notifies one waiting thread
+   - This is a common pattern for condition variable signaling
+   - The mutex lock is necessary to ensure proper synchronization with waiting threads
+
+2. **Bottlenecks**:
+   - The main overhead comes from the mutex lock/unlock operations
+   - The function is called frequently in parking/unparking operations
+   - The mutex is uncontended in this case (only used for this node's signaling)
+
+3. **Optimization Opportunities**:
+   - We could potentially use atomic operations instead of mutex for the boolean flag
+   - However, we must maintain proper synchronization with the condition variable
+   - The condition variable requires the mutex for correct operation, so we can't eliminate it entirely
+
+4. **Selected Optimization**:
+   - Use `std::atomic<bool>` for `signaled_` to allow lock-free checks
+   - Keep the mutex for condition variable synchronization
+   - First check the atomic flag before taking the lock to avoid unnecessary locking
+
+5. **Why This Optimization**:
+   - Atomic reads are much faster than mutex locks
+   - Most calls will find `signaled_` already true (common case in parking lot patterns)
+   - Still maintains correct synchronization when needed
+   - Minimal code change with clear performance benefit
+
+6. **Potential Impact**:
+   - Reduces lock contention in the common case
+   - Faster path for already-signaled nodes
+   - Maintains correctness in all cases
+
+Final Optimization Idea:
+- Convert `signaled_` to `std::atomic<bool>`
+- Add an early check of the atomic flag before taking the lock
+- Only proceed with full lock/notify if the flag wasn't already set
+
+Here's the optimized implementation:

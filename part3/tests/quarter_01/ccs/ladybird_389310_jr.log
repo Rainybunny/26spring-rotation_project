@@ -1,0 +1,70 @@
+Let's analyze the provided code.
+
+**Original `copy` function:**
+```c
+static size_t copy(T* destination, const T* source, size_t count)
+{
+    if (count == 0)
+        return 0;
+
+    if constexpr (Traits<T>::is_trivial()) {
+        __builtin_memmove(destination, source, count * sizeof(T));
+        return count;
+    }
+
+    for (size_t i = 0; i < count; ++i) {
+        if (destination <= source)
+            new (&destination[i]) T(source[i]);
+        else
+            new (&destination[count - i - 1]) T(source[count - i - 1]);
+    }
+
+    return count;
+}
+```
+
+**Optimized `copy` function:**
+```c
+static size_t copy(T* destination, const T* source, size_t count)
+{
+    if (count == 0)
+        return 0;
+
+    if constexpr (Traits<T>::is_trivial()) {
+        __builtin_memmove(destination, source, count * sizeof(T));
+        return count;
+    }
+
+    if (destination <= source) {
+        for (size_t i = 0; i < count; ++i)
+            new (&destination[i]) T(source[i]);
+    } else {
+        for (size_t i = 0; i < count; ++i)
+            new (&destination[count - i - 1]) T(source[count - i - 1]);
+    }
+
+    return count;
+}
+```
+
+**Comparison:**
+
+1. **Correctness:**  
+   The logic is identical in both versions.  
+   - For trivial types, `memmove` is used.  
+   - For non-trivial types, the original checks `destination <= source` inside the loop on each iteration, while the optimized version checks it once outside the loop.  
+   Since `destination` and `source` pointers do not change during the loop, moving the condition outside is safe and does not change behavior.
+
+2. **Performance:**  
+   The optimized version reduces branching overhead.  
+   In the original, the `if (destination <= source)` is evaluated `count` times.  
+   In the optimized version, it is evaluated once.  
+   This is a valid optimization for non-trivial types when `count` is large.
+
+3. **Edge Cases:**  
+   - `count == 0`: both return early.  
+   - Overlapping ranges: both handle overlap correctly by choosing forward or backward copy direction based on pointer comparison.  
+   - The condition `destination <= source` is the same in both, ensuring overlapping regions are copied safely.
+
+**Conclusion:**  
+The optimized version is functionally equivalent and improves performance by hoisting the loop-invariant condition out of the loop.

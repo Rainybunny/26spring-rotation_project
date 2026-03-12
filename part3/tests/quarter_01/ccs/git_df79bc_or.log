@@ -1,0 +1,26 @@
+Let me analyze the `get_strategy()` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs multiple string comparisons (strcmp/strncmp) which can be expensive
+- It loads and processes command lists on first call (static `loaded` flag)
+- It searches through arrays linearly (O(n) complexity)
+- Memory allocations occur for each new strategy
+
+2. **Key Observations**:
+- The `all_strategy` array is fixed and small (6 entries)
+- Strategy names are short and known at compile time
+- The command list loading is deferred until first non-builtin strategy request
+
+3. **Optimization Strategy**:
+- Pre-compute hash values for strategy names to enable faster comparisons
+- Use pointer comparison first before string comparison (FlyString pattern)
+- Optimize the common case (builtin strategies) to avoid command list loading
+- Cache frequently accessed strategies
+
+4. **Selected Optimization**:
+Implement a hybrid approach that:
+1. First checks builtin strategies using pointer comparison if possible
+2. Falls back to string comparison only when needed
+3. Lazily loads external commands only when necessary
+
+Here's the optimized implementation:

@@ -1,0 +1,19 @@
+Let me analyze the `rehash_objects` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function is called when the hash table needs resizing (load factor > 75%)
+   - Main operations: memory allocation, zeroing memory, and rehashing all objects
+   - The most expensive part is the loop that rehashes all objects (O(n) operation)
+   - Memory operations (xrealloc and memset) are also costly but necessary
+
+2. **Potential Optimizations**:
+   - Precompute the new index size before allocation to avoid recalculating
+   - Use calloc instead of xrealloc+memset (but xrealloc might be required)
+   - Unroll the loop or use pointer arithmetic for the entry iteration
+   - The most impactful would be optimizing the entry iteration since it's O(n)
+
+3. **Selected Optimization**:
+   - Replace the array indexing (`entry = pdata->objects; entry++`) with direct pointer arithmetic which can be more efficient
+   - This avoids repeated address calculations and leverages CPU's pointer arithmetic capabilities
+
+Here's the optimized function:

@@ -1,0 +1,27 @@
+Let me analyze the `log_mel_spectrogram` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes audio samples into mel spectrogram features
+- Main operations: padding, windowing, FFT, mel filtering
+- Most time is spent in the worker threads doing FFT and mel filter calculations
+- Memory allocation and copying could be optimized
+
+2. **Key Observations**:
+- The function uses a global cache for hann window coefficients (good)
+- Sample padding involves multiple memory operations
+- Worker thread distribution could be improved
+- Memory allocations happen for each call
+
+3. **Optimization Opportunities**:
+- Pre-allocate memory for samples_padded to avoid reallocations
+- Optimize the padding operations to minimize copies
+- Better thread workload balancing
+- Vectorize key operations where possible
+
+4. **Selected Optimization**:
+The highest impact change would be to optimize the sample padding operations by:
+- Pre-allocating the padded buffer
+- Using memcpy for bulk operations
+- Minimizing temporary copies
+
+Here's the optimized implementation:

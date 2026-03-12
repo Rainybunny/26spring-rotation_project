@@ -1,0 +1,29 @@
+Let me analyze the function and propose optimizations:
+
+1. Analysis:
+- The function processes each row independently, computing a bitmask value based on the checker function
+- Main operations per row: get set_index, compute bitmask, insert into result column
+- Potential bottlenecks:
+  - Memory allocation in result column creation
+  - Repeated calls to insert() which may involve reallocations
+  - Potential branch mispredictions in the checker() calls
+  - Bit shifting operations could be optimized
+
+2. Key Observations:
+- The result column size is known upfront (input_rows_count)
+- We can pre-allocate the result column to avoid reallocations
+- The bitmask computation is sequential and could potentially be vectorized
+- The checker() function is called multiple times per row - could be expensive if complex
+
+3. Optimization Priorities:
+- Pre-allocation of result column is the simplest high-impact change
+- Avoid reallocations during insert() calls
+- Maintain same behavior while improving performance
+
+4. Selected Optimization:
+Pre-allocate the result column with known size and use direct writes instead of insert() calls. This avoids:
+- Multiple memory allocations
+- Capacity checks during inserts
+- Potential cache misses from reallocations
+
+Here's the optimized implementation:

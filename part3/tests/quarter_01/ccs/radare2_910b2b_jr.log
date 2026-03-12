@@ -1,0 +1,54 @@
+Let's analyze the provided code.
+
+**Original function:**
+```c
+static int gbDisass(RAsmOp *op, const ut8 *buf, ut64 len){
+	int foo = gbOpLength (gb_op[buf[0]].type);
+	if (len<foo)
+		return 0;
+	switch (gb_op[buf[0]].type) {
+    ...
+	}
+	return foo;
+}
+```
+
+**Optimized function:**
+```c
+static int gbDisass(RAsmOp *op, const ut8 *buf, ut64 len) {
+    const ut8 opcode = buf[0];
+    const GB_op_def *op_def = &gb_op[opcode];
+    int foo = gbOpLength(op_def->type);
+    if (len < foo)
+        return 0;
+    switch (op_def->type) {
+    ...
+    }
+    return foo;
+}
+```
+
+**Changes:**
+1. `buf[0]` is stored in a local variable `opcode`.
+2. `gb_op[opcode]` is dereferenced once and stored in a local pointer `op_def`.
+3. The switch uses `op_def->type` instead of `gb_op[buf[0]].type`.
+4. In the `GB_8BIT` case, `op_def->name` is used instead of `gb_op[buf[0]].name`.
+5. In the `GB_8BIT+ARG_8`, `GB_8BIT+ARG_16`, and `GB_8BIT+ARG_8+GB_IO` cases, `op_def->name` is used instead of `gb_op[buf[0]].name`.
+
+**Correctness:**
+- The logic is identical; only an extra local pointer is introduced.
+- The pointer `op_def` is derived from `gb_op[opcode]` where `opcode = buf[0]`, same as original.
+- No side effects are introduced; the function remains deterministic.
+- The switch cases are unchanged in behavior.
+
+**Performance:**
+- The original code indexes `gb_op` array twice: once for `gbOpLength` and once for the switch.
+- The optimized version indexes once, stores the address, and reuses it.
+- This reduces memory accesses and may allow better compiler optimization.
+- The change is minimal and safe.
+
+**Potential issues:**
+- None. The optimization is a straightforward caching of a repeated array lookup.
+
+**Conclusion:**  
+The optimized function is a valid replacement that improves performance without altering behavior.

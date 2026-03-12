@@ -1,0 +1,21 @@
+Let me analyze the `strbuf_addch` function for optimization:
+
+1. Current Implementation Analysis:
+- The function adds a single character to a strbuf
+- It first ensures there's space for 1 more character via strbuf_grow
+- Then it adds the character and updates length
+- Finally it adds null terminator
+
+2. Bottlenecks:
+- The main overhead is the potential call to strbuf_grow for every single character addition
+- The null termination is always done, even when we know the buffer is already null-terminated after growth
+
+3. Optimization Opportunities:
+- We could check if there's already space available before calling strbuf_grow
+- We could skip the null termination if we know strbuf_grow already did it
+- We could combine the character write and length increment into one operation
+
+4. Selected Optimization:
+The highest impact optimization would be to first check available space before calling the potentially expensive strbuf_grow. This avoids a function call in the common case where there's already space.
+
+Here's the optimized implementation:

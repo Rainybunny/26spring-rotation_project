@@ -1,0 +1,22 @@
+Let me analyze the `GetAvailableCredit` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs a loop over all transaction outputs (vout) and checks if each is spent
+- For unspent outputs, it calls `GetCredit()` which involves more computation
+- The cache check is done after other early returns, which is good
+- The MoneyRange check happens inside the loop, which could be moved outside
+
+2. **Optimization Opportunities**:
+- The biggest cost is the repeated `IsSpent()` calls which involve hash map lookups
+- We could potentially reduce the number of `IsSpent()` checks by batching them
+- However, the wallet architecture doesn't easily support batch checks
+- The MoneyRange check can be moved outside the loop safely
+
+3. **Selected Optimization**:
+Move the MoneyRange check outside the loop since:
+- It's a relatively expensive range check
+- It's only needed once at the end
+- The intermediate values don't need validation since we're just summing credits
+- This reduces the number of range checks from O(n) to O(1)
+
+Here's the optimized function:

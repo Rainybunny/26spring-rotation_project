@@ -1,0 +1,55 @@
+Let's analyze the optimized function against the original.
+
+**Original function:**
+```c
+static Vector<int> triangulate_delaunay(const Vector<Vector2> &p_points) {
+	Vector<Delaunay2D::Triangle> tr = Delaunay2D::triangulate(p_points);
+	Vector<int> triangles;
+
+	for (int i = 0; i < tr.size(); i++) {
+		triangles.push_back(tr[i].points[0]);
+		triangles.push_back(tr[i].points[1]);
+		triangles.push_back(tr[i].points[2]);
+	}
+	return triangles;
+}
+```
+
+**Optimized function:**
+```c
+static Vector<int> triangulate_delaunay(const Vector<Vector2> &p_points) {
+	Vector<Delaunay2D::Triangle> tr = Delaunay2D::triangulate(p_points);
+	Vector<int> triangles;
+	triangles.resize(tr.size() * 3); // Pre-allocate exact size needed
+
+	for (int i = 0; i < tr.size(); i++) {
+		int idx = i * 3;
+		triangles.write[idx] = tr[i].points[0];
+		triangles.write[idx + 1] = tr[i].points[1];
+		triangles.write[idx + 2] = tr[i].points[2];
+	}
+	return triangles;
+}
+```
+
+**Changes:**
+1. Added `triangles.resize(tr.size() * 3);` to pre-allocate memory.
+2. Replaced three `push_back` calls with direct assignment using `triangles.write[idx]` etc.
+3. Computed `idx = i * 3` once per iteration.
+
+**Correctness check:**
+- The logic is identical: for each triangle, output its three vertex indices in the same order.
+- Pre-allocation avoids repeated reallocations as the vector grows, which is safe because we know the exact final size (`tr.size() * 3`).
+- The `write` method is a valid way to assign elements in Godot's `Vector` class (it provides write access to the underlying array).
+- No out-of-bounds access: `idx` ranges from `0` to `(tr.size()-1)*3`, and `resize` ensures capacity for exactly `tr.size() * 3` elements.
+
+**Performance improvement:**
+- Pre-allocation eliminates multiple reallocation/copy cycles as `push_back` grows the vector.
+- Direct indexing is likely faster than `push_back` (which involves bounds checking and possible reallocation, but here reallocation is eliminated).
+- Computing `idx` once per iteration reduces redundant multiplications.
+
+**Potential concerns:**
+- The `write` method is specific to Godot's container; it must be available and safe. Given the original code uses `push_back`, but other parts of the provided source use `.write` (e.g., in `convex_hull`), it's a valid optimization.
+- The optimization assumes `tr.size() * 3` does not overflow `int`. This matches the original's loop count.
+
+**Conclusion:** The optimized version is functionally equivalent and improves performance by pre-allocating memory and using direct writes.

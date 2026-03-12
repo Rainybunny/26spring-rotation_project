@@ -1,0 +1,24 @@
+Let me analyze the function `ngx_http_upstream_init_round_robin` for optimization opportunities:
+
+1. **Analysis**:
+- The function has two main paths: one for explicit server lists (us->servers) and one for implicit upstreams
+- The server list path has two nested loops (i and j) that process both primary and backup servers
+- The backup server processing is nearly identical to primary server processing
+- The function performs multiple checks for `server[i].backup` in the inner loops
+
+2. **Bottlenecks**:
+- The backup check `server[i].backup` is performed in the inner loop for every address
+- The same fields are being copied in both primary and backup cases
+- The weight calculations (n and w) are done separately for primary and backup
+
+3. **Optimization Strategy**:
+- Move invariant checks outside loops where possible
+- Combine similar operations to reduce redundant checks
+- Pre-calculate values that don't change during iteration
+
+4. **Selected Optimization**:
+- Combine the primary and backup server counting loops into one
+- Pre-calculate the backup status before the inner address loop
+- This reduces the number of conditional checks in the inner loop
+
+Here's the optimized function:

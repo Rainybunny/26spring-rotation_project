@@ -1,0 +1,26 @@
+Let me analyze the `filter_frame` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes each color component (R,G,B,A) separately
+- For each component, it performs 3 main passes over the image data:
+  a) Finding minimum value (if imin < 0)
+  b) Finding maximum value (if imax < 0)
+  c) Applying the level adjustment
+- The current implementation recalculates `coeff` for every component, even though it's constant per component
+- The inner loops have pointer arithmetic that could be optimized
+
+2. **Optimization Strategy**:
+- The selected strategy is to move invariant calculations outside loops
+- The coefficient calculation (`coeff = (omax - omin) / (double)(imax - imin)`) is invariant for each component and can be precomputed
+- The pointer arithmetic in the inner loops can be simplified by precomputing offsets
+
+3. **High-Impact Changes**:
+- Precompute the coefficient before the pixel processing loops
+- Simplify pointer arithmetic by precomputing component offsets
+- The most impactful change would be to precompute the coefficient since it avoids redundant floating-point division in the inner loop
+
+4. **Selected Optimization**:
+- Move the coefficient calculation outside the pixel processing loops
+- This avoids recalculating the same value for every pixel while maintaining identical behavior
+
+Here's the optimized function:

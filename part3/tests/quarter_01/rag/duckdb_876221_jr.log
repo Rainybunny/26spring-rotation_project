@@ -1,0 +1,24 @@
+Let's analyze the optimized constructor for the `Index` class.  
+
+**Original version:**  
+- Vectors (`types`, `logical_types`, `bound_expressions`, `unbound_expressions`) are grown dynamically in the loop.  
+- `column_id_set` (likely an `unordered_set`) is filled without preallocation.  
+
+**Optimized version changes:**  
+1. Added `reserve(expr_count)` for the four vectors before the loop.  
+2. Added `column_id_set.reserve(column_ids.size())` before inserting into the set.  
+
+**Reasoning:**  
+- `reserve` for vectors prevents multiple reallocations as elements are added, improving performance when there are many expressions.  
+- `reserve` for `unordered_set` reduces rehashing and improves insertion speed.  
+- The logic is otherwise identical; no functional changes.  
+- The optimization is valid because:  
+  - It does not change the order of operations that could affect correctness.  
+  - It only adds performance improvements for memory allocation patterns.  
+  - It works for all cases (empty vectors/sets, small or large sizes).  
+
+**Potential concerns:**  
+- If `column_id_set` is not an `unordered_set` but something else without `reserve`, this would fail to compile. However, from context (`column_id_set.insert(column_id)`), it's reasonable to assume it's a standard hash set.  
+- The original code didn't have `#include <unordered_set>` visible, but that's not a correctness issue for the optimization itself — the header is likely included elsewhere.  
+
+Given the provided context, the optimized version is a valid replacement that improves performance without altering behavior.

@@ -1,0 +1,26 @@
+Let me analyze the `SortedAggregateBindData` constructor for optimization opportunities:
+
+1. **Bottlenecks Analysis**:
+   - The constructor performs multiple loops over children and order_bys vectors
+   - Each iteration involves potentially expensive operations like:
+     - `GetSegmentDataFunctions()` calls
+     - `Equals()` comparisons between expressions
+   - The `sorted_on_args` check requires a full scan even if early conditions fail
+
+2. **Key Observations**:
+   - The `arg_types` and `arg_funcs` vectors are always populated for all children
+   - The `sort_types` and `sort_funcs` vectors are always populated for all order_bys
+   - The `sorted_on_args` check is only needed if children.size() == order_bys.orders.size()
+
+3. **Optimization Opportunities**:
+   - Pre-compute size checks before loops to avoid unnecessary work
+   - Move the `sorted_on_args` check after the vector initializations since it's only needed conditionally
+   - Combine the `arg_types` and `arg_funcs` initialization into a single loop
+
+4. **Selected Optimization**:
+   The most impactful change would be to reorder operations to:
+   - First initialize all required vectors (unconditional work)
+   - Then perform the conditional `sorted_on_args` check only if needed
+   - This avoids branching inside loops and makes better use of cache locality
+
+Here's the optimized implementation:

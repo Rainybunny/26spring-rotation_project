@@ -1,0 +1,25 @@
+Let me analyze the `AddInternalKey` function for optimization opportunities:
+
+1. **Analysis of Current Implementation**:
+- The function creates an InternalKey by concatenating a prefix with a random string
+- It uses a static Random object (rnd) initialized with seed 1023
+- It generates a random string of fixed length 800 bytes
+- The InternalKey is then encoded and added to the TableConstructor
+
+2. **Potential Bottlenecks**:
+- Random string generation for every call could be expensive
+- String concatenation creates temporary strings
+- The encoded key string creation involves additional allocations
+
+3. **Optimization Opportunities**:
+- Reuse the random string buffer if possible
+- Minimize string copying and allocations
+- Consider pre-allocating memory for the key
+
+4. **Selected Optimization**:
+The highest impact optimization would be to reuse the random string buffer to avoid repeated allocations. We can:
+- Make the random string buffer static to reuse it across calls
+- Only regenerate the random string when actually needed
+- Pre-allocate space for the final key to avoid reallocations
+
+Here's the optimized implementation:

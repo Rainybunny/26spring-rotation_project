@@ -1,0 +1,71 @@
+Looking at the provided original source code and the optimized function, I need to analyze whether the optimized `Runtime_Math_random` function is a valid replacement for the original implementation.
+
+**Original function:**
+```cpp
+static Object* Runtime_Math_random(Arguments args) {
+  NoHandleAllocation ha;
+  ASSERT(args.length() == 0);
+
+  // To get much better precision, we combine the results of two
+  // invocations of random(). The result is computed by normalizing a
+  // double in the range [0, RAND_MAX + 1) obtained by adding the
+  // high-order bits in the range [0, RAND_MAX] with the low-order
+  // bits in the range [0, 1).
+  double lo = static_cast<double>(random()) / (RAND_MAX + 1.0);
+  double hi = static_cast<double>(random());
+  double result = (hi + lo) / (RAND_MAX + 1.0);
+  ASSERT(result >= 0 && result < 1);
+  return Heap::AllocateHeapNumber(result);
+}
+```
+
+**Optimized function:**
+```cpp
+static Object* Runtime_Math_random(Arguments args) {
+  NoHandleAllocation ha;
+  ASSERT(args.length() == 0);
+
+  // Use xorshift128+ PRNG for better performance
+  static uint64_t state[2] = {1, 0};
+  uint64_t x = state[0];
+  uint64_t const y = state[1];
+  state[0] = y;
+  x ^= x << 23;
+  state[1] = x ^ y ^ (x >> 17) ^ (y >> 26);
+  uint64_t random_bits = state[1] + y;
+
+  // Convert to double in [0,1) range by using 52 high bits (mantissa bits)
+  double result = (random_bits >> 12) * 0x1.0p-52;
+  ASSERT(result >= 0 && result < 1);
+  return Heap::AllocateHeapNumber(result);
+}
+```
+
+**Analysis:**
+
+1. **Correctness:**
+   - Both functions return a double in the range [0,1)
+   - Both use `NoHandleAllocation` and have the same assertion
+   - Both allocate and return a heap number
+   - The xorshift128+ algorithm is a well-established, high-quality PRNG that should produce uniformly distributed values
+
+2. **Performance improvements:**
+   - The original uses `random()` which typically involves a system call and locking
+   - The optimized version uses a purely computational PRNG (xorshift128+) which is much faster
+   - The optimized version avoids division operations
+
+3. **Thread safety concerns:**
+   - The original `random()` function is typically thread-safe (though implementation-dependent)
+   - The optimized version uses `static` state variables which are shared across all threads - this is a **critical issue**
+   - Without synchronization, concurrent calls to this function would cause data races and potentially corrupt the PRNG state
+
+4. **Statistical quality:**
+   - xorshift128+ is generally considered to have better statistical properties than many system `random()` implementations
+   - The method of converting to double (using 52 high bits) is appropriate for generating doubles in [0,1)
+
+**Conclusion:**
+The optimized function would be faster and produce higher quality random numbers, but it introduces a serious thread safety issue by using unsynchronized static state in a potentially multi-threaded environment. The original code uses thread-safe system calls (though slower), while the optimized version is not thread-safe.
+
+**VERDICT: FALSE**
+
+The optimization is invalid because it breaks thread safety in a runtime function that could be called from multiple JavaScript threads concurrently. A valid optimization would need to address thread safety, perhaps by using thread-local storage or atomic operations.

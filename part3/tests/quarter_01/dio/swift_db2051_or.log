@@ -1,0 +1,20 @@
+Let me analyze the `createParameterTypes` function for optimization opportunities:
+
+1. **Analysis**:
+- The function creates debug info for function parameters by:
+  - First adding the return type
+  - Then adding each parameter type
+- It uses a `GenericContextScope` to handle generic contexts
+- It creates a SmallVector to collect parameter types
+- It calls `createParameterType` for each type
+- Finally creates a type array from the vector
+
+2. **Potential Bottlenecks**:
+- Memory allocations from SmallVector
+- Multiple calls to `createParameterType` which may involve type lookups
+- Generic context handling overhead
+
+3. **Optimization Idea**:
+The most impactful optimization would be to **pre-allocate the SmallVector** to avoid reallocations since we know the exact number of parameters (return type + parameters count).
+
+Here's the optimized implementation:

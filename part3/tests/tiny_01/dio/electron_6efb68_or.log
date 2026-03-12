@@ -1,0 +1,24 @@
+Let me analyze the function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function makes multiple calls to GetDevToolsWebContents() which could be cached
+- The main loop processes file systems sequentially, which could be parallelized
+- Each iteration creates temporary objects (FilePath, FileSystem) that could be optimized
+- The final ListValue construction could potentially be optimized
+
+2. **Potential Optimizations**:
+- Cache GetDevToolsWebContents() result to avoid repeated calls
+- Pre-allocate vector capacity to avoid reallocations
+- Use move semantics for FileSystem objects
+- Parallelize the file system registration (but this would be complex and risky)
+- Optimize the ListValue construction (but this is constrained by API)
+
+3. **Selected Optimization**:
+The most impactful yet safe optimization would be to:
+1. Cache the GetDevToolsWebContents() result
+2. Pre-allocate the file_systems vector capacity
+3. Use emplace_back instead of push_back to avoid temporary copies
+
+This provides clear performance benefits with minimal risk of behavior changes.
+
+Here's the optimized implementation:

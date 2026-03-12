@@ -1,0 +1,26 @@
+Let me analyze the `triangulate_delaunay` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function creates a temporary vector of triangles from Delaunay triangulation
+   - Then it creates another vector and pushes 3 points per triangle in sequence
+   - The main overhead here is the multiple memory allocations during the push_back operations
+
+2. **Optimization Strategy**:
+   - We know exactly how many elements will be in the final vector (3 * tr.size())
+   - We can pre-allocate the exact required capacity to avoid reallocations
+   - This matches our selected strategy of pre-allocating container capacity when final size is known
+
+3. **Potential Optimizations**:
+   - Pre-allocate the triangles vector with reserve(3 * tr.size())
+   - Keep the rest of the logic the same since it's already efficient
+
+4. **Selected Optimization**:
+   - Pre-allocate the triangles vector capacity before the loop
+   - This will eliminate all reallocations during the push_back operations
+
+5. **Impact Assessment**:
+   - For large triangle counts, this will significantly reduce memory allocations
+   - The optimization is safe since we know the exact output size
+   - No behavior change, just performance improvement
+
+Here's the optimized function:

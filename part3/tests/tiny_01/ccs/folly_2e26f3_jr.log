@@ -1,0 +1,51 @@
+Let's analyze the provided optimized function against the original.
+
+**Original `wake()` function:**
+
+```c
+void wake() {
+    std::unique_lock<std::mutex> nodeLock(mutex_);
+    signaled_ = true;
+    cond_.notify_one();
+}
+```
+
+**Optimized `wake()` function:**
+
+```c
+void wake() {
+    if (!signaled_.exchange(true, std::memory_order_relaxed)) {
+        std::unique_lock<std::mutex> nodeLock(mutex_);
+        cond_.notify_one();
+    }
+}
+```
+
+**Key changes:**
+1. The `signaled_` flag (which is a `bool`) is now accessed with `std::atomic` operations (though the original code didn't show it as atomic, the optimized version treats it as such).
+2. The `exchange` operation sets `signaled_` to `true` and returns the previous value.
+3. If the previous value was `false`, the thread proceeds to lock the mutex and call `notify_one()`.
+4. If the previous value was `true`, the function returns early without locking.
+
+**Correctness analysis:**
+- In the original, `wake()` always locks the mutex and sets `signaled_` to `true` (under the mutex).
+- In the optimized version, `signaled_` is set to `true` atomically, and the mutex is only locked if the flag was previously `false`.
+- This is safe because:
+    - If `signaled_` was already `true`, the waiter has already been (or is being) woken, so no further notification is needed.
+    - The `exchange` ensures that only one thread will see `false` and proceed to notify (others will see `true` and skip).
+    - The mutex lock ensures that the notification is properly synchronized with the waiter’s condition variable wait.
+- However, there is a critical issue: **the original `signaled_` is not an `std::atomic<bool>`** — it’s a plain `bool`. The optimized version uses atomic operations on it, which is undefined behavior unless it is atomic.
+
+Looking at the original `WaitNodeBase` definition:
+
+```c
+bool signaled_;
+```
+
+It is a plain `bool`, not atomic. The original code accesses it under the protection of `node->mutex_` (in `wake()`, `wait()`, and `signaled()`). The optimized version would cause a data race on a non-atomic variable, which is invalid.
+
+**Performance analysis:**
+If `signaled_` were atomic, the optimization would be valid and improve performance by avoiding unnecessary mutex locks when `wake()` is called multiple times on an already-signaled node. But given the actual code, it’s not safe.
+
+**Verdict:**
+The optimized function is not a valid replacement because it introduces atomic operations on a non-atomic variable, leading to undefined behavior.

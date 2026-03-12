@@ -1,0 +1,20 @@
+Looking at the optimized `get_strategy` function compared to the original, I can identify several changes:
+
+1. **Added `len` variable** to store the length of the input name
+2. **Optimized the array lookup** by first comparing string lengths before doing the full string comparison
+3. **Minor optimization in the custom strategies loading loop** - similar length check
+4. **Cached translation strings** in variables `avail` and `custom`
+
+However, there are critical issues with this optimization:
+
+1. **The length check in the main loop is incorrect**: The original code uses `!strcmp(name, all_strategy[i].name)`, but the optimized version uses `strlen(all_strategy[i].name) == len && !strcmp(all_strategy[i].name, name)`. This is actually less efficient because it calls `strlen()` on each array element's name, which requires traversing each string to find its length. The original just does one string comparison.
+
+2. **The translation caching doesn't work correctly**: The `_()` macro is for marking strings for translation, not for caching. Calling `_()` at runtime doesn't cache anything - it just returns the translated string. The optimized version calls `_()` once and stores the result, but this doesn't provide any meaningful performance benefit.
+
+3. **The custom strategies loop has the same issue**: It adds an unnecessary `strlen()` call for each comparison.
+
+4. **The `fputs(".\n", stderr)` change is questionable**: The original uses `fprintf(stderr, ".\n")` which is fine. Changing to `fputs` might be microscopically faster but is not a meaningful optimization.
+
+The most significant problem is that the optimized version actually introduces *more* work by calling `strlen()` on every array element's name. For short arrays like this (only 6 elements), the optimization attempt backfires.
+
+The correct optimization would be to pre-compute the lengths of the strategy names at compile time or use a hash-based lookup, but that's not what this code does.

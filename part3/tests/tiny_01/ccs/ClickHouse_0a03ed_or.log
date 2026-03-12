@@ -1,0 +1,30 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. Current Bottlenecks:
+- The function processes a quoted key string with potential escape sequences
+- The main performance issue is in the quoted character handling section (marked with "todo try to optimize")
+- Currently using push_back() in a loop which:
+  * Causes multiple reallocations as the string grows
+  * Has branch prediction overhead for each character
+  * Is less cache-friendly than bulk operations
+
+2. Strategy Application:
+- The reference examples show pre-allocation and bulk copying as effective optimizations
+- Here we can estimate the maximum possible size needed (character_position - pos)
+- We can use resize() followed by memcpy/std::copy for bulk transfer
+- This matches the strategy of avoiding repeated allocations and using bulk operations
+
+3. Optimization Ideas:
+- Pre-allocate string capacity with resize()
+- Replace push_back loop with std::copy
+- Keep escape sequence handling as-is since it's more complex
+
+4. Selected Optimization:
+- Replace the push_back loop with resize()+std::copy for the quoted section
+- This provides:
+  * Single allocation
+  * Bulk memory transfer
+  * Better cache utilization
+  * Fewer branch predictions
+
+Here's the optimized function:

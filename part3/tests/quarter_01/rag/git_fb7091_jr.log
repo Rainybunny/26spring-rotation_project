@@ -1,0 +1,27 @@
+Let's analyze the optimization.
+
+**Original `rehash_objects`:**
+- Uses `locate_object_entry_hash` to find the insertion position for each object.
+- `locate_object_entry_hash` does a full hash comparison (`hashcmp`) for each occupied slot during linear probing.
+- The function checks for duplicates (with `die("BUG: Duplicate object in hash")`).
+
+**Optimized `rehash_objects`:**
+- Inlines the hash lookup loop directly, avoiding the function call overhead.
+- Removes the duplicate check (the `if (found) die(...)` part).
+- Changes `memset` from `sizeof(int)` to `sizeof(uint32_t)` (which is actually a bug fix, since `pdata->index` is `uint32_t*`).
+
+**Correctness considerations:**
+1. The removal of the duplicate check is safe because `rehash_objects` is only called when rebuilding the entire hash table from `pdata->objects`. If the original array had duplicates, they would have been caught earlier when inserted via `packlist_alloc` (which calls `locate_object_entry_hash` with duplicate checking). So this is a valid removal.
+2. The inlined probing loop is identical in logic to the loop in `locate_object_entry_hash`, except it doesn't compare hashes (since we're inserting all objects fresh). This is correct because we're rebuilding from scratch — no occupied slots will contain the same object.
+3. The `memset` fix is correct and necessary for portability (since `sizeof(int)` may not equal `sizeof(uint32_t)` on all platforms).
+
+**Performance:**
+- Eliminates function call overhead for each object.
+- Removes unnecessary hash comparisons during rehashing (since we know all objects are unique at this point).
+- Should be faster.
+
+**Potential issue:**
+- The optimized version assumes no duplicates in `pdata->objects`. This is true if the data structure is maintained correctly, but the original version had a defensive check. However, since this is an internal function and duplicates would indicate a serious bug elsewhere, the removal is acceptable for optimization.
+
+**Verdict:**
+The optimized function is a valid replacement. It maintains correctness (given the invariants of the data structure) and improves performance.

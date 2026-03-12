@@ -1,0 +1,22 @@
+Let me analyze the `GetAvailableCredit` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function iterates through all transaction outputs (vout) and checks if each is unspent
+   - For each unspent output, it calls `GetCredit()` which performs additional checks
+   - The cache check is done after other early returns, which is good
+   - The MoneyRange check is performed in each iteration, which might be unnecessary
+
+2. **Optimization Opportunities**:
+   - Move the MoneyRange check outside the loop since we only need to validate the final sum
+   - Consider loop unrolling for small fixed-size vectors (but vout size is variable)
+   - The cache check is already optimally placed
+   - The early returns are well positioned
+
+3. **Best Optimization**:
+   - The most impactful change would be to move the MoneyRange check outside the loop since:
+     - It's a relatively expensive range check
+     - We only care about the final sum being in range
+     - It maintains the same safety guarantees
+     - Reduces branching in the hot loop
+
+Here's the optimized implementation:

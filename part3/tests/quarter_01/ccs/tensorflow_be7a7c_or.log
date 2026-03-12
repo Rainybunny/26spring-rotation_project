@@ -1,0 +1,25 @@
+Let me analyze the `Preprocess` function for optimization opportunities:
+
+Analysis:
+1. The function checks for duplicate instruction names and validates sharding for instructions that have it.
+2. The main operations are:
+   - Name uniqueness check via map lookup
+   - Sharding validation (only if instruction has sharding)
+3. The name uniqueness check happens for every instruction, while sharding validation is conditional.
+
+Bottlenecks:
+1. The map lookup and insertion for name checking happens unconditionally for every instruction, even though name collisions are rare.
+2. The sharding validation is more expensive but only happens for a subset of instructions.
+
+Optimization Strategy:
+The selected "fast path check for common case" strategy applies here because:
+1. Most instructions don't have sharding (common case)
+2. Name collisions are extremely rare in valid HLO modules
+3. We can optimize the common case (no sharding) to avoid map operations
+
+Optimization Idea:
+Add an early exit for the common case where:
+- The instruction has no sharding AND
+- We're not in paranoid verification mode (where we want to check everything)
+
+Final Optimized Implementation:

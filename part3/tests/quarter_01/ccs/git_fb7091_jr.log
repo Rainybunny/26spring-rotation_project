@@ -1,0 +1,27 @@
+Let's analyze the provided code and the optimized function.
+
+**Original `rehash_objects` function:**
+- It resizes the hash table index to the next power of two of `nr_objects * 3`, with a minimum size of 1024.
+- It uses `xrealloc` to resize the index array.
+- Then it **clears** the entire index array with `memset(pdata->index, 0, sizeof(int) * pdata->index_size)`.
+- Then it reinserts all objects into the hash table by calling `locate_object_entry_hash` for each.
+
+**Optimized `rehash_objects` function:**
+- It does the same calculation for `index_size`.
+- It uses `xrealloc` to resize the index array.
+- **But it omits the `memset` call** that zeroes the index.
+- Then it proceeds to reinsert objects as before.
+
+**Analysis:**
+1. **Correctness:** The `locate_object_entry_hash` function uses open addressing with linear probing. It relies on `pdata->index[i] > 0` to detect occupied slots and `pdata->index[i] == 0` for empty slots. If we skip the memset, the old values from the previous smaller index array (or uninitialized memory from `xrealloc`) will remain in the newly allocated portion and possibly in the old portion that is still part of the new array (since `xrealloc` may keep the old memory if it grows in place). This will cause `locate_object_entry_hash` to incorrectly treat stale entries as occupied, leading to:
+   - Possible infinite loops if it keeps probing non-zero entries.
+   - Incorrect "duplicate object" detection if a stale index entry points to an object whose hash collides.
+   - Failure to insert objects correctly because the probing may not find an empty slot.
+
+2. **Performance:** The optimization removes a `memset` of size `O(index_size)`, which could be a significant saving. However, it breaks correctness.
+
+3. **Context:** The function is called when `pdata->index_size * 3 <= pdata->nr_objects * 4`, i.e., when the load factor reaches about 1.33. The index is being rehashed to a larger size, so all old index entries must be cleared because the hash function depends on the new size (via `mask`). The old index entries are no longer valid.
+
+**Conclusion:** The optimized version is **not** a valid replacement because it omits clearing the index array, which is required for correct open addressing hash table operation.
+
+**Reasoning:** The `memset` is essential to initialize the new index array (or the newly allocated portion) to zero. Without it, the hash table operations will fail. The optimization is incorrect.

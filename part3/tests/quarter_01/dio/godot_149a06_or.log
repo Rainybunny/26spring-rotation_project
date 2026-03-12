@@ -1,0 +1,24 @@
+Let me analyze the `triangulate_delaunay` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function calls `Delaunay2D::triangulate()` which we can assume is already optimized
+   - The main work happens in the loop that converts triangles into a flat array of indices
+   - Current implementation uses `push_back()` which may cause multiple reallocations as the vector grows
+
+2. **Optimization Opportunities**:
+   - Pre-allocate the output vector to avoid reallocations
+   - The size is known in advance (3 indices per triangle)
+   - Direct assignment is faster than push_back
+   - Loop unrolling could help but might not be worth it for readability
+
+3. **Selected Optimization**:
+   - Pre-allocate the output vector with exact required size
+   - Use direct index assignment instead of push_back
+
+The most impactful change is pre-allocation since it:
+- Eliminates multiple reallocations
+- Reduces memory fragmentation
+- Maintains exactly the same functionality
+- Is a simple, safe change
+
+Here's the optimized implementation:

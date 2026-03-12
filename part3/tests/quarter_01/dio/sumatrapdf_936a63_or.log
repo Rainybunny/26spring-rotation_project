@@ -1,0 +1,19 @@
+Let me analyze the `fz_insert_gel_raw` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function is called frequently during path rendering to insert edges into the gel structure
+   - Main operations: edge sorting, bbox updates, and edge parameter calculations
+   - The bbox updates (6 conditional checks) are simple bounds checks
+   - The edge parameter calculations involve some integer arithmetic (division/modulus)
+
+2. **Optimization Opportunities**:
+   - The most expensive parts are likely the conditional branches and integer divisions
+   - We can optimize the bbox updates by using branchless min/max operations
+   - The edge parameter calculations could potentially be optimized using bit tricks for powers of 2
+
+3. **Selected Optimization**:
+   - Implement branchless min/max for bbox updates since they're simple and have high impact
+   - This avoids pipeline stalls from branch mispredictions on the bounds checks
+   - The rest of the function (edge calculations) is left unchanged since it's more complex and the gains would be marginal
+
+Here's the optimized implementation:

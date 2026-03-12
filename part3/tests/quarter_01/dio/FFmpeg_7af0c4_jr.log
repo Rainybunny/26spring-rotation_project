@@ -1,0 +1,21 @@
+Looking at the optimized function, I can see it's a modified version of the original `filter_frame` function. The key changes are:
+
+1. **Combined imin/imax calculation loops**: In the original code, when `imin < 0` and `imax < 0`, there were two separate loops to find the minimum and maximum values. The optimized version combines these into a single loop that calculates both min and max simultaneously.
+
+2. **Added conditional reset of imin/imax**: After the combined min/max calculation, the optimized code adds checks: `if (r->in_min >= 0) imin = round(r->in_min * UINT8_MAX);` and similarly for imax. This ensures that if only one of imin or imax was negative (needing auto-calculation), the other retains its user-specified value.
+
+However, there's a **critical bug** in the optimization:
+
+In the original code, when `imin < 0` but `imax >= 0` (or vice versa), only the negative one triggers auto-calculation. The optimized version's condition `if (imin < 0 || imax < 0)` enters the combined min/max calculation block if EITHER is negative, but then it always calculates BOTH min and max from the image data, overwriting the valid user-specified value.
+
+For example:
+- If user sets `imin = -1` (auto) and `imax = 0.8` (specific value)
+- Original: calculates imin from image, keeps imax as 0.8*UINT8_MAX
+- Optimized: calculates both imin and imax from image, then resets imax to 0.8*UINT8_MAX
+- Result: Different behavior! The optimized version uses a different imax for the min/max calculation than for the final scaling.
+
+This changes the computed `coeff` value, leading to incorrect output.
+
+Additionally, the optimization doesn't handle the case where only one needs auto-calculation efficiently - it still scans the entire image twice (once in the combined loop, then the srcrow is reset for the processing loop).
+
+The performance gain from combining the min/max loops is minimal compared to the correctness issue. The optimization should only combine loops when BOTH imin and imax need auto-calculation.

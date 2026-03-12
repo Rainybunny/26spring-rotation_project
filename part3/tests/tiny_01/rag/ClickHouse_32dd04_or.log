@@ -1,0 +1,27 @@
+Let me analyze the `loadStoredObjects` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes metadata files to load tables and dictionaries
+- Main operations: file iteration, parsing, and parallel table loading
+- Current implementation uses a std::map for file_names which has O(log n) insertion time
+- The lambda in iterateMetadataFiles performs file operations and parsing for each file
+
+2. **Key Observations**:
+- File processing is done sequentially before parallel table loading
+- The map is used primarily for sorting by filename, but we only need the sorted order once
+- We could potentially optimize the initial file processing phase
+
+3. **Potential Optimizations**:
+- Replace std::map with std::vector + sort for better insertion performance
+- Pre-allocate vector capacity if we can estimate number of files
+- Move file reading and parsing into the parallel phase (but this would complicate error handling)
+- Use parallel processing for the initial file parsing
+
+4. **Selected Optimization**:
+The highest impact change with minimal risk is replacing std::map with std::vector + sort. This:
+- Reduces O(n log n) insertions to O(n) insertions + single O(n log n) sort
+- Maintains the same sorted order requirement
+- Keeps the same overall structure and behavior
+- Is a simple, localized change
+
+Here's the optimized implementation:

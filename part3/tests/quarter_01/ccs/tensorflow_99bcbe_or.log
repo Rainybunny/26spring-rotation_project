@@ -1,0 +1,30 @@
+Let me analyze the `OptimizeConsumeItem` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes a graph and its function library for optimization
+- Key operations include:
+  - Building reachable function library definitions
+  - Finding differentiable functions
+  - Finding XLA-compiled functions
+  - Optimizing individual functions in a loop
+- The most expensive parts appear to be:
+  - The nested loops over functions and nodes
+  - The repeated function library operations (contains, find, replace)
+  - The graph optimization passes themselves
+
+2. **Optimization Strategy Application**:
+- The selected strategy focuses on pre-allocation and move semantics
+- The function uses several containers (hash sets, vectors) that could benefit from pre-allocation
+- The most impactful change would be pre-allocating the `optimized_funcs` and `xla_compiled_functions` hash sets since:
+  - They grow dynamically during the optimization passes
+  - Their sizes can be reasonably estimated from the function library size
+  - They are used in hot loops (function optimization passes)
+
+3. **Proposed Optimization**:
+- Pre-allocate the `optimized_funcs` and `xla_compiled_functions` hash sets based on the function library size
+- This avoids repeated rehashing and reallocation as the sets grow
+
+4. **Selected Optimization**:
+- Pre-allocate `optimized_funcs` and `xla_compiled_functions` sets based on the function library size
+
+Here's the optimized function implementation:

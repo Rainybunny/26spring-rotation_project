@@ -1,0 +1,72 @@
+Let's analyze the optimization.
+
+**Original `copy` function:**
+```c
+static size_t copy(T* destination, const T* source, size_t count)
+{
+    if (count == 0)
+        return 0;
+
+    if constexpr (Traits<T>::is_trivial()) {
+        __builtin_memmove(destination, source, count * sizeof(T));
+        return count;
+    }
+
+    for (size_t i = 0; i < count; ++i) {
+        if (destination <= source)
+            new (&destination[i]) T(source[i]);
+        else
+            new (&destination[count - i - 1]) T(source[count - i - 1]);
+    }
+
+    return count;
+}
+```
+
+**Optimized `copy` function:**
+```c
+static size_t copy(T* destination, const T* source, size_t count)
+{
+    if (count == 0)
+        return 0;
+
+    if constexpr (Traits<T>::is_trivial()) {
+        __builtin_memmove(destination, source, count * sizeof(T));
+        return count;
+    }
+
+    if (destination <= source) {
+        for (size_t i = 0; i < count; ++i)
+            new (&destination[i]) T(source[i]);
+    } else {
+        for (size_t i = count; i > 0; --i)
+            new (&destination[i - 1]) T(source[i - 1]);
+    }
+
+    return count;
+}
+```
+
+**Changes made:**
+1. The condition `if (destination <= source)` is moved outside the loop.
+2. Two separate loops are used:
+   - Forward copy when `destination <= source`
+   - Backward copy when `destination > source`
+
+**Correctness analysis:**
+- The original loop checks `destination <= source` on every iteration, which is unnecessary since the relationship between `destination` and `source` doesn't change during the copy.
+- The backward copy logic is equivalent:  
+  Original: `new (&destination[count - i - 1]) T(source[count - i - 1])` for `i` from `0` to `count-1`  
+  Optimized: `new (&destination[i - 1]) T(source[i - 1])` for `i` from `count` down to `1`
+- Both handle overlapping regions correctly by choosing the copy direction to avoid overwriting source elements before they're copied.
+- The trivial case (memmove) remains unchanged.
+
+**Performance analysis:**
+- Moving the condition outside the loop eliminates `count` branch predictions and comparisons.
+- The optimized version has better cache locality in each loop since it doesn't need to compute `count - i - 1` on each backward iteration.
+- The optimization maintains the same safety guarantees for non-trivial types with overlapping regions.
+
+**Potential issues:**
+- None. The logic is semantically identical but more efficient.
+
+**Conclusion:** This is a valid optimization that improves performance without changing behavior.

@@ -1,0 +1,22 @@
+Let me analyze the `createParameterTypes` function for potential optimizations:
+
+1. **Bottleneck Analysis**:
+- The function creates a vector of metadata pointers for function parameters
+- It processes the return type first, then iterates through all parameters
+- Each parameter type requires SIL type conversion and metadata creation
+- The SmallVector is created with a default size of 16, which may be too large for common cases
+
+2. **Optimization Opportunities**:
+- **Pre-allocation**: We know the exact number of parameters (FnTy->getParameters().size() + 1 for return type), so we can reserve exactly that capacity
+- **Move Semantics**: The parameters vector could potentially benefit from move semantics when returned
+- **Loop Unrolling**: For small, fixed parameter counts, loop unrolling might help
+- **Early Exit**: If there are no parameters, we could return early
+
+3. **Selected Optimization**:
+The highest impact change would be to **pre-allocate the vector capacity** since:
+- It's simple and safe
+- Avoids multiple reallocations for functions with many parameters
+- Provides measurable benefit for both small and large parameter lists
+- Doesn't change any behavior
+
+Here's the optimized implementation:

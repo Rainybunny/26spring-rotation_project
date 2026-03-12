@@ -1,0 +1,68 @@
+Let's analyze the optimized version of `fz_insert_gel_raw` against the original.
+
+## 1. Correctness Analysis
+
+The original function:
+- Returns early if `y0 == y1`
+- Swaps endpoints when `y0 > y1` and sets `winding = -1`, otherwise `winding = 1`
+- Updates bounding box with min/max checks
+- Reallocates if needed
+- Computes edge parameters for Bresenham's algorithm
+
+The optimized version attempts to use branchless operations:
+
+### Issues Found:
+
+1. **Early return condition**: The optimized version correctly keeps `if (y0 == y1) return;`
+
+2. **Branchless swap**: The swap logic is problematic:
+   ```c
+   tmp = y0; y0 = (swap ? y1 : y0); y1 = (swap ? tmp : y1);
+   ```
+   This doesn't work correctly because when `swap` is true, `y0` gets `y1`, then `y1` gets `tmp` (original `y0`). But `tmp` was set to the original `y0` before the conditional assignment to `y0`. This actually works, but it's convoluted. More concerning is the x-swap uses the same pattern but with `x0` and `x1`.
+
+3. **Winding calculation**: `winding = 1 - (swap << 1)` correctly gives `1` when `swap=0` and `-1` when `swap=1`.
+
+4. **Bounding box updates**: Uses `fz_mini` and `fz_maxi` functions which aren't defined in the provided code. The original uses direct comparisons. This would fail to compile unless these functions are defined elsewhere.
+
+5. **Edge direction calculation**: `edge->xdir = (dx > 0) - (dx < 0)` is a clever branchless way to get sign (-1, 0, or 1). However, `dx` should never be 0 because that case is handled by `y0 == y1` check? Actually `dx` can be 0 for vertical edges, which should give `xdir = 0`. The original uses `dx > 0 ? 1 : -1` which would give -1 for vertical edges, not 0. Wait, let's check: In the original, for `dx == 0`, `dx > 0` is false, so `xdir = -1`. The optimized version would give `0 - 1 = -1`. So it matches.
+
+6. **Error term**: `edge->e = (dx < 0) * (-dy + 1)` uses multiplication as conditional. When `dx < 0` is true (1), gives `-dy + 1`. When false (0), gives 0. Matches original.
+
+7. **y-major vs x-major**: The optimized version uses `int y_major = dy >= width;` then:
+   ```c
+   edge->xmove = (!y_major) * ((width / dy) * edge->xdir);
+   edge->adj_up = y_major ? width : (width % dy);
+   ```
+   This is correct and branchless for `xmove`, but still uses ternary for `adj_up`.
+
+## 2. Performance Analysis
+
+The optimization attempts to replace branches with conditional operations. However:
+
+1. **Modern CPUs with branch predictors**: The original branches are predictable (either always taken or not taken for a given edge). Branchless code might actually be slower due to data dependencies and unnecessary arithmetic.
+
+2. **Compiler optimizations**: A good compiler might already optimize some of these patterns.
+
+3. **The `fz_mini`/`fz_maxi` issue**: This requires function calls or macros that aren't shown. If these are function calls, they'd be much slower than the original direct comparisons.
+
+4. **Readability**: The optimized version is harder to understand and maintain.
+
+## 3. Critical Bug
+
+The most serious issue is the use of `fz_mini` and `fz_maxi`. These functions are not defined in the provided source code. The original code does:
+```c
+if (x0 < gel->bbox.x0) gel->bbox.x0 = x0;
+if (x0 > gel->bbox.x1) gel->bbox.x1 = x0;
+if (x1 < gel->bbox.x0) gel->bbox.x0 = x1;
+if (x1 > gel->bbox.x1) gel->bbox.x1 = x1;
+```
+This properly handles all cases. The optimized version with `fz_mini(gel->bbox.x0, fz_mini(x0, x1))` would fail to update `bbox.x1` correctly when `x0` or `x1` is greater than current `bbox.x1`.
+
+Similarly for `bbox.x1` update: `fz_maxi(gel->bbox.x1, fz_maxi(x0, x1))` would fail to update `bbox.x0` when `x0` or `x1` is less than current `bbox.x0`.
+
+The bounding box updates in the optimized version are **incorrect**!
+
+## 4. Verdict
+
+The optimized function contains a critical bug in bounding box calculation and uses undefined functions. Even if we ignore the undefined functions, the logic for bounding box updates is wrong. The branchless optimizations also don't clearly provide performance benefits and harm readability.

@@ -1,0 +1,40 @@
+Looking at the provided code, I can see that the optimized function is `SamplingHeapProfiler::TranslateAllocationNode`. Let me analyze the changes between the original and optimized versions.
+
+**Original code key section:**
+```cpp
+if (node->script_id_ != v8::UnboundScript::kNoScriptId &&
+    scripts.find(node->script_id_) != scripts.end()) {
+  // Cannot use std::map<T>::at because it is not available on android.
+  auto non_const_scripts =
+      const_cast<std::map<int, Handle<Script>>&>(scripts);
+  Handle<Script> script = non_const_scripts[node->script_id_];
+```
+
+**Optimized code key section:**
+```cpp
+if (node->script_id_ != v8::UnboundScript::kNoScriptId) {
+  auto it = scripts.find(node->script_id_);
+  if (it != scripts.end()) {
+    Handle<Script> script = const_cast<std::map<int, Handle<Script>>&>(scripts).at(node->script_id_);
+```
+
+**Analysis:**
+
+1. **Correctness**: The optimized version maintains the same functionality. Both versions:
+   - Check if `script_id_` is valid
+   - Look up the script in the map
+   - Process the script if found
+   - The logic for getting line/column numbers and script name remains identical
+
+2. **Performance improvements**:
+   - The optimized version avoids the double map lookup that was present in the original. The original code called `scripts.find()` twice (once in the condition, once in the `non_const_scripts[node->script_id_]` call which performs another lookup).
+   - The optimized version stores the iterator from `find()` and only performs one map lookup when the script is found.
+   - However, there's an issue: the optimized version uses `.at()` which performs bounds checking and throws an exception if the key doesn't exist. Since we already checked `it != scripts.end()`, we know the key exists, so we could use `it->second` instead for better performance.
+
+3. **Potential issue**: The optimized version uses `.at()` on a const_cast reference. While this should work since we know the key exists, it's less efficient than using the iterator directly. The comment in the original code mentions that `std::map::at` is not available on Android, but the optimized version uses it anyway, which could cause compilation issues on Android platforms.
+
+4. **Memory usage**: Both versions are equivalent in memory usage.
+
+5. **Edge cases**: Both handle the same edge cases (null scripts, invalid script IDs, etc.).
+
+**Conclusion**: While the optimized version attempts to reduce from two map lookups to one, it introduces a potential portability issue with `.at()` on Android and doesn't use the most efficient approach (could use `it->second` instead of `.at()`). The optimization is conceptually valid but has implementation issues that could break compilation on some platforms.

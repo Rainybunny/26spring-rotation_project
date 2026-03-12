@@ -1,0 +1,22 @@
+Let me analyze the Index constructor function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes two main loops: one for expressions and one for column IDs
+- The expression loop does multiple operations per expression: type extraction, copying, binding, and moving
+- The column ID loop is simpler but could benefit from optimization
+- The most expensive operations appear to be the expression copying and binding
+
+2. **Potential Optimizations**:
+- Pre-reserve vector capacities for types/logical_types/bound_expressions
+- Move expressions instead of copying where possible
+- Use emplace_back instead of push_back where applicable
+- Optimize the column ID set insertion
+
+3. **Selected Optimization**:
+The most impactful optimization would be to pre-reserve vector capacities since:
+- We know the exact number of elements needed (unbound_expressions.size())
+- Vector reallocations are expensive
+- This is a simple change with guaranteed performance benefit
+- Doesn't change the logic or behavior
+
+Here's the optimized implementation:

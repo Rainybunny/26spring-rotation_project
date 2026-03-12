@@ -1,0 +1,49 @@
+Let's analyze the optimization.
+
+The original `strbuf_addch` function is:
+
+```c
+static inline void strbuf_addch(struct strbuf *sb, int c)
+{
+    strbuf_grow(sb, 1);
+    sb->buf[sb->len++] = c;
+    sb->buf[sb->len] = '\0';
+}
+```
+
+The optimized version is:
+
+```c
+static inline void strbuf_addch(struct strbuf *sb, int c)
+{
+    if (sb->len >= (sb->alloc ? sb->alloc - 1 : 0))
+        strbuf_grow(sb, 1);
+    sb->buf[sb->len++] = c;
+    sb->buf[sb->len] = '\0';
+}
+```
+
+**Reasoning:**
+
+1. **Correctness:**
+   - The invariant is that `sb->alloc` can be zero (for `STRBUF_INIT` where `buf` points to a static empty string). In that case, `alloc - 1` would underflow, so the conditional `sb->alloc ? sb->alloc - 1 : 0` correctly handles it.
+   - The condition `sb->len >= (sb->alloc ? sb->alloc - 1 : 0)` checks if the current length is at least `alloc - 1` (when `alloc > 0`), meaning there is no room for an extra character plus the NUL terminator. If true, it calls `strbuf_grow(sb, 1)` to ensure enough space.
+   - After ensuring space, the character is appended and the NUL terminator is set, which matches the original behavior.
+
+2. **Performance:**
+   - The original always calls `strbuf_grow(sb, 1)`, which internally checks if growth is needed and reallocates if necessary.
+   - The optimized version checks the condition first and only calls `strbuf_grow` when necessary. This avoids a function call in the common case where there is already enough capacity.
+   - Since `strbuf_grow` is not a trivial function (it may involve memory allocation), avoiding it when possible improves performance.
+
+3. **Safety and invariants:**
+   - The `strbuf_grow` function itself ensures that after growing, `strbuf_avail(sb)` is at least the requested amount. The optimized version's condition is equivalent to checking `sb->len + 1 > sb->alloc - 1` (when `alloc > 0`), i.e., no space left. This matches the internal condition `strbuf_avail(sb) < 1`.
+   - The `strbuf_grow` function also handles the `alloc == 0` case (where `buf` points to `strbuf_slopbuf`), so the optimized version's condition correctly triggers growth when `alloc == 0` (since `sb->len >= 0` will be true if `len > 0`, but note: for `len == 0` and `alloc == 0`, the condition is `0 >= 0`, so it triggers growth—which is correct because the slopbuf has zero capacity).
+
+4. **Edge cases:**
+   - When `sb->alloc == 0` and `sb->len == 0`, the condition is `0 >= 0`, so `strbuf_grow` is called. This is necessary because the slopbuf cannot be written to (it's read-only memory? Actually, `strbuf_slopbuf` is a global empty string, but writing to it would be undefined behavior). The original also calls `strbuf_grow` in this case, so it's safe.
+   - The condition uses `>=` to trigger growth when exactly full, which is correct because we need one extra byte for the new character and one for the NUL terminator (total need: `len + 2 <= alloc`). If `len == alloc - 1`, then after adding a character, `len` becomes `alloc`, and we need `alloc + 1` bytes, so growth is needed.
+
+5. **Consistency with other functions:**
+   - The `strbuf_setlen` function has a similar check: `if (len > (sb->alloc ? sb->alloc - 1 : 0)) die("BUG: ...")`. The optimized `strbuf_addch` uses a similar expression but with `>=` for the growth trigger.
+
+**Conclusion:** The optimized version is functionally equivalent and improves performance by avoiding an unnecessary function call when there is already capacity. It maintains all invariants and handles edge cases correctly.

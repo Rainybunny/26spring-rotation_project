@@ -1,0 +1,33 @@
+Let's analyze the provided optimized function against the original.
+
+**Original Constructor:**
+- Initializes member variables via initializer list.
+- Loops through `unbound_expressions` to fill `types`, `logical_types`, `bound_expressions`, and `unbound_expressions` vectors without pre‑reserving capacity.
+- Then loops through `bound_expressions` to add each to `executor`.
+- Finally, builds `column_id_set` (an `unordered_set<column_t>`) by inserting each column ID without reserving capacity.
+
+**Optimized Constructor:**
+- Same initializer list.
+- Before the loops, calls `reserve(unbound_expressions.size())` on `types`, `logical_types`, `bound_expressions`, and `this->unbound_expressions`.
+- The loops themselves are unchanged.
+- Before building `column_id_set`, calls `column_id_set.reserve(column_ids.size())`.
+
+**Correctness Check:**
+1. The added `reserve` calls do not change the logical behavior — they only pre‑allocate memory.
+2. The order of operations and data flow remain identical.
+3. The `reserve` calls are safe because `size()` is known and does not depend on any prior mutation of the vectors/set.
+4. The `executor.AddExpression` loop is unchanged.
+5. The `column_id_set` is still built identically, just with reserved capacity.
+
+**Performance Consideration:**
+- Pre‑reserving capacity for `std::vector` and `std::unordered_set` can reduce reallocations and improve runtime, especially when the number of expressions or column IDs is large.
+- This is a valid and common optimization when the final size is known beforehand.
+- No side effects are introduced.
+
+**Potential Issues:**
+- The `unbound_expressions` vector is reserved, but inside the loop we `emplace_back` a moved-from `unbound_expression`. That’s fine because `expr->Copy()` returns a new unique pointer, and we move the copy into the vector.
+- The `bound_expressions` vector is reserved, and `push_back` is used with the result of `BindExpression(...)`. That’s fine.
+- The `column_id_set.reserve` is for an `unordered_set`, which is also valid and reduces rehashing.
+
+**Conclusion:**  
+The optimized version is functionally equivalent and provides a performance improvement by pre‑allocating memory. It is a valid replacement for the original constructor.

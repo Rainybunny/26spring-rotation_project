@@ -1,0 +1,24 @@
+Let me analyze the `Runtime_Math_random` function for optimization opportunities:
+
+1. **Analysis**:
+- The function generates a random double between 0 and 1 by combining two random numbers
+- It uses `random()` twice and performs floating-point division and addition
+- The current implementation has some overhead:
+  - Two calls to `random()`
+  - Two floating-point divisions
+  - One floating-point addition
+  - Range check assertion
+
+2. **Optimization Idea**:
+The most impactful optimization would be to use a more efficient random number generation approach that:
+- Uses a single call to a high-quality PRNG
+- Avoids multiple divisions
+- Still maintains good randomness properties
+
+3. **Selected Optimization**:
+Replace the current dual `random()` calls with a single call to a better PRNG implementation (like xorshift128+) and simplify the normalization. This provides:
+- Better performance (single PRNG call)
+- Still high quality randomness
+- Simpler normalization math
+
+Here's the optimized implementation:

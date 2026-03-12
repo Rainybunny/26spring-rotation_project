@@ -1,0 +1,25 @@
+Let me analyze the `SpatialIndexCursor` constructor for optimization opportunities:
+
+1. **Bottlenecks Analysis**:
+- The nested loops for generating quad keys are straightforward but could benefit from pre-calculation of the quad key count.
+- The most significant bottleneck is the use of `std::unordered_set<uint64_t>` for `primary_key_ids_`. This has several issues:
+  * Insertions are O(1) average case but involve hash computations and potential rehashing
+  * Memory overhead is high due to hash table implementation
+  * Final iteration requires converting to a sorted structure (via begin()/end())
+
+2. **Optimization Opportunities**:
+- Replace `unordered_set` with a sorted vector since:
+  * We don't need O(1) lookups - just insertion and iteration
+  * We can maintain sorted order during insertion via binary search
+  * Avoids rehashing overhead
+  * Better memory locality for iteration
+  * Duplicate checking is still possible with binary search
+
+3. **Selected Optimization**:
+Replace `unordered_set<uint64_t>` with a sorted `vector<uint64_t>` and use binary search for insertion to maintain order and check duplicates. This provides:
+- Better memory efficiency
+- Faster iteration (contiguous memory)
+- Still maintains O(log n) duplicate checking
+- Eliminates rehashing overhead
+
+Here's the optimized implementation:

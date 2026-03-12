@@ -1,0 +1,20 @@
+Thought process/analysis:
+1. The function `gbDisass` performs Gameboy CPU instruction disassembly by:
+   - Checking instruction length
+   - Formatting the assembly string based on instruction type
+2. Main bottlenecks:
+   - Multiple `sprintf` calls which are relatively expensive due to format parsing
+   - Repeated `gb_op[buf[0]]` lookups
+   - Potential branch mispredictions in the switch statement
+3. High-impact optimization opportunities:
+   - Cache the `gb_op[buf[0]]` lookup result
+   - Replace `sprintf` with more direct string operations where possible
+4. The most impactful single optimization would be to cache the `gb_op[buf[0]]` lookup since:
+   - It's used in multiple places
+   - Array indexing has some overhead
+   - This is a simple change with clear benefit
+
+Final optimization idea:
+Cache the `gb_op[buf[0]]` lookup result in a local variable at the start of the function to avoid repeated array indexing operations.
+
+Optimized function implementation:

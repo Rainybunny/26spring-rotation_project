@@ -1,0 +1,20 @@
+Let me analyze the function and propose optimizations:
+
+1. Analysis:
+- The function processes each row independently, computing a bitmask value based on the grouping set index and arguments.
+- The main loop has two nested loops: outer over rows, inner over arguments_indexes.
+- Potential bottlenecks:
+  - Memory allocation for result column (done once, not critical)
+  - Field insertion for each row (could be optimized)
+  - Bit manipulation in inner loop (could be optimized)
+- The most impactful optimization would be to pre-allocate result column memory and use direct writes instead of insert() calls.
+
+2. Key Observations:
+- We know the exact size needed for the result column (input_rows_count)
+- Field insertion has overhead for each element
+- We can directly write to a pre-allocated UInt64 column
+
+3. Optimization Idea:
+Replace the result column creation with direct pre-allocation and writing using ColumnUInt64's data() method, avoiding repeated insert() calls.
+
+Here's the optimized implementation:

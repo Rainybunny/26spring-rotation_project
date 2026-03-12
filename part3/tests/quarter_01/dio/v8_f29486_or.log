@@ -1,0 +1,23 @@
+Let me analyze the function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function is recursive and processes a tree structure of allocation nodes
+- Main operations are: script lookup, string conversions, and building allocation vectors
+- The most expensive parts appear to be:
+  - String conversions (ToApiHandle, InternalizeUtf8String)
+  - Script lookups in the map
+  - Recursive calls for children processing
+
+2. **Potential Optimizations**:
+- Cache the empty script name string creation since it's used in every node
+- Optimize the script lookup by avoiding the const_cast and second map lookup
+- Pre-allocate vectors to avoid reallocations
+- Use move semantics for allocations vector
+
+3. **Selected Optimization**:
+The most impactful change would be to optimize the script lookup path by:
+- Removing the redundant map lookup (scripts.find() followed by non_const_scripts[])
+- Using a single lookup with const_cast where needed
+- This is safe because we already checked the script exists via find()
+
+Here's the optimized function:

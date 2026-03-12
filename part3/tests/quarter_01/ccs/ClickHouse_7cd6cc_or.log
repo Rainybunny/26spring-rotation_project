@@ -1,0 +1,30 @@
+Let me analyze the function and propose optimizations:
+
+1. Analysis:
+- The function processes each row to compute a bitmask based on checker results
+- Main bottlenecks are:
+  - Loop with conditional branching (checker call and ternary operator)
+  - Repeated bit shifting operations (value << 1)
+  - Field insertion which may involve memory allocation
+
+2. Optimization Opportunities:
+- Replace the inner loop's conditional with bit manipulation
+- Pre-compute bit positions to avoid repeated shifts
+- Consider batch insertion for the result column
+- Unroll loops where possible
+
+3. Selected Optimization:
+The highest impact change would be to eliminate the conditional branch in the inner loop by using bit manipulation. The current implementation uses a ternary operator that creates a branch for each index check. We can replace this with arithmetic operations that compute the same result without branching.
+
+4. Final Optimization Idea:
+Replace the inner loop's conditional with branchless bit manipulation. Instead of:
+```c
+value = (value << 1) + (checker(set_index, index) ? 1 : 0);
+```
+We'll use:
+```c
+value = (value << 1) | (-checker(set_index, index) & 1);
+```
+This uses the fact that -true = -1 (all 1s in binary) and -false = 0, so we can mask with 1 to get the same result without branching.
+
+Here's the optimized function:

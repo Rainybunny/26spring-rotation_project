@@ -1,0 +1,26 @@
+Let me analyze the `Preprocess` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs two main operations: name uniqueness check and sharding validation
+- The name check involves a map lookup and insertion which could be expensive for large numbers of instructions
+- The sharding validation is only performed conditionally when sharding exists
+
+2. **Key Observations**:
+- The name uniqueness check is important for correctness but may not be needed in all scenarios
+- The error message construction is relatively expensive with string operations
+- The map operations could be optimized if we know names are already unique
+
+3. **Optimization Idea**:
+The highest impact optimization would be to **skip the name uniqueness check when verification is disabled** or when we can guarantee names are unique through other means. However, since this is a verifier, we should maintain correctness.
+
+Instead, we can optimize by:
+- Moving the expensive error message construction into the error case only
+- Using a more efficient map lookup pattern
+
+4. **Selected Optimization**:
+Optimize the name check by:
+1. Using `try_emplace` instead of separate find/insert operations
+2. Moving error message construction into the error case
+3. Using string view for name comparison
+
+Here's the optimized implementation:

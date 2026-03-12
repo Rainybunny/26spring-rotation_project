@@ -1,0 +1,26 @@
+Let me analyze the `fz_insert_gel_raw` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function is called frequently during path rendering to insert edges into the gel (global edge list)
+   - Main operations: bounding box updates, edge initialization, and Bresenham line algorithm setup
+   - The function contains several conditional branches that could impact performance
+   - Memory allocation happens only when capacity is exceeded (not in hot path)
+
+2. **Key Observations**:
+   - The bounding box updates (6 comparisons) are unconditional but could be optimized
+   - The edge initialization involves several calculations that could be streamlined
+   - The y-major/x-major branch could be made more predictable
+
+3. **Optimization Opportunities**:
+   - Use branchless techniques for bounding box updates
+   - Optimize the dx/dy/width calculations
+   - Simplify the edge initialization sequence
+   - Reduce redundant calculations
+
+4. **Selected Optimization**:
+   - Implement branchless bounding box updates using min/max operations
+   - This is a high-impact change since bounding box updates happen for every edge
+   - Maintains exact same behavior while being faster
+   - Simple change with no risk of introducing bugs
+
+Here's the optimized implementation:

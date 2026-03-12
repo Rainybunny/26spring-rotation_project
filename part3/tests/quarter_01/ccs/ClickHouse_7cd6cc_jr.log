@@ -1,0 +1,71 @@
+Let's analyze the optimization.
+
+**Original function:**
+```c
+template <typename AggregationKeyChecker>
+ColumnPtr executeImpl(const ColumnsWithTypeAndName & arguments, size_t input_rows_count, AggregationKeyChecker checker) const
+{
+    auto grouping_set_column = checkAndGetColumn<ColumnUInt64>(arguments[0].column.get());
+
+    auto result = std::make_shared<DataTypeUInt64>()->createColumn();
+    for (size_t i = 0; i < input_rows_count; ++i)
+    {
+        UInt64 set_index = grouping_set_column->get64(i);
+
+        UInt64 value = 0;
+        for (auto index : arguments_indexes)
+            value = (value << 1) + (checker(set_index, index) ? 1 : 0);
+
+        result->insert(Field(value));
+    }
+    return result;
+}
+```
+
+**Optimized function:**
+```c
+template <typename AggregationKeyChecker>
+ColumnPtr executeImpl(const ColumnsWithTypeAndName & arguments, size_t input_rows_count, AggregationKeyChecker checker) const
+{
+    auto grouping_set_column = checkAndGetColumn<ColumnUInt64>(arguments[0].column.get());
+
+    auto result = std::make_shared<DataTypeUInt64>()->createColumn();
+    result->reserve(input_rows_count);
+    
+    for (size_t i = 0; i < input_rows_count; ++i)
+    {
+        UInt64 set_index = grouping_set_column->get64(i);
+        UInt64 value = 0;
+        
+        for (auto index : arguments_indexes)
+            value = (value << 1) | (-checker(set_index, index) & 1);
+
+        result->insert(Field(value));
+    }
+    return result;
+}
+```
+
+**Changes made:**
+1. Added `result->reserve(input_rows_count);` - This is a valid optimization to pre-allocate memory, avoiding reallocations as elements are inserted.
+2. Changed the inner loop calculation from `value = (value << 1) + (checker(set_index, index) ? 1 : 0)` to `value = (value << 1) | (-checker(set_index, index) & 1)`.
+
+**Analysis of the bitwise optimization:**
+- Original: `(checker(set_index, index) ? 1 : 0)` returns 1 if true, 0 if false.
+- Optimized: `-checker(set_index, index) & 1`:
+  - In C/C++, `bool` to integer conversion: `true` → 1, `false` → 0.
+  - Applying unary minus: `-true` = `-1`, `-false` = `0`.
+  - Bitwise AND with 1: `-1 & 1` = 1, `0 & 1` = 0.
+  - So this produces the same result: 1 for true, 0 for false.
+
+The bitwise version might be slightly faster as it avoids a conditional branch, though modern compilers might optimize both similarly. However, there's a subtle issue: the `-` operator applied to `bool` could be problematic. In C++, `-true` is `-1` (int), but when `checker` returns `bool`, `-checker(...)` performs integer promotion, resulting in `-1` for true. This works with `& 1` to yield 1. But this relies on two's complement representation (which is standard). While correct in practice, it's less readable.
+
+**Correctness check:**
+- The `|` vs `+` change: Since we're dealing with bits (0 or 1) and shifting, `|` and `+` are equivalent here because `(value << 1)` has 0 in the LSB, so OR-ing with 0/1 is same as adding 0/1.
+- Edge cases: All bits 0/1 patterns should remain identical.
+
+**Potential issues:**
+- The `-checker(...)` trick assumes `checker` returns `bool`. The `checker` is a lambda from the derived classes, all returning `bool`. So it's safe.
+- The optimization is micro-optimization and might not be significantly faster, but it's valid.
+
+**Conclusion:** The optimized function is a valid replacement. It adds a useful `reserve()` call and uses bitwise operations that produce identical results.
