@@ -10,7 +10,15 @@ import config
 
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
-# shared large-language model api definition
+# shared large-language model api definition for judgment side
+judge_llm = ChatOpenAI(
+    openai_api_key=config.xmcp_api_key,
+    openai_api_base=config.xmcp_base_url,
+    model_name=config.xmcp_juedge_model,
+    temperature=0.0  # Lower temperature for deterministic judgment
+)
+
+# shared large-language model api definition for optimization side
 llm = ChatOpenAI(
     openai_api_key=config.xmcp_api_key,
     openai_api_base=config.xmcp_base_url,
@@ -35,6 +43,7 @@ class MyEmbeddingFunction(chromadb.EmbeddingFunction):
 project_root = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 benchmark_root = os.path.join(project_root, "benchmark")
 knowledge_base_root = os.path.join(project_root, "knowledge_base")
+test_root = os.path.join(project_root, "part3", "tests")
 
 class CommitInfo:
     def __init__(self, root_path, repo_name, commit_hash):
@@ -88,11 +97,18 @@ class Mission(CommitInfo):
         res += f"```{self.lang}\n{self.output}\n```\n\n"
         return res
 
+system_prompt_role_prelog = (
+    "You are an expert C/C++ optimization engineer. "
+    "Your goal is to optimize a specific function within the provided code for maximum runtime efficiency and minimal resource usage.\n"
+    "Do NOT strictly focus on readability or style; focus on performance.\n"
+    "Do not introduce any uncertain behavior; do not cause any behavior-change out of the targeted function.\n\n"
+)
+
 system_prompt_final_output_format = (
     "First, output your thought process/analysis.\n"
     "Second, output a clear description of the final optimization idea.\n"
-    "Then, output the final optimized COMPETE FUNCTION IMPLEMENTATION inside a single markdown code block (```cpp ... ``` or ```c ... ```).\n"
-    "The code block must contain ONLY the optimized function. It must be a direct replacement for the original function."
+    "Then, output the final optimized COMPLETE FUNCTION IMPLEMENTATION inside a single markdown code block (```cpp ... ``` or ```c ... ```).\n"
+    "The code block must output full code snippet that can be an exact replacement for the given original function code."
 )
 
 def parse_final_output(content: str) -> tuple[str, str]:
