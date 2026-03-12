@@ -67,9 +67,10 @@ def init_knowledge_base():
     return collection
 
 knowledge_base = init_knowledge_base()
+wanted_example_num = 4
+distance_threshold = 0.7
 
 def query_context(mission: utils.Mission) -> str:
-    distance_threshold = 0.8
     try:
         similar = knowledge_base.query(
             query_texts=[mission.origin_func],
@@ -82,7 +83,7 @@ def query_context(mission: utils.Mission) -> str:
     similar = zip(similar["distances"][0], similar['metadatas'][0])
     similar = filter(lambda x: x[0] >= distance_threshold
                      and x[1]['repo_name'] != mission.repo_name, similar)
-    similar = list(similar)[:3]
+    similar = list(similar)[:wanted_example_num]
     similar.reverse()
     similar = map(lambda x: utils.CommitInfo(utils.knowledge_base_root,
                                              x[1]['repo_name'], x[1]['commit_hash']),
@@ -91,8 +92,8 @@ def query_context(mission: utils.Mission) -> str:
     # at most 3 similar examples from different repos,
     # reverse to have most similar last for better CoT reasoning
 
-    if len(similar) == 0:
-        print(f"[Warning] No similar examples found in knowledge base for mission\n"
+    if len(similar) < wanted_example_num:
+        print(f"[Warning] Only {len(similar)} similar examples found in knowledge base for mission\n"
               f"> {mission.repo_name}/{mission.commit_hash}.")
         return ""
 
@@ -111,9 +112,7 @@ def optimize(mission: utils.Mission) -> tuple[str, str]:
     rag_context = query_context(mission)
 
     system_prompt = (
-        "You are an expert C/C++ optimization engineer. "
-        "Your goal is to optimize a specific function within the provided code for maximum runtime efficiency and minimal resource usage.\n"
-        "Do NOT strictly focus on readability or style; focus on performance.\n\n"
+        f"{utils.system_prompt_role_prelog}"
         "You MUST use Chain of Thought (CoT) reasoning:\n"
         "1. Analyze the original code and the specific function to identify bottlenecks.\n"
         "2. If some reference examples are provided, analyze how it was optimized and if similar techniques apply.\n"

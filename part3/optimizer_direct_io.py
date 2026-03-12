@@ -12,15 +12,10 @@ def optimize(mission: utils.Mission) -> tuple[str, str]:
 
     # Define the prompt that encourages CoT and code optimization
     system_prompt = (
-        "You are an expert C/C++ optimization engineer. "
-        "Your goal is to optimize a specific function within the provided code for maximum runtime efficiency and minimal resource usage.\n"
-        "Do NOT strictly focus on readability or style; focus on performance.\n\n"
+        f"{utils.system_prompt_role_prelog}"
         "You MUST use Chain of Thought (CoT) reasoning:\n"
-        "1. Analyze the original code and the specific function to identify bottlenecks. Pay special attention to:\n"
-        "   - Unnecessary object copying (e.g., in loops, function arguments, or lambda captures).\n"
-        "   - Redundant memory allocations.\n"
-        "   - Inefficient loop logic.\n"
-        "2. Propose optimizations for the specific function. Prioritize simple, high-impact changes (like adding 'const &' or '&') over complex algorithmic rewrites unless necessary.\n"
+        "1. Analyze the original code and the specific function to identify bottlenecks.\n"
+        "2. Propose optimizations for the specific function. Prioritize simple, high-impact changes over complex algorithmic rewrites unless necessary.\n"
         "3. Select EXACTLY ONE optimization idea to apply. Even if multiple valid ideas exist, pick only the most impactful one.\n"
         "4. Apply the chosen optimization to the function. Changes should be as simple as possible and must NOT modify the overall logic structure drastically.\n\n"
         "Output Format:\n"
