@@ -1,12 +1,14 @@
 import os
 import sys
 import concurrent.futures
+from time import time
 from langchain_core.prompts import ChatPromptTemplate
 import utils
 
-def get_mission_list(test_folder) -> list[utils.Mission]:
+def get_mission_list(test_folder, opt_id) -> list[utils.Mission]:
     mission_list_file = os.path.join(test_folder, "targets.txt")
     mission_list = []
+    test_folder = os.path.join(test_folder, opt_id)
     with open(mission_list_file, "r") as f:
         for line in f:
             repo_name, commit_hash = line.strip().split()
@@ -29,8 +31,10 @@ def llm_judge(mission: utils.Mission) -> tuple[bool, str]:
         ("user", "{result_content}")
     ])
 
-    chain = prompt | utils.llm
+    chain = prompt | utils.judge_llm
+    # chain = prompt | utils.llm 
     try:
+        # Add a timeout to prevent hanging indefinitely
         response = chain.invoke({"result_content": mission.show_result()})
         content = response.content
         
@@ -76,7 +80,7 @@ def run_optimizer(mission_list: list[utils.Mission], optimizer):
         for future in concurrent.futures.as_completed(future_to_mission):
             mission = future_to_mission[future]
             try:
-                print(f"Generating {mission.output_file}...")
+                print(f"Generating {mission.output_file}...", flush=True)
                 mission.output, mission.opt_reason = future.result()
                 with open(mission.output_file, "w") as f:
                     f.write(mission.output)
@@ -84,10 +88,12 @@ def run_optimizer(mission_list: list[utils.Mission], optimizer):
                 with open(log_file, "w") as f:
                     f.write(mission.opt_reason)
             except Exception as exc:
-                print(f'{mission.output_file} generated an exception: {exc}')
+                print(f'{mission.output_file} generated an exception: {exc}', flush=True)
 
-def judge(mission_list: list[utils.Mission], judge_fn):
-    MAX_WORKERS = 10
+judge_fn = llm_judge
+
+def judge(mission_list: list[utils.Mission]):
+    MAX_WORKERS = 4 # Reduced from 10 to avoid rate limits/timeouts with heavy judge model
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         future_to_mission = {
@@ -98,10 +104,10 @@ def judge(mission_list: list[utils.Mission], judge_fn):
         for future in concurrent.futures.as_completed(future_to_mission):
             mission = future_to_mission[future]
             try:
-                print(f"Judging {mission.output_file}...")
+                print(f"Judging {mission.output_file}...", flush=True)
                 mission.result, mission.judge_reason = future.result()
             except Exception as exc:
-                print(f'{mission.output_file} generated an exception: {exc}')
+                print(f'{mission.output_file} generated an exception: {exc}', flush=True)
                 mission.result = False
                 mission.judge_reason = f"Exception: {exc}"
             
@@ -125,21 +131,47 @@ def judge(mission_list: list[utils.Mission], judge_fn):
     for mission in mission_list:
         print(f"> {mission.repo_name}/{mission.commit_hash}: {'A' if mission.result else 'R'}")
 
+optimizer_id = {
+    "dio": "optimizer_direct_io.py",
+    "rag": "optimizer_rag.py",
+    "ccs": "optimizer_ccskill.py"
+}
+
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        print("Usage: python judge.py <test_folder> <optimizer_py> <judge_fn_name>")
+    if len(sys.argv) < 3:
+        print("Usage: python judge.py <test_name> <optimizers...>", file=sys.stderr)
         sys.exit(1)
-    test_folder = sys.argv[1]
-    optimizer_py = sys.argv[2]
-    judge_fn_name = sys.argv[3]
+    test_folder = os.path.join(utils.test_root, sys.argv[1])
 
-    sys.path.append(os.path.dirname(optimizer_py))
-    optimizer_module = __import__(os.path.basename(optimizer_py).split('.')[0])
-    optimizer = optimizer_module.optimize
-    judge_fn = globals()[judge_fn_name]
+    opt_num = len(sys.argv) - 2
+    print(f"{opt_num} optimizers specified: {sys.argv[2:]}\n", file=sys.stderr)
+    for opt_id in sys.argv[2:]:
+        if opt_id not in optimizer_id:
+            print(f"Unknown optimizer '{opt_id}'.", file=sys.stderr)
+            sys.exit(1)
 
-    mission_list = get_mission_list(test_folder)
+    for opt_id in sys.argv[2:]:
+        opt_name = optimizer_id[opt_id]
+        print(f"== Testing optimizer: {opt_id} ({opt_name}) ==", file=sys.stderr)
+        # flush stdout and redirect to log file
+        os.makedirs(os.path.join(test_folder, opt_id), exist_ok=True)
+        sys.stdout.flush()
+        log_file = os.path.join(test_folder, opt_id, "results.log")
+        sys.stdout = open(log_file, "w")
 
-    run_optimizer(mission_list, optimizer)
+        opt_py = os.path.join(os.path.dirname(os.path.abspath(__file__)), opt_name)
+        opt_mod = __import__(os.path.basename(opt_py).split('.')[0])
+        optimizer = opt_mod.optimize
+        mission_list = get_mission_list(test_folder, opt_id)
+        print(f"{len(mission_list)} missions loaded.", file=sys.stderr)
 
-    judge(mission_list, judge_fn)
+        print("Optimizing...", end='', file=sys.stderr, flush=True)
+        t_start = time()
+        run_optimizer(mission_list, optimizer)
+        t_end = time()
+        print(f"\tdone in {t_end - t_start:.2f} seconds", file=sys.stderr)
+        print("Judging...", end='', file=sys.stderr, flush=True)
+        t_start = time()
+        judge(mission_list)
+        t_end = time()
+        print(f"\tdone in {t_end - t_start:.2f} seconds", file=sys.stderr, flush=True)
