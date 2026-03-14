@@ -1,0 +1,26 @@
+Let me analyze the `rehash_objects` function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function is called when the hash table needs to be resized and rehashed
+   - Main operations: calculate new size, realloc memory, clear memory, rehash all objects
+   - The most expensive part is the loop that rehashes all objects (O(n) operation)
+   - Each iteration calls `locate_object_entry_hash` which has its own loop (potential O(n) in worst case)
+
+2. **Key Observations**:
+   - The `memset` clears the entire new index array, which is necessary
+   - The `locate_object_entry_hash` calls are independent and could benefit from cache optimization
+   - The `entry++` pointer arithmetic is simple but adds overhead in the loop
+
+3. **Potential Optimizations**:
+   - Precompute hash values to avoid recalculating during collision resolution
+   - Use pointer arithmetic more efficiently
+   - Unroll the loop (but might not help due to branch prediction)
+   - Use bulk memory operations where possible
+
+4. **Selected Optimization**:
+   - The highest impact change would be to optimize the inner loop by:
+     * Using array indexing instead of pointer arithmetic
+     * Reducing memory access patterns
+     * Minimizing pointer chasing
+
+Here's the optimized implementation:

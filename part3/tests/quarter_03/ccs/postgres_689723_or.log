@@ -1,0 +1,21 @@
+Let me analyze the `GetRunningTransactionData()` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function scans the entire procArray twice - once for main XIDs and again for subXIDs
+- It holds two locks (ProcArrayLock and XidGenLock) during the entire scan
+- Memory allocation happens on first call but is static thereafter
+- Subtransaction handling adds complexity and potential overhead
+
+2. **Optimization Strategy**:
+The key insight is that we can optimize by:
+- Combining the two scans into a single pass
+- Minimizing lock hold time by only holding locks during critical sections
+- Adding early exit conditions when possible
+
+3. **Selected Optimization**:
+Combine the two scans into a single pass through procArray. This reduces:
+- Lock contention time
+- Cache misses from multiple passes
+- Branching overhead
+
+Here's the optimized implementation:

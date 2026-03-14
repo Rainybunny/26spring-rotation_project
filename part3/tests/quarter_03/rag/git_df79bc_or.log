@@ -1,0 +1,28 @@
+Let me analyze the `get_strategy` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs string comparisons in multiple places (strcmp/strncmp)
+- It loads command lists on first call which is expensive
+- It checks against a static array `all_strategy` first
+- It has error handling that prints available strategies
+
+2. **Key Observations**:
+- The function is called multiple times during merge operations
+- The `all_strategy` array is small (6 elements) and static
+- The command list loading happens only once (cached via `loaded` flag)
+- Error case is not the common path
+
+3. **Optimization Opportunities**:
+- Optimize the common case (finding in `all_strategy`) first
+- Reduce string comparisons where possible
+- Consider early returns for common cases
+- Cache results if possible (though caller already handles this)
+
+4. **Selected Optimization**:
+The highest impact change would be to optimize the `all_strategy` lookup loop since:
+- It's the first check after NULL check
+- The array is small and fixed
+- We can return immediately on match
+- String comparisons can be optimized by checking length first
+
+Here's the optimized function:

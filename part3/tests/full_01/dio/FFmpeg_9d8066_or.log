@@ -1,0 +1,20 @@
+Let me analyze the mdct512 function for optimization opportunities:
+
+1. Analysis:
+- The function performs a 512-point MDCT (Modified Discrete Cosine Transform)
+- Main operations: data shifting, pre-rotation, FFT, post-rotation
+- Bottlenecks:
+  - Memory access patterns could be improved
+  - The CMUL macro is called in tight loops and involves multiple multiplications
+  - The data shifting could potentially be optimized
+
+2. Optimization Ideas:
+- Unroll the pre/post rotation loops to reduce loop overhead
+- Optimize the CMUL macro to use more efficient operations
+- Improve memory access patterns in the data shifting phase
+- Use SIMD instructions if available (though this would require architecture-specific code)
+
+3. Selected Optimization:
+The most impactful optimization would be to optimize the CMUL macro since it's called in the hottest loops. The current implementation uses generic MUL16 operations which can be improved.
+
+Here's the optimized function with a more efficient CMUL implementation:

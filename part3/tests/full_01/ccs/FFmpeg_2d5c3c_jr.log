@@ -1,0 +1,17 @@
+Looking at the provided optimized function, I can see that the optimization is focused on the case when `!gdv->scale_v && !gdv->scale_h`. The original code had a simple double loop copying pixels one by one, while the optimized version attempts to process 8 pixels at a time in a loop before handling the remaining pixels.
+
+However, there are several issues with this optimization:
+
+1. **Incorrect pointer usage**: The optimized code modifies the `dst` pointer directly in the inner loop, but `dst` is also used as the base pointer for each row. The original code used `dst[didx + x]` indexing, while the optimized version uses pointer arithmetic that doesn't properly account for the destination pointer resetting for each row.
+
+2. **Missing pointer reset**: The code sets `uint8_t *d = dst` at the start of each row, but `dst` itself is being incremented by `linesize` at the end of each row iteration. This means `dst` will point to the start of the next row, which is correct. However, the inner loop uses `d` and `s` pointers that are incremented, which should work correctly.
+
+3. **Performance benefit questionable**: The optimization unrolls the copy loop to process 8 pixels at a time, but modern compilers with optimization flags enabled can often auto-vectorize simple copy loops. The manual unrolling might not provide significant benefits and could even hurt performance on some architectures due to code size increases.
+
+4. **Potential alignment issues**: The code assumes it can safely read and write 8 bytes at a time without checking alignment, which could cause performance penalties or crashes on some architectures.
+
+5. **Inconsistent with the rest of the function**: The optimized section only handles the non-scaled case, while the scaled case remains unchanged. This creates inconsistency in the code structure.
+
+The most critical issue is that the optimization changes the algorithm in a way that could break correctness. The original code correctly handles the destination pointer arithmetic using `didx` and `dst` as a base pointer, while the optimized version uses a different approach that doesn't properly maintain the relationship between source and destination pointers across rows.
+
+**Verdict**: The optimization is invalid because it introduces potential correctness issues with pointer handling and doesn't provide a clear performance benefit that justifies the added complexity and risk.

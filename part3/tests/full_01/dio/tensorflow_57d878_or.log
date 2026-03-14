@@ -1,0 +1,22 @@
+Let me analyze the function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function is called frequently during TensorList operations
+- Main operations are:
+  - Getting dynamic sizes and dimensions from context
+  - Creating XlaOp constants for static dimensions
+  - Slicing and reshaping for dynamic dimensions
+- The loop over element dimensions does slice/reshape/convert operations per dynamic dimension
+
+2. **Optimization Opportunities**:
+- The most expensive part appears to be the per-dimension processing in the loop
+- For dynamic dimensions, we do multiple XLA ops (Slice+Reshape+Convert) per dimension
+- We could potentially batch these operations for all dynamic dimensions at once
+
+3. **Selected Optimization**:
+- Batch process all dynamic dimensions at once instead of per-dimension:
+  - Slice all dynamic dimensions in one operation
+  - Reshape all results together
+  - Convert types in bulk
+
+Here's the optimized implementation:

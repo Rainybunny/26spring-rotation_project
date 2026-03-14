@@ -1,0 +1,31 @@
+Let me analyze the `draw_slice` function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes video frames by applying LUT transformations pixel-by-pixel
+- For RGB formats, it uses 3 nested loops (height, width, components)
+- For planar formats, it uses 3 nested loops (planes, height, width)
+- The current implementation has high per-pixel overhead due to:
+  - Multiple pointer increments
+  - Multiple memory accesses
+  - No utilization of SIMD or bulk operations
+
+2. **Optimization Strategy**:
+- The reference examples show that replacing pixel-by-pixel loops with bulk operations can significantly improve performance
+- For the planar case, we can optimize by:
+  - Processing full lines at once since each plane is contiguous
+  - Using memcpy for identical LUT mappings (though rare in practice)
+- For the packed RGB case, we can:
+  - Unroll the inner component loop
+  - Process multiple pixels at once when possible
+
+3. **Selected Optimization**:
+- Focus on the planar case first since it's simpler and more common in video processing
+- Replace the per-pixel loop with a pre-calculated LUT application using pointer arithmetic
+- This eliminates the inner loop counter and reduces branch prediction misses
+
+4. **Final Optimization Idea**:
+- For planar formats, restructure the loop to process entire rows at once
+- Replace the per-pixel lookup with direct memory access patterns
+- Keep the RGB case similar since it's more complex with interleaved components
+
+Here's the optimized function:

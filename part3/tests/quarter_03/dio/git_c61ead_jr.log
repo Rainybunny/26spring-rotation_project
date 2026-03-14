@@ -1,0 +1,33 @@
+Let’s compare the original and optimized implementations of `recv_sideband`.  
+
+The main difference is in the handling of **band 2** (sideband for verbose/stderr messages).  
+
+**Original band 2 loop:**  
+```c
+while ((brk = strpbrk(b, "\n\r"))) {
+    ...
+}
+```
+It uses `strpbrk` to find the next newline or carriage return.  
+
+**Optimized band 2 loop:**  
+```c
+while (*b) {
+    brk = b;
+    while (*brk && *brk != '\n' && *brk != '\r')
+        brk++;
+    if (!*brk)
+        break;
+    ...
+}
+```
+This manually scans for `\n` or `\r` instead of calling `strpbrk`.  
+
+**Analysis:**  
+1. **Correctness** — Both loops should produce identical output for the same input. The manual loop in the optimized version stops at the first `\n` or `\r`, same as `strpbrk`. The logic for handling empty lines and suffix appending is unchanged.  
+2. **Performance** — The optimized version avoids calling `strpbrk` in a loop, which may be a small performance gain because `strpbrk` internally does similar scanning but with function call overhead and possibly checking a larger set of delimiters (though here it’s just `"\n\r"`).  
+3. **Edge Cases** — The original loop continues until no more `\n` or `\r` are found; the optimized version also does that. Both leave the remainder (after last `\n`/`\r`) to be appended at the end if non-empty.  
+4. **Potential issue** — The optimized version’s inner `while` increments `brk` until a line break or null terminator. If `*brk` is `\0`, it breaks out, which matches the original’s behavior when `strpbrk` returns NULL. So it’s fine.  
+
+**Verdict:**  
+The optimized version is a valid replacement — it’s functionally equivalent and likely slightly more efficient due to removing `strpbrk` call overhead.

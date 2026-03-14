@@ -1,0 +1,38 @@
+Looking at the provided code, the original `isUpgrade` function is:
+
+```cpp
+bool Utility::isUpgrade(const RequestOrResponseHeaderMap& headers) {
+  // In firefox the "Connection" request header value is "keep-alive, Upgrade",
+  // we should check if it contains the "Upgrade" token.
+  return (headers.Upgrade() &&
+          Envoy::StringUtil::caseFindToken(headers.getConnectionValue(), ",",
+                                           Http::Headers::get().ConnectionValues.Upgrade.c_str()));
+}
+```
+
+The optimized version adds:
+1. An early return if `headers.Upgrade()` is false.
+2. A fast path check for when the connection header exactly equals "Upgrade" (case-insensitive).
+3. Falls back to the original token parsing for complex cases.
+
+**Analysis:**
+
+1. **Correctness**: The optimized function maintains the same logic:
+   - First checks if Upgrade header exists (same as original, but with early return).
+   - Then checks if connection value contains "Upgrade" token (with fast path for exact match).
+   - The fast path uses `absl::EqualsIgnoreCase` which should be equivalent to the token parsing for the exact match case.
+   - The fallback uses the same `StringUtil::caseFindToken` as the original.
+
+2. **Performance**: The optimization should improve performance in two common cases:
+   - When Upgrade header is absent (early return avoids string operations).
+   - When connection header is exactly "Upgrade" (avoids token splitting).
+   - For complex cases like "keep-alive, Upgrade", it falls back to the same logic.
+
+3. **Edge Cases**: The optimization handles all cases correctly:
+   - Empty connection header: fast path fails, falls back to token parsing which returns false.
+   - Multiple tokens: falls back to token parsing.
+   - Case variations: `absl::EqualsIgnoreCase` handles case-insensitive comparison.
+
+4. **Compatibility**: The optimized function is a drop-in replacement - same signature, same behavior.
+
+The optimization is valid because it preserves the original behavior while adding performance improvements for common cases.

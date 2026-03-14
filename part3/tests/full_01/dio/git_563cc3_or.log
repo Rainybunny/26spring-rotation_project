@@ -1,0 +1,10 @@
+Thought process/analysis:
+1. The function implements a naive substring search algorithm using memcmp() for each possible position in the haystack.
+2. The main bottleneck is the O(n*m) time complexity where n is haystack_len and m is needle_len.
+3. The memcmp() call is relatively expensive as it compares the entire needle at each position.
+4. We can optimize by first checking the first character of the needle before doing a full memcmp(), which can quickly eliminate many positions where the first character doesn't match.
+
+Optimization idea:
+Add a fast-path check for the first character of the needle before performing the full memcmp(). This will eliminate many unnecessary memcmp() calls when the first character doesn't match, while maintaining the same behavior when there is a match.
+
+Final optimized function implementation:

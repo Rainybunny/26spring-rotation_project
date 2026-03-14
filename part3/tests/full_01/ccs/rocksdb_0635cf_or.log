@@ -1,0 +1,28 @@
+Let me analyze the `AddInternalKey` function for optimization opportunities:
+
+1. **Analysis**:
+   - The function creates an InternalKey by concatenating a prefix with a random suffix
+   - It uses a static Random object (rnd) to generate the random suffix
+   - The suffix length is fixed at 800 bytes unless specified otherwise
+   - The key is then encoded and added to the TableConstructor with a fixed value "v"
+
+2. **Bottlenecks**:
+   - The main overhead is in generating the random string for each key
+   - The RandomString function creates a new string each time, which involves memory allocation
+   - The key encoding also creates temporary strings
+
+3. **Optimization Strategy**:
+   - Since the random suffix length is usually fixed (800 bytes), we can pre-allocate a buffer
+   - We can reuse the same buffer for generating random strings to avoid repeated allocations
+   - We can also optimize the key construction by reserving space upfront
+
+4. **Selected Optimization**:
+   - Pre-allocate and reuse a buffer for the random suffix generation
+   - Reserve space in the key string to avoid reallocations
+
+5. **Optimization Implementation**:
+   - Add a static buffer for the random suffix
+   - Pre-generate the random suffix once and reuse it
+   - Reserve space in the key string construction
+
+Here's the optimized function:

@@ -1,0 +1,31 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function converts ASN1_OBJECT to text representation, handling both named objects (via NID) and unnamed objects (via OID encoding)
+   - Main operations are:
+     - NID lookup (OBJ_obj2nid)
+     - String formatting (sprintf)
+     - String copying (strncpy)
+     - Length calculations (strlen)
+   - The most expensive parts appear to be:
+     - Multiple sprintf calls for number formatting
+     - Multiple strncpy operations
+     - String length calculations
+
+2. **Key Observations**:
+   - The function uses sprintf() which is generally slow due to format parsing
+   - The tbuf[32] is used for temporary formatting but could be optimized
+   - The string copying could be made more efficient by reducing operations
+   - The length calculations could be optimized by using known lengths
+
+3. **Potential Optimizations**:
+   - Replace sprintf with direct number formatting (faster)
+   - Combine string operations where possible
+   - Pre-calculate lengths to avoid strlen calls
+   - Use memcpy instead of strncpy where lengths are known
+
+4. **Selected Optimization**:
+   - Replace sprintf with custom number formatting for the OID case
+   - This is the most impactful change since sprintf is called in loops
+
+Here's the optimized implementation:

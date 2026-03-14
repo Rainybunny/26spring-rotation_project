@@ -1,0 +1,21 @@
+Let me analyze the `compare_function` for optimization opportunities:
+
+Analysis:
+1. The function handles many different type combinations with different comparison logic
+2. The most common cases are likely string vs string and numeric comparisons
+3. Current implementation makes copies of operands (op1_copy, op2_copy) even when not needed
+4. The function has multiple early returns which is good for performance
+5. The numeric comparison path involves type conversions and branches
+
+Key observations:
+- The string vs string case is already optimized via zendi_smart_strcmp
+- The boolean/NULL case could be optimized by avoiding full conversions
+- The numeric comparison path can be streamlined
+
+Optimization Idea:
+The biggest win would be to optimize the numeric comparison path by:
+1. Avoiding unnecessary copies when types are already numeric
+2. Simplifying the comparison logic for numeric types
+3. Reducing branches in the numeric comparison
+
+Here's the optimized version:

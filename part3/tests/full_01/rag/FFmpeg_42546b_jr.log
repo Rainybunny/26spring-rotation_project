@@ -1,0 +1,58 @@
+Looking at the provided code, the optimized function `filter_frame` is intended to replace the original `filter_frame` function. The main change is in the `FIND` macro implementation.
+
+**Original `FIND` macro:**
+```c
+#define FIND(DST, FROM, NOEND, INC, STEP0, STEP1, LEN) \
+        outliers = 0;\
+        for (last_y = y = FROM; NOEND; y = y INC) {\
+            if (checkline(ctx, frame->data[0] + STEP0 * y, STEP1, LEN, bpp) > limit) {\
+                if (++outliers > s->max_outliers) { \
+                    DST = last_y;\
+                    break;\
+                }\
+            } else\
+                last_y = y INC;\
+        }
+```
+
+**Optimized `FIND` macro:**
+```c
+#define FIND(DST, FROM, NOEND, INC, STEP0, STEP1, LEN) \
+        outliers = 0;\
+        for (last_y = y = FROM; NOEND; y = y INC) {\
+            int res = checkline(ctx, frame->data[0] + STEP0 * y, STEP1, LEN, bpp);\
+            if (res > limit) {\
+                outliers++;\
+                if (outliers > s->max_outliers) {\
+                    DST = last_y;\
+                    break;\
+                }\
+            } else {\
+                last_y = y INC;\
+                outliers = 0;\
+            }\
+        }
+```
+
+**Key differences:**
+1. The optimized version stores the result of `checkline` in a variable `res` to avoid calling it twice (though in the original it was only called once anyway).
+2. The optimized version increments `outliers` separately from the condition check, making it clearer.
+3. The optimized version resets `outliers = 0` when a non-outlier is found, while the original does not reset `outliers`.
+
+**Analysis:**
+The change in outlier resetting behavior is significant. In the original code, once `outliers` starts counting, it continues accumulating until it exceeds `max_outliers`. In the optimized version, when a non-outlier is found, `outliers` is reset to 0. This changes the algorithm's behavior: the original requires `max_outliers` consecutive outliers to trigger, while the optimized version requires `max_outliers` outliers in total (not necessarily consecutive) since the last non-outlier.
+
+This changes the detection logic. For example, with `max_outliers = 5`:
+- Original: Needs 5 consecutive lines with `checkline > limit` to set the boundary.
+- Optimized: Could have 4 outliers, then a non-outlier (resetting to 0), then 5 more outliers would trigger.
+
+This could lead to different crop detection results, making the optimized version not a valid replacement.
+
+**Performance:**
+The optimized version might have slightly better performance due to storing the `checkline` result, but this is negligible compared to the functional difference.
+
+**Correctness:**
+The optimized version changes the algorithm's behavior, so it's not functionally equivalent.
+
+**Conclusion:**
+The optimized function is not a valid optimization because it changes the behavior of the algorithm.

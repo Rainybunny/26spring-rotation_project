@@ -1,0 +1,31 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function recursively processes allocation nodes and builds a profile tree
+- Main operations involve:
+  - Creating allocation vectors
+  - Pushing nodes to profile->nodes_
+  - Recursively processing children
+- The allocations vector is already properly reserved (good)
+- The profile->nodes_ vector grows dynamically without reservation
+- The children vectors in nodes grow dynamically without reservation
+
+2. **Key Observations**:
+- The profile->nodes_ vector grows for each node processed
+- Each node's children vector grows for each child
+- We don't know the exact total node count upfront, but we can estimate based on:
+  - Current node's children count
+  - Typical tree depth in profiling scenarios
+
+3. **Optimization Strategy**:
+- Pre-allocate capacity in profile->nodes_ vector
+- Pre-allocate capacity in node children vectors
+- Since we don't know exact sizes, we can make reasonable estimates:
+  - Reserve space for current node's children count
+  - This prevents multiple reallocations as children are added
+
+4. **Selected Optimization**:
+- Reserve capacity in profile->nodes_ vector based on current size + children count
+- Reserve capacity in node's children vector before recursive processing
+
+Here's the optimized function:

@@ -1,0 +1,24 @@
+Let me analyze the function and potential optimizations:
+
+1. **Bottleneck Analysis**:
+   - The function processes logits for token sampling, which is called frequently during text generation
+   - Main operations: logit bias application, guidance application, token data array construction, penalty application
+   - The loop constructing `cur` vector (token_id 0 to n_vocab) is a hot spot since vocabulary sizes are large (typically 10k-100k+ tokens)
+
+2. **Reference Example Insights**:
+   - Example 2 shows optimization by removing unnecessary safety checks when invariants are known
+   - Example 4 shows optimization of hot loops by precomputing values and minimizing branches
+
+3. **Potential Optimizations**:
+   - Pre-allocate `cur` vector to avoid reallocations (since n_vocab is known)
+   - Combine the logit bias application with the token data array construction
+   - Move nl_logit lookup outside the penalty application block since it's used conditionally
+   - Use direct memory access instead of emplace_back for vector construction
+
+4. **Selected Optimization**:
+   - **Pre-allocate and combine operations**: The biggest gain comes from pre-allocating the `cur` vector and combining the logit bias application with the token data construction. This reduces:
+     - Memory allocations
+     - Loop iterations (from 2 to 1)
+     - Cache misses
+
+Here's the optimized function:

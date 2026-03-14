@@ -1,0 +1,29 @@
+Looking at the provided optimized function, I can see several changes compared to the original. The main optimization appears to be in the HTTP header reading loop. Let me analyze the key differences:
+
+1. **Authorization header construction**: The optimized version uses `memcpy` instead of `strcpy`/`strcat` for building the authorization string, which is more efficient.
+
+2. **Header reading loop**: This is the most significant change. The original:
+   - Allocated a small buffer (HTTP_HEADER_BLOCK_SIZE = 128 bytes)
+   - Read line by line, reallocating as needed
+   - Had complex logic to find end-of-line
+
+   The optimized version:
+   - Starts with a larger buffer (4 × HTTP_HEADER_BLOCK_SIZE = 512 bytes)
+   - Reads in larger chunks
+   - Has simpler logic for detecting end of headers
+
+However, I see several **serious issues** with the optimized version:
+
+**Critical Bug 1**: The optimized header reading loop doesn't properly handle the Location header. In the original code, it checks `if (!strncasecmp(http_header_line, "Location: ", 10))` on the complete header line. In the optimized version, it checks `if (!strncasecmp(p, "Location: ", 10))` on individual chunks, which could split the Location header across buffer boundaries, causing it to be missed.
+
+**Critical Bug 2**: The optimized version doesn't properly accumulate complete header lines. It just concatenates whatever was read without ensuring that each header ends at a newline boundary. Headers could be split across reads, and the code doesn't reassemble them.
+
+**Critical Bug 3**: The end-of-header detection is flawed. It checks `if (line_len <= 2 && (p[0] == '\n' || (p[0] == '\r' && p[1] == '\n')))`, but `p` points to the current read chunk, not necessarily the beginning of a line. An empty line could be split across buffer boundaries and not be detected.
+
+**Critical Bug 4**: The trimming logic at the end removes all trailing CRLF characters from the entire accumulated buffer, not from individual header lines. This could corrupt multi-line headers.
+
+**Performance Issue**: While starting with a larger buffer might reduce reallocations, the flawed logic makes the optimization invalid.
+
+**Missing Functionality**: The original code had logic to handle the case where a header line exceeds the initial buffer size and needs to be read in multiple parts. The optimized version loses this capability.
+
+The optimization attempts to improve performance by reading larger chunks and simplifying the loop structure, but it introduces critical bugs that break the correct parsing of HTTP headers. The Location header detection and end-of-headers detection are particularly broken.

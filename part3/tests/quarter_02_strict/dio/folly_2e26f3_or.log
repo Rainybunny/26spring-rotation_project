@@ -1,0 +1,26 @@
+Let me analyze the `wake()` function and identify potential optimizations:
+
+1. Current Implementation Analysis:
+- The function acquires a mutex lock before modifying `signaled_` and notifying the condition variable
+- This is a standard pattern for thread synchronization
+- The mutex ensures proper memory ordering and prevents race conditions
+
+2. Bottlenecks:
+- Lock acquisition has overhead (atomic operations, potential contention)
+- The mutex is only needed to protect `signaled_` and ensure proper memory ordering for the condition variable notification
+- The function is called frequently during unpark operations
+
+3. Optimization Opportunities:
+- We could use atomic operations for `signaled_` to potentially avoid the mutex lock
+- However, we still need proper memory ordering for the condition variable notification
+- The mutex lock might still be necessary to ensure the condition variable works correctly
+
+4. Selected Optimization:
+- The most impactful safe optimization is to use `std::lock_guard` instead of `std::unique_lock` since we don't need the extra features of `unique_lock`
+- `lock_guard` is slightly more efficient as it's a simpler construct
+- This maintains all the safety guarantees while reducing minimal overhead
+
+Final Optimization Idea:
+Replace `std::unique_lock` with `std::lock_guard` in the `wake()` function since we don't need any of `unique_lock`'s additional capabilities (like manual locking/unlocking).
+
+Here's the optimized implementation:

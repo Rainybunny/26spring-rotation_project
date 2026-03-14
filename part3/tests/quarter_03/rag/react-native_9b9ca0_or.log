@@ -1,0 +1,31 @@
+Let me analyze the function and potential optimizations:
+
+1. **Analysis of Current Function**:
+   - The function performs two main boolean checks (`formsStackingContext` and `formsView`) with multiple conditions
+   - These checks involve accessing various properties of `viewProps`
+   - The results are used to set/unset traits
+   - The conditions are evaluated sequentially with OR operations
+
+2. **Bottlenecks**:
+   - Multiple property accesses which could be expensive if not inlined
+   - Long boolean expressions that might not short-circuit optimally
+   - Potential redundant checks (like `formsView || formsStackingContext`)
+
+3. **Reference Example Insights**:
+   - Example 1 shows optimization by avoiding unnecessary helper functions
+   - Example 3/4 show early return optimizations when possible
+   - None directly match this case, but we can apply similar principles
+
+4. **Potential Optimizations**:
+   - Reorder conditions by likelihood to enable early short-circuiting
+   - Combine related checks to minimize property accesses
+   - Eliminate redundant operations
+
+5. **Selected Optimization**:
+   - Reorder conditions by probability of being true to maximize short-circuiting benefits
+   - Group related property accesses together
+   - Keep the logic identical but optimize the evaluation order
+
+The optimization focuses on reordering the conditions to maximize short-circuiting opportunities, as many of these checks are likely to have different probabilities of being true. For example, `viewProps.opacity != 1.0` is probably more common than `viewProps.accessibilityViewIsModal`.
+
+Here's the optimized function:

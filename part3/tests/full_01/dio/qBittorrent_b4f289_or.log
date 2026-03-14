@@ -1,0 +1,17 @@
+Let me analyze the `openFolderSelect` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function makes several system calls and process spawns which are inherently slow
+   - On Unix systems, it first queries the default file manager via `xdg-mime` before launching it
+   - The Windows path seems relatively optimized with direct API calls
+   - The Unix path detection could be cached since the default file manager rarely changes
+
+2. **Optimization Opportunities**:
+   - Cache the result of `xdg-mime query default inode/directory` since it's unlikely to change during program execution
+   - Avoid process creation overhead by remembering the default file manager
+   - The Windows path is already quite optimized with direct COM API calls
+
+3. **Selected Optimization**:
+   - Cache the Unix file manager detection result in a static variable to avoid repeated process spawning
+
+Here's the optimized implementation:

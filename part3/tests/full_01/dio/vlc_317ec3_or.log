@@ -1,0 +1,21 @@
+Let me analyze the Handshake function for optimization opportunities:
+
+1. Bottlenecks identified:
+- Multiple string operations (strstr, strlen, strcspn) on the response buffer
+- Multiple memory allocations (asprintf, strndup) for URL construction
+- Multiple hash calculations (MD5) which are CPU intensive
+- Network I/O operations (stream creation/reading)
+
+2. Potential optimizations:
+- Precompute constant strings to avoid repeated strlen calls
+- Combine MD5 operations where possible
+- Optimize string parsing logic to reduce scans
+- Reuse buffers where possible
+
+3. Selected optimization:
+The most impactful change would be to optimize the string parsing of the response buffer. Currently it does multiple linear scans (strstr) of the same buffer. We can parse the response in a single pass by:
+- Finding the "OK" marker first
+- Then extracting the auth token and URLs in sequence
+- Using pointer arithmetic instead of repeated strstr calls
+
+Here's the optimized implementation:

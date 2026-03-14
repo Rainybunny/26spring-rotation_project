@@ -1,0 +1,26 @@
+Let me analyze the MergeUntil function for optimization opportunities:
+
+1. Key Observations:
+- The function processes merge operations on a key-by-key basis
+- Main operations are key parsing, comparisons, and merge operations
+- The hot path involves iterating through keys and performing merges
+- Memory allocations and string operations are performance sensitive
+
+2. Bottlenecks Identified:
+- Frequent string copying when handling keys (original_key, keys_ operations)
+- Multiple calls to ParseInternalKey() which involves string parsing
+- Potential redundant key comparisons in the loop
+
+3. Potential Optimizations:
+- Cache parsed internal keys to avoid repeated parsing
+- Optimize string handling for keys to reduce copies
+- Pre-compute comparisons where possible
+- Use move semantics more aggressively
+
+4. Selected Optimization:
+The most impactful optimization would be to reduce string copies when handling keys by:
+- Storing parsed internal keys instead of raw strings where possible
+- Using move semantics more aggressively for key strings
+- Avoiding unnecessary key conversions
+
+Here's the optimized implementation:

@@ -1,0 +1,38 @@
+Looking at the provided code, the original `IsEnqueued` function is:
+
+```cpp
+bool CompilerDispatcher::IsEnqueued(Handle<SharedFunctionInfo> function) const {
+  return GetJobFor(function) != jobs_.end();
+}
+```
+
+The optimized version adds an early check:
+
+```cpp
+bool CompilerDispatcher::IsEnqueued(Handle<SharedFunctionInfo> function) const {
+  if (!function->script()->IsScript()) return false;
+  std::pair<int, int> key(Script::cast(function->script())->id(),
+                          function->function_literal_id());
+  // Fast check if any job exists with this key before doing full lookup
+  return jobs_.find(key) != jobs_.end() && GetJobFor(function) != jobs_.end();
+}
+```
+
+**Analysis:**
+
+1. **Correctness**: The optimization maintains correctness. The original `GetJobFor` function already includes the `!function->script()->IsScript()` check and creates the same key. The optimized version performs these operations upfront and adds an early `jobs_.find(key)` check. If no job exists with that key, it returns false immediately without calling `GetJobFor`. This is safe because `GetJobFor` would also return `jobs_.end()` in that case.
+
+2. **Performance**: The optimization should improve performance in the case where there's no job with the given key. The `jobs_.find(key)` is likely faster than `GetJobFor` because:
+   - `GetJobFor` performs the same key lookup but then also iterates through all jobs with that key to check association
+   - The early return avoids the potentially more expensive iteration in `GetJobFor`
+   
+   However, when a job does exist with that key, there's a small overhead of performing the key lookup twice (once in the optimized `IsEnqueued` and once in `GetJobFor`).
+
+3. **Trade-off**: This is a valid optimization because:
+   - The common case is likely checking for functions that are not enqueued
+   - The cost of duplicate key lookup when a job exists is minimal compared to the savings when no job exists
+   - The logic remains equivalent to the original
+
+4. **Potential issue**: The optimization assumes that `function->script()->IsScript()` is true for enqueued jobs. This is consistent with the `CanEnqueue` function which checks this condition before enqueuing.
+
+**Conclusion**: The optimized function is a valid replacement that maintains correctness while potentially improving performance for the common case of checking non-enqueued functions.

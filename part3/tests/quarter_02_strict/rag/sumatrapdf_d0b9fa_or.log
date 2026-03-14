@@ -1,0 +1,24 @@
+Let me analyze the `FindI` function for optimization opportunities:
+
+1. Current Behavior Analysis:
+- The function performs case-insensitive search through the StrVec
+- It iterates through elements starting from `startAt`
+- For each element, it does a full case-insensitive string comparison using `str::EqI`
+- The TODO comment suggests checking lengths first could improve performance
+
+2. Bottlenecks:
+- The main cost is in `str::EqI` which does character-by-character comparison with case conversion
+- We're not leveraging string length information which could quickly eliminate non-matches
+- The iterator overhead (though minimal) is present for each element
+
+3. Optimization Opportunities:
+- Add length check before full string comparison (as suggested by TODO)
+- The length is already stored in StrVec metadata, so we can get it cheaply
+- For strings with different lengths, we can skip the expensive case-insensitive comparison
+
+4. Selected Optimization:
+- Use `AtSpan()` to get both string pointer and length in one operation
+- Compare lengths first before doing case-insensitive comparison
+- This gives us an early-out for most non-matching cases
+
+Here's the optimized implementation:

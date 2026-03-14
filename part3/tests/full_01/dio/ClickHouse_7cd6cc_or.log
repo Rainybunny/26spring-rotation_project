@@ -1,0 +1,26 @@
+Let me analyze the function and identify potential optimizations:
+
+1. **Bottleneck Analysis**:
+   - The function processes each row individually in a loop
+   - For each row, it performs a nested loop over arguments_indexes
+   - Each iteration calls checker() and performs bit shifting/adding
+   - The result->insert() operation might be expensive due to repeated allocations
+
+2. **Key Observations**:
+   - The inner loop over arguments_indexes is a fixed pattern per function instance
+   - The bit shifting operation (value << 1) could be optimized
+   - The result column could potentially be pre-allocated
+
+3. **Potential Optimizations**:
+   - Pre-allocate the result column to avoid reallocations
+   - Unroll the inner loop if arguments_indexes size is small and known
+   - Use direct memory access instead of insert() calls
+   - Optimize the bit operations (though they're already quite efficient)
+
+4. **Selected Optimization**:
+   - The highest impact change would be to pre-allocate the result column and use direct memory access, as this avoids:
+     - Repeated memory allocations
+     - Field object construction overhead
+     - Virtual function calls for each insert()
+
+Here's the optimized implementation:

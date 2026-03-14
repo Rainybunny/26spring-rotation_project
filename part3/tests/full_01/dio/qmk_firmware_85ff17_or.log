@@ -1,0 +1,21 @@
+Let me analyze the keyboard_task() function for optimization opportunities:
+
+1. Key Analysis:
+- The function handles keyboard matrix scanning and processing
+- Main bottleneck appears to be in the nested loops scanning matrix rows/columns
+- The inner loop checks each bit in matrix_change using bitwise operations
+- Current implementation checks all columns even when no changes exist
+
+2. Optimization Opportunities:
+- The inner column loop could be optimized by using bitmask operations
+- We can use __builtin_ctz() to find the position of set bits instead of checking each bit
+- This would eliminate the inner loop entirely for each set bit
+- The change would be localized to the matrix processing section
+
+3. Selected Optimization:
+- Replace the column-by-column bit checking with __builtin_ctz() to find set bits
+- This is a common optimization for bitmask processing
+- Maintains exact same functionality but processes bits more efficiently
+- Particularly effective when few keys are pressed (common case)
+
+Here's the optimized implementation:

@@ -1,0 +1,21 @@
+Let me analyze the `draw_slice` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function processes each pixel in the input image and applies a LUT transformation
+   - The RGB path has nested loops (h × w × step) which is computationally intensive
+   - The planar path has similar nested loops (planes × h × w)
+   - Memory access patterns are sequential which is good for cache efficiency
+   - The LUT lookups are already using precomputed tables
+
+2. **Optimization Opportunities**:
+   - The inner loops can be unrolled for better pipelining
+   - The RGB path can be optimized by removing the inner k-loop when step size is known
+   - The planar path can benefit from loop unrolling as well
+   - We can use pointer arithmetic more efficiently
+
+3. **Selected Optimization**:
+   - The highest impact optimization would be to unroll the RGB path inner loop when step=3 or step=4 (common cases for RGB/BGR formats)
+   - This eliminates the innermost loop counter and conditional checks
+   - The optimization maintains the exact same behavior but with fewer instructions
+
+Here's the optimized implementation:

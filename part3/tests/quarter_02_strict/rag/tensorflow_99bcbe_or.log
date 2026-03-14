@@ -1,0 +1,23 @@
+Let me analyze the `OptimizeConsumeItem` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes a graph and its function library in two main phases: optimizing the main graph and optimizing functions.
+- The function library optimization is done in a loop that may process functions multiple times.
+- Heavy use of string operations and hash set lookups for tracking functions.
+- Multiple passes over the function library and graph nodes.
+
+2. **Key Observations**:
+- The function spends significant time processing function libraries and tracking function dependencies.
+- The `find_xla_compiled_functions` and `find_differentiable_functions` operations scan all nodes multiple times.
+- The function library optimization loop may process functions multiple times until no more optimizations are found.
+
+3. **Optimization Opportunity**:
+The most impactful optimization would be to reduce the number of passes over the graph nodes and function library. We can:
+- Combine the differentiable functions and XLA compiled functions scans into a single pass
+- Pre-allocate and reuse data structures
+- Use more efficient container operations
+
+4. **Selected Optimization**:
+Combine the differentiable functions and XLA compiled functions scans into a single pass over the graph nodes and function library. This reduces the number of full graph traversals from 4 to 2.
+
+Here's the optimized implementation:

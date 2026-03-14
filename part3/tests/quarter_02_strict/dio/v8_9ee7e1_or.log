@@ -1,0 +1,17 @@
+Let me analyze the `Runtime_Math_random` function for optimization opportunities:
+
+1. **Analysis**:
+- The function generates a random double between 0 (inclusive) and 1 (exclusive)
+- It combines two calls to `random()` for better precision
+- It performs 3 divisions and 1 addition
+- The result is allocated as a new heap number each time
+
+2. **Bottlenecks**:
+- Multiple divisions are relatively expensive operations
+- Two separate calls to `random()` when one might suffice
+- Heap allocation for each random number
+
+3. **Optimization Idea**:
+The most impactful optimization would be to use a single `random()` call and precompute the reciprocal of (RAND_MAX + 1.0) since it's a constant. This eliminates one division and one `random()` call.
+
+4. **Optimized Implementation**:

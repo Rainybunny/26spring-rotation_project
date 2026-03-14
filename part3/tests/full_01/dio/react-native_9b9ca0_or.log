@@ -1,0 +1,19 @@
+Let me analyze the `initialize()` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function performs many property checks to determine if the view forms a stacking context or a regular view
+   - Most checks are simple comparisons, but some involve function calls (`isColorMeaningful()`, `getClipsContentToBounds()`)
+   - The conditions are evaluated sequentially with short-circuiting (|| operator)
+   - The traits are set/unset at the end based on the boolean flags
+
+2. **Optimization Opportunities**:
+   - The most expensive parts are likely the `isColorMeaningful()` calls and `getClipsContentToBounds()`
+   - We could reorder conditions to check cheaper conditions first (short-circuit evaluation)
+   - However, the biggest win would be to memoize or cache the `isColorMeaningful()` results since they're called twice
+
+3. **Selected Optimization**:
+   - Cache the results of `isColorMeaningful()` calls since they're used in both `formsStackingContext` and `formsView`
+   - This avoids recomputing the same expensive operation multiple times
+   - Simple change with guaranteed performance improvement
+
+Here's the optimized implementation:

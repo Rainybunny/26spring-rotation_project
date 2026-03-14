@@ -1,0 +1,21 @@
+Let me analyze the Index constructor function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes two main collections: unbound_expressions and column_ids
+- For unbound_expressions, it performs multiple operations per expression: copying, binding, and storing
+- The column_ids processing is simpler, just inserting into a set
+- The main performance costs are:
+  * Multiple copies of expressions (expr->Copy() called twice per expression)
+  * Multiple memory allocations for bound_expressions and unbound_expressions
+  * Potential cache misses from scattered memory access
+
+2. **Potential Optimizations**:
+- Pre-reserve space in vectors (types, logical_types, bound_expressions) to avoid reallocations
+- Eliminate one of the expression copies by reordering operations
+- Use emplace_back more consistently to avoid temporary copies
+- Process column_ids first since it's simpler and might allow better pipelining
+
+3. **Selected Optimization**:
+The most impactful change would be to eliminate one of the expression copies by reordering operations and using emplace_back more efficiently. This reduces memory allocations and copying while maintaining the same logic.
+
+Here's the optimized implementation:

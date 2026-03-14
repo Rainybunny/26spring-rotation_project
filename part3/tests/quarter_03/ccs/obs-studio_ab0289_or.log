@@ -1,0 +1,28 @@
+Let me analyze the `calc_volume_levels` function for optimization opportunities:
+
+1. Bottleneck Analysis:
+- The function processes audio samples in a tight loop calculating sum of squares and max value
+- It performs floating point operations (multiplication, square root, log10) per sample
+- The loop has no vectorization and processes samples one by one
+- The alpha blending operations at the end could be optimized
+
+2. Optimization Strategy:
+- Enable SIMD vectorization for the main processing loop
+- Precompute constants outside the loop
+- Use faster math approximations where possible
+- Optimize the alpha blending operations
+
+3. Optimization Ideas:
+- Use OpenMP SIMD pragmas to vectorize the sum/max calculations
+- Precompute 1/count to avoid division in loop
+- Use faster log approximation instead of log10f
+- Unroll loop to process multiple samples per iteration
+
+4. Selected Optimization:
+I'll implement SIMD vectorization using OpenMP pragmas since this provides:
+- Automatic vectorization by compiler
+- Works across different CPU architectures
+- Maintains code readability
+- High impact on performance for audio processing
+
+Here's the optimized function:

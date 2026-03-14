@@ -1,0 +1,28 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes dynamic dimensions of a tensor list, creating XlaOps for each dimension
+- Main operations are:
+  - Getting constant inputs (1 call)
+  - Checking dynamism (2 calls)
+  - Creating dynamic dim ops (potentially many calls in loop)
+- The loop over element_shape.dimensions() could be expensive for high-dimensional tensors
+- Each dynamic dimension requires multiple XLA operations (Slice, Reshape, Convert)
+
+2. **Key Observations**:
+- The function creates many small, similar XLA operations
+- The dynamic dimension processing is done sequentially
+- The output structure is simple (vector of vectors)
+
+3. **Potential Optimizations**:
+- Batch process dynamic dimensions to reduce XLA op overhead
+- Pre-allocate output vectors to avoid reallocations
+- Combine operations where possible
+
+4. **Selected Optimization**:
+The highest impact change would be to **pre-allocate the output vectors** and **optimize the dynamic dimension processing loop** by:
+- Reserving space in vectors upfront
+- Reducing temporary XlaOp creations
+- Simplifying the control flow
+
+Here's the optimized implementation:

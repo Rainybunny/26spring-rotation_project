@@ -1,0 +1,76 @@
+Looking at the optimized function, it's a replacement for `gdv_decode_frame`. The main changes are in the final section where the frame data is copied from the internal buffer to the output frame. The original code had two separate branches: one for when scaling is disabled (both `scale_v` and `scale_h` are 0), and another for when scaling is enabled. The optimized version attempts to unify these into a single loop with conditionals.
+
+Let's analyze the correctness:
+
+1. The optimized version introduces a new variable `src_stride` which is set to `width/2` if `scale_v` is true, otherwise `width`. This is correct because when vertical scaling is enabled, each source row is used for two output rows (so the source advances by `width/2` per row that is actually consumed).
+
+2. The loop structure is different. The original had:
+   - For no scaling: simple copy row by row.
+   - For scaling: a more complex loop with conditionals for horizontal and vertical scaling.
+
+The optimized version tries to handle all cases in one loop. However, there are issues:
+
+- In the case of `!gdv->scale_v && !gdv->scale_h`, the optimized code correctly does `memcpy(dst, src, width)` and then `src += width`. This matches the original.
+
+- In the case of `!gdv->scale_v` (but `scale_h` might be true), the optimized code only copies when `gdv->scale_h && (y & 1)`. But the original code for scaling (when `!gdv->scale_v` but `scale_h` is true) copies every row? Actually, looking at the original: when `!scale_v` and `scale_h` is true, the original code copies every row (since `!gdv->scale_v` branch in the else part copies regardless of y parity). However, note that in the original, `sidx` (source index) only advances when `!gdv->scale_h || ((y & 1) == 1)`. So for `scale_h` true, it advances only on odd rows? Wait, let's re-examine the original:
+
+Original else branch (scaling enabled):
+```
+if (!gdv->scale_v) {
+    memcpy(dst + didx, gdv->frame + sidx, avctx->width);
+} else {
+    ... // horizontal expansion
+}
+if (!gdv->scale_h || ((y & 1) == 1)) {
+    sidx += !gdv->scale_v ? avctx->width : avctx->width/2;
+}
+```
+So if `scale_h` is true, then `sidx` advances only when `(y & 1) == 1` (odd rows). That means for even rows, the same source row is used again. That is correct for vertical downscaling: each source row is used for two output rows (since `scale_h` means half height). But in the original, the copy for `!scale_v` is done for every row, but the source pointer only advances on odd rows. So the even rows copy the same source as the previous row.
+
+Now, the optimized version for `!gdv->scale_v`:
+```
+if (!gdv->scale_v) {
+    if (gdv->scale_h && (y & 1)) {
+        memcpy(dst, src, width);
+        src += width;
+    }
+}
+```
+This only copies on odd rows when `scale_h` is true. But what about even rows? They are not copied at all? That would leave the output row uninitialized. That's a bug. Also, when `scale_h` is false, this branch does nothing (since the condition `gdv->scale_h && (y & 1)` would be false). But if `scale_h` is false and `scale_v` is false, we are in the first case (`!scale_v && !scale_h`), so that's okay. But if `scale_h` is false and `scale_v` is true? That case is handled in the else branch of the optimized code.
+
+Wait, the optimized code's condition is:
+```
+if (!gdv->scale_v && !gdv->scale_h) {
+    ...
+} else if (!gdv->scale_v) {
+    ...
+} else {
+    ...
+}
+```
+So if `scale_v` is false and `scale_h` is true, it goes into the second branch. But as we saw, it only copies on odd rows. That's incorrect because we need to copy on every row (using the same source for even rows as the previous odd row). Actually, we need to copy on every row, but the source pointer should only advance on odd rows. The optimized code advances `src` only when it copies (on odd rows), but on even rows it doesn't copy at all. That's wrong.
+
+Moreover, the original code for the scaling case always copies (either with memcpy or pixel expansion) for every row. So the optimized version misses copying for even rows when `scale_h` is true and `scale_v` is false.
+
+Additionally, the optimized code does not handle the case when `scale_v` is true and `scale_h` is false? Actually, the else branch in the optimized code handles when `scale_v` is true (since the first two conditions cover `!scale_v`). But let's check: the else branch does:
+```
+const uint8_t *src_row = src;
+if (!gdv->scale_h || (y & 1)) {
+    for (x = 0; x < width - 1; x += 2) {
+        dst[x] = dst[x+1] = src_row[x>>1];
+    }
+    if (width & 1) {
+        dst[width-1] = src_row[(width-1)>>1];
+    }
+    src += src_stride;
+}
+```
+Here, `src_row` is set to `src`, but then `src` is advanced only when `!gdv->scale_h || (y & 1)`. That matches the original: when `scale_h` is true, we only advance on odd rows. But note: the original code for `scale_v` true (horizontal expansion) does the expansion for every row, but the source pointer only advances when `!gdv->scale_h || ((y & 1) == 1)`. So the optimized code correctly only does the expansion and advances the source when that condition holds. However, what about the rows where the condition is false? In the optimized code, for those rows, it does nothing: no expansion, no copy. That means the output row is left uninitialized. That's a bug.
+
+In the original code, for rows where the condition is false (i.e., when `scale_h` is true and y is even), the original code still does the expansion (because the expansion is inside the loop for every y, and the condition only controls the advancement of `sidx`). So the original code always writes to the output row, but may reuse the source row from the previous row. The optimized code fails to write to the output row for those even rows when scaling is enabled.
+
+Therefore, the optimized function is incorrect because it does not write to all output rows in the scaling cases.
+
+Performance-wise, the optimized version attempts to reduce branching, but due to the correctness issues, it cannot be considered a valid optimization.
+
+Thus, the optimized function is not a valid replacement.

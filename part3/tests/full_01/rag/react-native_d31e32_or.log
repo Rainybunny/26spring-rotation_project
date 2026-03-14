@@ -1,0 +1,31 @@
+Let me analyze this systematically:
+
+1. Current Function Analysis:
+- The `areFieldsEqual` function compares two C-style strings (char pointers)
+- It handles null cases first (returning true only if both are null)
+- For non-null cases, it creates temporary std::string objects to compare
+- This is inefficient due to:
+  * Heap allocations for string construction
+  * Unnecessary string copies
+  * Full string comparison when we could bail early on first mismatch
+
+2. Reference Example Insights:
+- Example 1 & 2 show optimization of string comparisons by avoiding full string operations when possible
+- Example 3 shows direct comparison of StringData objects (likely avoiding copies)
+- The common theme is avoiding unnecessary string operations and copies
+
+3. Optimization Opportunities:
+- Replace std::string construction with direct strcmp
+- Early termination on first mismatch
+- Keep the null check optimization
+- Avoid all heap allocations
+
+4. Selected Optimization:
+- Replace string construction/comparison with strcmp
+- This is the highest impact change that:
+  * Removes heap allocations
+  * Allows early termination
+  * Maintains exact same behavior
+  * Is simple and reliable
+
+Here's the optimized function:

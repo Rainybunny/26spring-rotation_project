@@ -1,0 +1,25 @@
+Let me analyze the `update` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function performs two main operations: buffer filling and processing through `co()`, `pred()`, and `colmult()` functions
+   - The buffer filling loops (for buffer1 and buffer2) are simple memory copies with modulo operations
+   - The modulo operations (`%40` and `%8`) are relatively expensive operations that could be optimized
+
+2. **Key Observations**:
+   - The modulo operations are used for circular buffer access
+   - The buffer sizes (40 and 8) are powers of 2 minus some small numbers
+   - We can replace modulo with bitwise AND for power-of-2 sizes, but 40 and 8 don't allow this directly
+   - For the 8-case, we can use `&7` instead of `%8` since 8 is a power of two
+   - For the 40-case, we can unroll the loop and handle the wrap-around manually
+
+3. **Potential Optimizations**:
+   - Replace `%8` with `&7` for the history buffer access
+   - Unroll the 40-element loop into chunks that don't require modulo
+   - Pre-calculate loop bounds to minimize modulo operations
+
+4. **Selected Optimization**:
+   - Replace the modulo 8 operation with bitwise AND for the history buffer access
+   - This is a simple, safe change that provides immediate benefit with no behavior change
+   - The 40-case is more complex to optimize without behavior changes, so we'll focus on the simpler 8-case
+
+Here's the optimized function:

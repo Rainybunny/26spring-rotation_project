@@ -1,0 +1,22 @@
+Let me analyze the function and propose optimizations:
+
+Analysis:
+1. The function creates a UTF-8 view of the input and iterates through each code point, appending it to a StringBuilder.
+2. The main bottleneck here is the per-character processing loop which involves:
+   - UTF-8 decoding overhead for each character
+   - StringBuilder append operations for each character
+   - Potential memory reallocations in StringBuilder as it grows
+
+Optimization Opportunities:
+1. For ASCII characters (which are common), we could bypass UTF-8 decoding and append them directly.
+2. We could pre-calculate the required capacity to avoid StringBuilder reallocations.
+3. We could process chunks of ASCII characters at once rather than one by one.
+
+Selected Optimization:
+The most impactful change would be to add ASCII fast-path handling. Since ASCII characters are single-byte and very common in text, we can:
+1. First scan for ASCII runs and append them directly
+2. Only use UTF-8 decoding for non-ASCII characters
+
+This avoids UTF-8 decoding overhead for ASCII characters while maintaining correctness for all Unicode characters.
+
+Here's the optimized implementation:

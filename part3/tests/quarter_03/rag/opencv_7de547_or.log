@@ -1,0 +1,23 @@
+Let me analyze the function and potential optimizations:
+
+1. **Bottleneck Analysis**:
+- The main loop runs for `niters` iterations, which can be large (default 1000)
+- Within each iteration, it calls `getSubset()`, `runKernel()`, and `computeError()`
+- The most expensive operations appear to be:
+  - Sorting the error array (`std::sort`) for median calculation
+  - Memory allocations and copies for intermediate matrices
+
+2. **Reference Example Insights**:
+- Example 3 shows optimization by pre-calculating loop limits
+- Example 2 shows SIMD optimizations for mathematical operations
+- Example 4 shows reducing redundant calculations in loops
+
+3. **Potential Optimizations**:
+- The median calculation via sorting is expensive - could use a partial sort or quickselect
+- Error calculation could potentially be vectorized
+- Memory allocations could be reused between iterations
+
+4. **Selected Optimization**:
+I'll focus on optimizing the median calculation by replacing `std::sort` with `std::nth_element` since we only need the middle element(s) for the median. This should provide significant speedup as it reduces O(n log n) to O(n) complexity.
+
+Here's the optimized function:

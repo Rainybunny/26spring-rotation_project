@@ -1,0 +1,29 @@
+Let me analyze the function and potential optimizations:
+
+1. Analysis of TranslateAllocationNode():
+- The function recursively translates allocation nodes into a profile structure
+- Main operations: script lookup, line/column calculation, allocation scaling, and child node processing
+- Potential bottlenecks:
+  * Multiple string operations (InternalizeUtf8String calls)
+  * Script lookup in std::map
+  * Recursive calls for child nodes
+  * Multiple allocations for vectors
+
+2. Reference Example Insights:
+- Example 1 showed optimization by moving memory operations earlier and combining conditions
+- Example 2 showed optimization by reordering calculations to avoid redundant work
+
+3. Potential Optimizations:
+- Pre-reserve vector capacity for children to avoid reallocations
+- Cache script lookup results since they may be reused
+- Move invariant operations out of loops
+- Use emplace_back instead of push_back where possible
+
+4. Selected Optimization:
+The highest impact optimization would be to optimize the script lookup path since:
+- It's done for every node
+- Involves map lookup and string operations
+- Has branching conditions
+We can restructure the script handling to minimize lookups and string operations.
+
+Here's the optimized function:

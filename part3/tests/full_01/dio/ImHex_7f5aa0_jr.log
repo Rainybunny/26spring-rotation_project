@@ -1,0 +1,61 @@
+Let's analyze the optimization.
+
+**Original function:**
+```cpp
+template<typename ... Args>
+inline std::string format(const std::string &format, Args ... args) {
+    ssize_t size = snprintf( nullptr, 0, format.c_str(), args ... );
+
+    if( size <= 0 )
+        return "";
+
+    std::vector<char> buffer(size + 1, 0x00);
+    snprintf(buffer.data(), size + 1, format.c_str(), args ...);
+
+    return std::string(buffer.data(), buffer.data() + size);
+}
+```
+
+**Optimized version:**
+```cpp
+template<typename ... Args>
+inline std::string format(const std::string &format, Args ... args) {
+    // Try stack buffer first for small strings
+    char stackBuffer[256];
+    ssize_t size = snprintf(stackBuffer, sizeof(stackBuffer), format.c_str(), args...);
+    
+    if (size < 0) return "";
+    
+    // If it fits in stack buffer, construct directly
+    if (size < static_cast<ssize_t>(sizeof(stackBuffer)))
+        return std::string(stackBuffer, size);
+        
+    // Otherwise fall back to original dynamic allocation
+    std::vector<char> heapBuffer(size + 1);
+    snprintf(heapBuffer.data(), size + 1, format.c_str(), args...);
+    return std::string(heapBuffer.data(), size);
+}
+```
+
+## Analysis
+
+### 1. **Correctness**
+- The original calls `snprintf(nullptr, 0, ...)` to get the required size, then allocates a vector, then formats again.
+- The optimized version tries formatting directly into a stack buffer first. If the formatted string fits (size < 256), it returns immediately. If not, it allocates a heap buffer and formats again.
+- Both versions handle negative `snprintf` return values (errors) by returning an empty string.
+- However, there's a critical bug: When `size >= 256`, the first `snprintf` call truncates the output to fit in `stackBuffer`. The check `if (size < static_cast<ssize_t>(sizeof(stackBuffer)))` will be false, so it proceeds to the heap allocation path. But `size` here is the *truncated* length (255), not the actual required length! The subsequent heap allocation will be too small for the full string.
+- The correct approach would be to check if `size >= sizeof(stackBuffer)`, then call `snprintf(nullptr, 0, ...)` to get the actual required size.
+
+### 2. **Performance**
+- For small strings (< 256 chars), the optimized version avoids:
+  - The first `snprintf(nullptr, 0, ...)` call
+  - Heap allocation for the vector
+  - Second formatting call
+  This is a clear win.
+- For large strings (≥ 256 chars), the current implementation is broken. Even if fixed, it would still need the extra `snprintf(nullptr, 0, ...)` call to get the true size, so the optimization wouldn't help for large strings.
+
+### 3. **Memory Usage**
+- Uses stack memory (256 bytes) for small strings instead of heap allocation. This is good for performance but could cause stack overflow in deeply nested recursion (unlikely with this function).
+
+## Conclusion
+The optimization attempt is conceptually good for performance but contains a critical bug that breaks correctness for strings ≥ 256 characters. A correct implementation would need to handle the case where the first `snprintf` truncates differently.

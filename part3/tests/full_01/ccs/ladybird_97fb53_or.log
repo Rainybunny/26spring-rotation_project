@@ -1,0 +1,24 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The `push_command()` function is called frequently to record painting operations
+- It performs a vector append operation which may cause reallocations when capacity is exceeded
+- Each append creates a temporary `PaintingCommandWithScrollFrame` struct
+- The current implementation doesn't pre-allocate vector capacity
+
+2. **Strategy Application**:
+- The selected strategy of pre-allocating container capacity applies perfectly here
+- Since painting commands are accumulated sequentially, we can reserve capacity upfront
+- This avoids repeated memory reallocations as the vector grows
+- The optimization is low-risk since it doesn't change behavior, just improves performance
+
+3. **Optimization Ideas**:
+- Add a `reserve()` call in the constructor to pre-allocate initial capacity
+- Add a method to allow reserving additional capacity if needed
+- The simplest high-impact change is to reserve initial capacity
+
+4. **Selected Optimization**:
+- Add initial capacity reservation in the constructor
+- Choose a reasonable default capacity (e.g., 256 commands) based on typical usage
+
+5. **Final Optimization Implementation**:

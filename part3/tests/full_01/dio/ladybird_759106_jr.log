@@ -1,0 +1,61 @@
+Looking at the provided code, I need to analyze whether the optimized version of `Device::rasterize_triangle` is a valid replacement for the original function.
+
+## Analysis
+
+The original function uses `edge_function4` which is defined as:
+```cpp
+constexpr static f32x4 edge_function4(const FloatVector2& a, const FloatVector2& b, const Vector2<f32x4>& c)
+{
+    return (c.x() - a.x()) * (b.y() - a.y()) - (c.y() - a.y()) * (b.x() - a.x());
+}
+```
+
+The optimized version precomputes edge coefficients and implements the edge function directly:
+```cpp
+auto const v1y_minus_v2y = v1.y() - v2.y();
+auto const v2x_minus_v1x = v2.x() - v1.x();
+// ... other coefficients
+
+auto calculate_edge_values4 = [=](Vector2<f32x4> const& p) -> Vector3<f32x4> {
+    return {
+        (p.x() - v2.x()) * v1y_minus_v2y - (p.y() - v2.y()) * v2x_minus_v1x,
+        (p.x() - v0.x()) * v2y_minus_v0y - (p.y() - v0.y()) * v0x_minus_v2x,
+        (p.x() - v1.x()) * v0y_minus_v1y - (p.y() - v1.y()) * v1x_minus_v0x,
+    };
+};
+```
+
+## Correctness Check
+
+The mathematical equivalence needs to be verified. For the first edge value (edge between v1 and v2):
+- Original: `(c.x() - v1.x()) * (v2.y() - v1.y()) - (c.y() - v1.y()) * (v1.x() - v2.x())`
+- Optimized: `(p.x() - v2.x()) * (v1.y() - v2.y()) - (p.y() - v2.y()) * (v2.x() - v1.x())`
+
+These are mathematically equivalent but with different reference points. The original uses `edge_function4(v1, v2, p)` while the optimized uses a different formulation. Let me verify:
+
+The edge function for points A, B, C is: `(C.x - A.x) * (B.y - A.y) - (C.y - A.y) * (B.x - A.x)`
+
+For edge between v1 and v2:
+- Original: A=v1, B=v2, C=p
+- Optimized appears to use A=v2, B=v1, C=p
+
+Actually, looking more carefully at the optimized coefficients:
+- `v1y_minus_v2y = v1.y() - v2.y()` (this is negative of `v2.y() - v1.y()`)
+- `v2x_minus_v1x = v2.x() - v1.x()` (this is negative of `v1.x() - v2.x()`)
+
+So the optimized version is computing: `(p.x() - v2.x()) * (v1.y() - v2.y()) - (p.y() - v2.y()) * (v2.x() - v1.x())`
+
+This is actually `edge_function4(v2, v1, p)`, not `edge_function4(v1, v2, p)`.
+
+This is a critical error! The optimized version computes the wrong edge values. The edge function should be consistent with the winding order and the "top-left rule" implementation.
+
+## Performance Analysis
+
+Even if the math were correct, the optimization precomputes coefficients which could reduce computation in the inner loop. However:
+1. The original already computes these differences once in the `edge_function4` calls
+2. The SIMD operations would be similar in both cases
+3. The potential performance gain is minimal compared to the risk of incorrect math
+
+## Conclusion
+
+The optimized function has a mathematical error in how it computes edge values. The edge coefficients are computed with swapped vertices, which will produce incorrect barycentric coordinates and potentially render triangles incorrectly or not at all.

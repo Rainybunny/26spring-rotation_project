@@ -1,0 +1,30 @@
+Let me analyze the function and propose optimizations:
+
+1. Analysis:
+- The function `GetOneInputCode` generates OpenCL code strings for various elementwise operations
+- It uses string concatenation and substitution to build the final code
+- The main operations are string assignments and concatenations
+- For some operations like ELU and SIGMOID (non-F32 case), multiple string concatenations are performed
+- The strings are small (mostly single lines), but called frequently during kernel generation
+
+2. Bottlenecks:
+- Multiple string concatenations for operations like ELU and SIGMOID
+- String operations have allocation overhead
+- No pre-allocation of result string capacity
+
+3. Optimization Strategy:
+- Pre-allocate the result string with sufficient capacity to avoid reallocations
+- For operations with multiple concatenations (ELU, SIGMOID), reserve enough space upfront
+- Use string append operations instead of multiple concatenations where possible
+
+4. Selected Optimization:
+- Pre-allocate the result string with estimated capacity based on operation type
+- For ELU and SIGMOID cases, reserve enough space for all lines upfront
+- Use string::append() for multi-line operations to avoid temporary strings
+
+5. Final Optimization Idea:
+- Add capacity reservation for the result string based on operation type
+- For multi-line operations, reserve enough space for all lines
+- Use append() instead of += for better performance in multi-line cases
+
+Here's the optimized function:

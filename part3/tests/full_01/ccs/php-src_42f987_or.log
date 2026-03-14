@@ -1,0 +1,23 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs multiple pointer dereferences through `za->` and `e->` structures
+- `strlen(name)` is called twice when name is non-NULL and non-empty
+- The function checks `e->orig` and `e->changes` multiple times
+- `_zip_string_equal()` is called conditionally but could benefit from cached values
+
+2. **Key Observations**:
+- The `za->entry[idx]` is accessed multiple times through pointer `e`
+- The string length calculation is redundant
+- The `e->orig` and `e->changes` checks are repeated
+
+3. **Optimization Strategy**:
+Apply caching of frequently accessed values and pointer dereferences:
+- Cache the string length to avoid recalculating
+- Cache the `e->orig` and `e->changes` pointers to reduce dereferencing
+- Cache the result of `_zip_string_equal()` when possible
+
+4. **Selected Optimization**:
+Cache the string length and `e->orig`/`e->changes` pointers to reduce memory accesses and redundant calculations.
+
+Here's the optimized function:

@@ -1,0 +1,21 @@
+Let me analyze the Col2im function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs a 4-level nested loop (height_col, width_col, filter_h, filter_w) with an inner depth loop
+- The inner depth loop is marked with a TODO to vectorize, indicating it's a known hotspot
+- Memory access patterns are not optimal - we have strided accesses in im_patch_data
+- The conditional bounds check (ih/iw) inside the hot loops adds overhead
+
+2. **Optimization Strategy**:
+- Vectorize the inner depth loop using SIMD instructions
+- Hoist the bounds check out of the inner loops where possible
+- Improve memory access patterns by processing contiguous blocks
+- Unroll loops where beneficial
+
+3. **Selected Optimization**:
+The highest impact change would be to vectorize the inner depth loop using SIMD intrinsics. This is:
+- High impact: The depth loop is the innermost and runs most frequently
+- Low risk: Doesn't change the algorithm, just how it's executed
+- Portable: Uses compiler intrinsics that work across platforms
+
+4. **Final Optimization Implementation**:

@@ -1,0 +1,23 @@
+Let me analyze the `MergeDots` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes equivalence classes of dot operations and attempts to merge them
+- The main computational costs come from:
+  - Building the equivalence classes (O(n) for n instructions)
+  - Building the dependency graph (O(n + e) for n instructions and e edges)
+  - The nested loop over dot pairs (O(k^2) for k dots in an equivalence class)
+- The most expensive part is likely the nested loop over dot pairs, especially since it performs graph reachability checks for each pair
+
+2. **Potential Optimizations**:
+- Cache the `is_merge_candidate` results to avoid recomputing
+- Optimize the graph reachability checks (but this is in an external library)
+- Reduce the number of pairs we need to check by pre-filtering more aggressively
+- Use a more efficient data structure for `dead_instrs` checks
+
+3. **Selected Optimization**:
+The most impactful change would be to cache the `is_merge_candidate` results since:
+- It's called multiple times for each instruction
+- It involves shape calculations which aren't trivial
+- The result doesn't change during the function execution
+
+Here's the optimized implementation with cached merge candidate status:

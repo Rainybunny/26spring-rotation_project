@@ -1,0 +1,42 @@
+Let's analyze the optimization.  
+
+The original function is:  
+```c
+static inline bool bstr_equals(struct bstr str1, struct bstr str2)
+{
+    return str1.len == str2.len && bstrcmp(str1, str2) == 0;
+}
+```  
+`bstrcmp` is defined elsewhere (not shown in the header), but typical `bstrcmp` implementations compare lengths first, then do `memcmp` if lengths match.  
+
+The optimized version is:  
+```c
+static inline bool bstr_equals(struct bstr str1, struct bstr str2)
+{
+    return str1.len == str2.len && 
+           (str1.start == str2.start || 
+            memcmp(str1.start, str2.start, str1.len) == 0);
+}
+```  
+
+**Changes:**  
+1. It avoids calling `bstrcmp` and inlines the comparison.  
+2. It adds a short-circuit check `str1.start == str2.start` to quickly detect identical pointers (including both NULL).  
+
+**Correctness considerations:**  
+- If `str1.start == str2.start` and lengths are equal, they are trivially equal — correct.  
+- If `str1.start` and `str2.start` are both `NULL` and lengths equal (both 0), the `memcmp` would be skipped, but `memcmp` with `NULL` is undefined behavior. The original `bstrcmp` likely handles NULL pointers safely.  
+- In the original `bstrcmp`, if both start pointers are NULL and lengths equal, it should return 0 (equal). In the optimized version, `str1.start == str2.start` will be true (both NULL), so it returns true — correct.  
+- If one is NULL and the other is not NULL but lengths are 0? The `bstr` struct can have `start = NULL` and `len = 0` to represent an empty string. The original `bstrcmp` with `memcmp` would compare NULL with a non-NULL pointer, which is undefined behavior unless the length is 0 and `memcmp` is defined to handle length 0 with NULL pointer (C standard says `memcmp` with size 0 is valid even with NULL pointers). But the optimized version: `str1.start == str2.start` would be false, so it goes to `memcmp(NULL, non-NULL, 0)`. That's technically allowed (size 0), so safe.  
+
+**Performance:**  
+- Saves a function call to `bstrcmp`.  
+- Adds a pointer equality check, which is cheap.  
+- For identical pointers, it's faster (no `memcmp` call).  
+
+**Potential issue:**  
+The original `bstrcmp` might have extra safety or logic (e.g., handling NULL pointers in a certain way for non-zero length). But since `bstr_equals` first checks `str1.len == str2.len`, and if lengths differ, returns false, the only case where `memcmp` is called is when lengths are equal. If length is 0, `memcmp` is safe even with NULL. If length > 0 and start is NULL, that’s an invalid `bstr` (since `bstr` with `len > 0` should have non-NULL start in correct usage), but original `bstrcmp` would also call `memcmp` with NULL and non-zero length — undefined behavior in both versions. So the optimized version doesn’t make it worse.  
+
+Given the typical usage in mpv codebase, `bstr` with `len > 0` and `start == NULL` is considered invalid and shouldn’t happen. The optimization is valid and improves performance.  
+
+**Verdict:** TRUE.

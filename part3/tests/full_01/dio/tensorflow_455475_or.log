@@ -1,0 +1,19 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Analysis**:
+- The function processes computations in a module to perform common subexpression elimination (CSE).
+- The main bottlenecks appear to be:
+  - The `cse_equal` lambda creates new function objects for each comparison
+  - The `representatives` hash set is recreated for each computation
+  - The instruction iteration and hash set operations could be optimized
+
+2. **Potential Optimizations**:
+- Move the `eq_instructions` and `eq_computations` definitions outside the loop (but they're used in lambda capture)
+- Pre-allocate the hash set size more accurately
+- Change the instruction iteration order to potentially improve locality
+- Inline the comparison functions
+
+3. **Selected Optimization**:
+The most impactful change would be to **pre-allocate the hash set size more accurately** by using the actual instruction count rather than instruction_count()+1. The +1 seems arbitrary and may lead to unnecessary rehashing.
+
+Here's the optimized function:

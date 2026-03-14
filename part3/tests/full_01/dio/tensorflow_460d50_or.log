@@ -1,0 +1,26 @@
+Let me analyze the `ProcessDotArg` function for optimization opportunities:
+
+1. **Analysis**:
+- The function processes tensor arguments for dot operations by separating contract and outer dimensions
+- Main operations are:
+  - Getting shape information
+  - Marking contract dimensions
+  - Collecting outer dimensions
+  - Calling TransposeReshape with the appropriate dimension ordering
+- Potential bottlenecks:
+  - Multiple loops over dimensions (one for contract dims, one for outer dims)
+  - Memory allocations for SmallVectors
+  - The `llvm::enumerate` operation adds some overhead
+
+2. **Optimization Opportunities**:
+- Combine the two loops (contract dims and outer dims) into a single pass
+- Pre-allocate SmallVectors with exact sizes to avoid resizing
+- Remove the temporary `is_outer_dim` vector since we can track outer dims directly
+
+3. **Selected Optimization**:
+The most impactful change would be to combine the dimension processing into a single loop and eliminate the temporary boolean vector. This reduces:
+- Memory allocations (removes one SmallVector)
+- Loop iterations (from 2 passes to 1 pass)
+- Cache misses (less temporary data)
+
+Here's the optimized implementation:

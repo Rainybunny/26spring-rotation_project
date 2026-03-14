@@ -1,0 +1,32 @@
+Looking at the provided code and the optimized function, I need to analyze whether the optimized version of `fz_insert_gel_raw` is a valid replacement for the original.
+
+**Original function behavior:**
+1. Returns early if y0 == y1 (horizontal edge)
+2. Swaps points if y0 > y1 to ensure y0 < y1
+3. Updates bounding box with individual comparisons for x0, x1, y0, y1
+4. Reallocates edges array if needed
+5. Calculates edge parameters for Bresenham's algorithm
+
+**Optimized changes:**
+1. Uses `fz_mini`/`fz_maxi` functions for bounding box updates instead of individual comparisons
+2. Uses a branchless expression for `edge->e` calculation
+
+**Analysis:**
+
+1. **Correctness:**
+   - The bounding box updates in the optimized version are mathematically equivalent to the original. `fz_mini(gel->bbox.x0, fz_mini(x0, x1))` finds the minimum of all three values, same as checking x0 and x1 separately.
+   - The branchless `edge->e` calculation uses the same logic as the original ternary operator.
+   - All other calculations remain identical.
+   - The function maintains the same input/output behavior.
+
+2. **Performance:**
+   - The original uses 4 separate comparisons for x0/x1 bounding box updates, while the optimized version uses function calls to `fz_mini`/`fz_maxi`. The performance impact depends on whether these functions are inlined and their implementation.
+   - The branchless `edge->e` calculation might be slightly faster on some architectures by avoiding a branch.
+   - However, the bounding box update change might not be a clear win since `fz_mini` and `fz_maxi` likely contain comparisons anyway.
+
+3. **Potential issues:**
+   - The optimized code assumes `fz_mini` and `fz_maxi` functions exist and are accessible. Looking at the original code base (though not fully shown), these are likely defined elsewhere as they're not in this snippet.
+   - The original code updates `gel->bbox.y0` and `gel->bbox.y1` with simple comparisons, while the optimized version uses function calls which might have overhead.
+
+**Conclusion:**
+The optimized version appears functionally correct and maintains the same behavior. The performance impact is likely minimal but could vary by platform. The optimization is valid as a replacement, though not dramatically more efficient.

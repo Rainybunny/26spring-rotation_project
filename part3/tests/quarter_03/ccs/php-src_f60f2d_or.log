@@ -1,0 +1,26 @@
+Let me analyze the `compare_function` and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function handles multiple type combinations with different comparison logic
+- String comparisons (both NULL vs string and string vs string) are common operations
+- The current implementation makes copies of operands in many cases
+- Type checks and conversions are done repeatedly
+
+2. **Optimization Strategy**:
+- For string comparisons, we can optimize by:
+  - Avoiding temporary string copies when possible
+  - Using direct pointer comparisons for empty strings
+  - Optimizing the string comparison path for common cases
+- For numeric comparisons, we can:
+  - Reduce redundant type checks
+  - Avoid unnecessary conversions when types are already numeric
+- Reorder checks to handle most common cases first
+
+3. **Selected Optimization**:
+The highest impact optimization would be to optimize the string comparison path since:
+- String operations are frequent in PHP
+- Current implementation makes unnecessary copies
+- We can leverage direct pointer comparisons for empty strings
+
+4. **Optimization Implementation**:
+Here's the optimized version focusing on string comparison improvements:

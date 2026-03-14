@@ -1,0 +1,24 @@
+Let me analyze the `bitopCommand` function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs bitwise operations (AND, OR, XOR, NOT) across multiple input strings
+- Main performance-critical section is the bit operation loop
+- Current implementation has two paths: fast path (using 4-word operations) and slow path (byte-by-byte)
+- The slow path uses a switch statement inside the inner loop which can be inefficient
+
+2. **Optimization Strategy**:
+- Replace the switch statement in the slow path with direct bitwise operations using function pointers
+- This eliminates branch mispredictions in the inner loop
+- The optimization is similar to the reference examples where we replace conditionals with direct bit operations
+
+3. **Key Observations**:
+- The operation type (AND/OR/XOR/NOT) is known before entering the loop
+- We can select the operation once and use it throughout the loop
+- The NOT operation is special since it only operates on one input
+
+4. **Selected Optimization**:
+- Replace the switch statement with function pointers to the appropriate bit operation
+- Handle NOT as a special case before the main loop
+- This reduces branching in the inner loop and allows better pipelining
+
+Here's the optimized implementation:

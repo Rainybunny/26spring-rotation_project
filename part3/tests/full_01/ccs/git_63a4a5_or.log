@@ -1,0 +1,27 @@
+Let me analyze the `trace_encoding` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function is called during encoding operations and writes trace/debug information
+- Main operations are string formatting and buffer manipulation
+- Current implementation uses `strbuf_addf` in a loop which is expensive due to:
+  - Repeated format string parsing
+  - Dynamic memory allocation/growth
+  - Multiple small writes
+
+2. **Optimization Strategy**:
+- Pre-calculate maximum required buffer size to avoid reallocations
+- Replace `strbuf_addf` with direct buffer writes where possible
+- Minimize format string parsing overhead
+- Reduce memory allocations by using stack buffer if size is reasonable
+
+3. **Key Observations**:
+- Each loop iteration writes a fixed format with 3 variables
+- The output has predictable maximum size (about 20 bytes per input byte)
+- The trace output is temporary and doesn't need to be extremely optimized for readability
+
+4. **Selected Optimization**:
+- Pre-calculate maximum buffer size needed
+- Use direct buffer writes instead of `strbuf_addf` for the loop
+- Only use `strbuf` for the initial header line which has variable components
+
+Here's the optimized implementation:

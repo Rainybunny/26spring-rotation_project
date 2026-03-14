@@ -1,0 +1,21 @@
+Let me analyze the `log_mel_spectrogram` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes audio samples into mel spectrogram features
+- Main operations: padding, windowing, FFT, mel filtering
+- Threaded processing using worker threads
+- Memory allocations for padded samples and mel data
+
+2. **Key Observations**:
+- The function is called frequently during audio processing
+- Memory allocations happen on every call
+- Thread creation/destruction overhead for parallel processing
+- Vector operations that could benefit from SIMD
+
+3. **Optimization Strategy**:
+The highest impact optimization would be to pre-allocate buffers to avoid repeated memory allocations. This matches our selected strategy of pre-allocating container capacity.
+
+4. **Optimization Idea**:
+Pre-allocate the `samples_padded` and `mel.data` vectors in the whisper_state to avoid reallocating them on every call. The sizes can be calculated from max expected audio length.
+
+Here's the optimized implementation:

@@ -1,0 +1,23 @@
+Let me analyze this function and propose an optimization:
+
+Analysis:
+1. This function generates indexing maps for a transpose operation in Linalg.
+2. It creates two AffineMaps - one for the input and one for the output.
+3. The current implementation:
+   - Gets result type and rank
+   - Creates input expressions vector
+   - Enumerates through permutation values
+   - Builds input map by assigning dim exprs based on permutation
+   - Returns input map and identity map
+
+Bottlenecks:
+1. The input_exprs vector is first resized then assigned - two passes over data
+2. The permutation enumeration creates temporary objects
+3. The AffineMap creation could potentially be optimized
+
+Optimization Strategy:
+1. Pre-allocate and initialize input_exprs in one pass
+2. Avoid temporary enumeration objects by using direct indexing
+3. Reuse common affine expressions where possible
+
+Optimized Implementation:

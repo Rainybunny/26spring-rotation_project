@@ -1,0 +1,27 @@
+Let me analyze the `InsertDynamicMemrefCastOp` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs multiple operations in loops that could benefit from caching
+- The `op.broadcast_dimensions()` access is done in a loop and could be cached
+- The `op.output_dimensions()` access is done repeatedly in a loop
+- Multiple `create` operations could be minimized by caching builder results
+
+2. **Applicable Strategy**:
+The caching strategy from the reference examples applies well here because:
+- There are repeated accesses to operation attributes (`broadcast_dimensions`, `output_dimensions`)
+- There are repeated builder operations that could be cached
+- The function has nested loops where caching would provide compounding benefits
+
+3. **Optimization Ideas**:
+- Cache `op.broadcast_dimensions()` result before the loop
+- Cache `op.output_dimensions()` result before the loop
+- Pre-compute constant index values outside loops
+- Cache the builder operations' results where possible
+
+4. **Selected Optimization**:
+The highest impact optimization would be to cache the `broadcast_dimensions` and `output_dimensions` accesses since these are:
+- Accessed in tight loops
+- Involve potentially expensive attribute accesses
+- Used multiple times in the function
+
+Here's the optimized implementation:

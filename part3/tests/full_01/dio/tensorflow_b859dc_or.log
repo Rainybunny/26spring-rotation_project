@@ -1,0 +1,22 @@
+Let me analyze the `GetBroadcastType` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function handles both ranked and unranked tensor types, with the unranked case being a quick early exit
+- For ranked tensors, it processes two main cases: equal rank and different rank broadcasting
+- The most common case is likely equal rank broadcasting (shape_x.size() == shape_y.size())
+- The current implementation uses SmallVector for temporary storage which is good, but we can optimize further
+
+2. **Optimization Opportunities**:
+- The equal rank case can be optimized by:
+  - Pre-allocating the output shape vector with the known size
+  - Using direct indexing instead of push_back
+  - Minimizing temporary storage
+- The different rank case could be optimized but is less common and more complex
+
+3. **Selected Optimization**:
+- Focus on optimizing the equal rank case (most common path)
+- Pre-allocate output shape with exact size
+- Use direct assignment instead of push_back
+- Keep the rest of the logic same to maintain correctness
+
+Here's the optimized implementation:

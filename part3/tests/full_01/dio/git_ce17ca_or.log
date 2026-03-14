@@ -1,0 +1,15 @@
+Thought process/analysis:
+1. The `contains()` function has two main paths: regex matching and exact string matching. The exact string matching path is the more performance-critical one since regex matching is inherently slower and less common.
+2. In the exact string matching path, the current implementation uses a simple `for` loop with `memcmp()` for each possible offset. This is O(n*m) in the worst case where n is the file size and m is the needle length.
+3. The comment acknowledges that `strstr()` can't be used because the data isn't NUL-terminated, but we can still optimize the exact matching using more efficient string search algorithms like:
+   - Boyer-Moore (good for longer needles)
+   - Two-way string matching (good general purpose)
+   - SIMD-optimized implementations (like SSE4.2's `_mm_cmpestri`)
+
+Optimization idea:
+Implement the Boyer-Moore-Horspool algorithm for the exact string matching case. This is a simplified version of Boyer-Moore that:
+- Has better average-case performance than naive search
+- Is simple to implement
+- Works well for typical needle lengths in version control systems (usually short to medium length strings)
+
+Final optimized function implementation:

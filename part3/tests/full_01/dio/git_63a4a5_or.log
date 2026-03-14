@@ -1,0 +1,23 @@
+Let me analyze the `trace_encoding` function for optimization opportunities:
+
+1. **Bottlenecks Analysis**:
+   - The function is called during encoding operations and writes trace/debug information
+   - It performs multiple string operations and formatting for each byte in the buffer
+   - The main overhead comes from:
+     - Repeated strbuf_addf() calls in the loop
+     - Conditional checks for each character
+     - Formatting operations for each byte
+
+2. **Optimization Ideas**:
+   - Pre-allocate the strbuf to avoid reallocations
+   - Reduce formatting overhead by using direct character writes where possible
+   - Minimize conditional checks in the hot loop
+   - Consider batching the output rather than per-character formatting
+
+3. **Selected Optimization**:
+   The most impactful change would be to pre-allocate the strbuf and reduce formatting overhead by:
+   - Calculating maximum needed size upfront
+   - Using strbuf_addch() for fixed characters
+   - Only using strbuf_addf() when absolutely necessary
+
+Here's the optimized implementation:

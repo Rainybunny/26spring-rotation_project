@@ -1,0 +1,23 @@
+Let me analyze the `Preprocess` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs two main operations: name uniqueness check and sharding validation
+- The name lookup in `instructions_by_name_` happens for every instruction
+- The sharding validation is conditional but involves shape validation
+
+2. **Optimization Strategy**:
+- The name uniqueness check can be optimized by:
+  - Using a more efficient hash map (though absl::flat_hash_map is already good)
+  - Avoiding string operations where possible
+- The sharding validation is already conditional, but we can optimize the shape validation path
+
+3. **Key Observations**:
+- The error message construction is expensive with string operations
+- The sharding validation is only needed for some instructions
+- The name map insertion happens unconditionally
+
+4. **Selected Optimization**:
+- Optimize the error message construction by moving it to only happen on error cases
+- Cache the instruction name string to avoid repeated lookups
+
+Here's the optimized implementation:

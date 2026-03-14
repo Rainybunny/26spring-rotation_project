@@ -1,0 +1,64 @@
+Let's analyze the provided optimized function against the original.
+
+**Original `ThreadExit` function:**
+```cpp
+void ThreadExit(DWORD ThreadId)
+{
+    EXCLUSIVE_ACQUIRE(LockThreads);
+
+    // Don't use a foreach loop here because of the iterator erase() call
+    for(auto itr = threadList.begin(); itr != threadList.end(); itr++)
+    {
+        if(itr->first == ThreadId)
+        {
+            threadList.erase(itr);
+            break;
+        }
+    }
+
+    EXCLUSIVE_RELEASE();
+    GuiUpdateThreadView();
+}
+```
+
+**Optimized version:**
+```cpp
+void ThreadExit(DWORD ThreadId)
+{
+    bool needsUpdate = false;
+    {
+        EXCLUSIVE_ACQUIRE(LockThreads);
+        auto itr = threadList.find(ThreadId);
+        if(itr != threadList.end())
+        {
+            threadList.erase(itr);
+            needsUpdate = true;
+        }
+    }
+    
+    if(needsUpdate)
+        GuiUpdateThreadView();
+}
+```
+
+**Analysis:**
+
+1. **Correctness:**
+   - The original uses a linear search (`for` loop) over `threadList` (which is an `unordered_map`) to find the thread by `ThreadId`. This is inefficient because `unordered_map` provides O(1) average-case lookup via `find()`.
+   - The optimized version correctly uses `threadList.find(ThreadId)`, which is the proper way to search in an `unordered_map`.
+   - Both versions correctly erase the element if found using the iterator (safe after C++11).
+   - The locking mechanism is preserved (exclusive lock acquired before modifying the map).
+   - The GUI update (`GuiUpdateThreadView()`) is only called if the thread was actually found and removed, which is more efficient (original always called it even if thread wasn't found).
+   - The optimized version uses a scoped lock (via `{}`) to release the lock earlier, which is good practice.
+
+2. **Performance:**
+   - The original has O(n) worst-case search time (though average is O(1) due to hash map, but the loop still iterates).
+   - The optimized version uses the direct `find()` method, which is O(1) average case.
+   - The optimized version avoids unnecessary GUI updates when the thread isn't found.
+   - The optimized version releases the lock earlier (right after map modification) before the GUI update, reducing lock contention.
+
+3. **Potential issues:**
+   - The optimized version introduces a new local variable `needsUpdate`, but this has negligible overhead.
+   - Both are functionally equivalent when the thread exists; when it doesn't exist, the optimized version is faster (no GUI update).
+
+**Conclusion:** The optimized version is a valid improvement. It uses the proper container lookup method, reduces unnecessary work, and maintains correct locking behavior.

@@ -1,0 +1,21 @@
+Let me analyze the `replace_by` function for optimization opportunities:
+
+1. **Bottlenecks Analysis**:
+- The function makes multiple passes over child nodes (for owned nodes, groups, etc.)
+- It performs several list operations (copying owned nodes, finding owned_by_owner)
+- The group handling could be optimized since it's copying all group info
+- The child node handling does multiple add/remove operations
+
+2. **Optimization Ideas**:
+- Combine the child node processing into a single pass
+- Optimize the group transfer by moving instead of copying
+- Pre-allocate lists where possible
+- Reduce redundant operations
+
+3. **Selected Optimization**:
+The most impactful change would be to optimize the child node handling by:
+- Moving all children in a single pass
+- Avoiding intermediate remove/add operations
+- Preserving the original child order
+
+Here's the optimized implementation:

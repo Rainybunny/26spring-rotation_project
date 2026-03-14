@@ -1,0 +1,20 @@
+Let me analyze the function `ngx_http_upstream_init_round_robin` for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function has two main paths: one for explicit server lists and one for implicitly defined upstreams
+   - The most time-consuming part is the nested loops when processing server lists (both primary and backup)
+   - Memory allocation is done using `ngx_pcalloc` which is already optimized
+   - The function performs many field-by-field copies of server/peer data
+
+2. **Optimization Opportunities**:
+   - The nested loops could potentially be optimized by reducing branching
+   - Field copying could be optimized using bulk memory operations where possible
+   - The weight calculations could be simplified
+
+3. **Selected Optimization**:
+   - The most impactful change would be to optimize the peer initialization loops by:
+     - Reducing conditional checks inside the inner loop
+     - Using structure assignment instead of field-by-field copying where possible
+     - Pre-calculating loop conditions
+
+Here's the optimized implementation:

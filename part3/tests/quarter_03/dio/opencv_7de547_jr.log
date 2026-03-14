@@ -1,0 +1,51 @@
+Looking at the provided code, the optimized function is the `run` method of the `LMeDSPointSetRegistrator` class. The optimization focuses on the median computation part.
+
+**Original median computation:**
+```cpp
+std::sort(errf.ptr<int>(), errf.ptr<int>() + count);
+double median = count % 2 != 0 ?
+    errf.at<float>(count/2) : (errf.at<float>(count/2-1) + errf.at<float>(count/2))*0.5;
+```
+
+**Optimized median computation:**
+```cpp
+float* errptr = errf.ptr<float>();
+if(count % 2 != 0)
+{
+    std::nth_element(errptr, errptr + count/2, errptr + count);
+    double median = errptr[count/2];
+    if( median < minMedian )
+    {
+        minMedian = median;
+        model_i.copyTo(bestModel);
+    }
+}
+else
+{
+    std::nth_element(errptr, errptr + count/2 - 1, errptr + count);
+    float m1 = errptr[count/2 - 1];
+    std::nth_element(errptr + count/2, errptr + count/2, errptr + count);
+    float m2 = errptr[count/2];
+    double median = (m1 + m2) * 0.5;
+    if( median < minMedian )
+    {
+        minMedian = median;
+        model_i.copyTo(bestModel);
+    }
+}
+```
+
+**Analysis:**
+1. **Correctness**: The optimization correctly computes the median. For odd count, `std::nth_element` places the median at the correct position. For even count, it finds the two middle elements separately and averages them. This matches the original logic.
+
+2. **Performance**: `std::nth_element` has average O(n) complexity, while `std::sort` has O(n log n) complexity. For large `count` values, this provides significant performance improvement. The even case requires two O(n) operations, which is still O(n) overall.
+
+3. **Memory**: No additional memory allocation is introduced.
+
+4. **Edge cases**: Handles both odd and even counts correctly. The original code had a bug: it was using `errf.ptr<int>()` for sorting but the array contains `float` values. The optimized version correctly uses `float*`.
+
+5. **Compatibility**: The optimization maintains the same function signature and behavior. All other parts of the function remain unchanged.
+
+**Potential issue**: The original code had `errf.ptr<int>()` which is incorrect since `errf` contains `float` values. The optimized version fixes this by using `errf.ptr<float>()`. This is actually a bug fix, not just an optimization.
+
+**Conclusion**: The optimization is valid - it improves performance while maintaining correctness, and even fixes a subtle bug in the original code.

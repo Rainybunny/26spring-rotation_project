@@ -1,0 +1,87 @@
+Let's analyze step by step.
+
+---
+
+**1. Original function:**
+
+```c
+static int gbDisass(RAsmOp *op, const ut8 *buf, ut64 len){
+	int foo = gbOpLength (gb_op[buf[0]].type);
+	if (len<foo)
+		return 0;
+	switch (gb_op[buf[0]].type) {
+	case GB_8BIT:
+		sprintf (op->buf_asm, "%s", gb_op[buf[0]].name);
+		break;
+	case GB_16BIT:
+		sprintf (op->buf_asm, "%s %s", cb_ops[buf[1]/8], cb_regs[buf[1]%8]);
+		break;
+	case GB_8BIT+ARG_8:
+		sprintf (op->buf_asm, gb_op[buf[0]].name, buf[1]);
+		break;
+	case GB_8BIT+ARG_16:
+		sprintf (op->buf_asm, gb_op[buf[0]].name, buf[1]+0x100*buf[2]);
+		break;
+	case GB_8BIT+ARG_8+GB_IO:
+		sprintf (op->buf_asm, gb_op[buf[0]].name, 0xff00+buf[1]);
+		break;
+	}
+	return foo;
+}
+```
+
+---
+
+**2. Proposed optimized function:**
+
+Main changes:
+- Caches `gb_op[buf[0]]` into `const GBOpDef *opdef` at the start.
+- Uses `opdef->type` and `opdef->name` instead of repeated `gb_op[buf[0]]`.
+- In `GB_8BIT` case, replaces `sprintf(op->buf_asm, "%s", opdef->name)` with `strcpy(op->buf_asm, opdef->name)`.
+- Keeps `buf[1]/8` and `buf[1]%8` (same as original).
+
+---
+
+**3. Reference optimized function (Ground Truth):**
+
+Main changes compared to original:
+- **No caching** of `gb_op[buf[0]]` into a local pointer.
+- In `GB_16BIT` case, replaces `buf[1]/8` with `buf[1]>>3` and `buf[1]%8` with `buf[1]&7` (bitwise ops instead of division/modulo).
+- Everything else identical to original.
+
+---
+
+**4. Comparison of optimization strategies:**
+
+- **Proposed strategy:**  
+  Cache `gb_op[buf[0]]` to avoid repeated array indexing, and replace `sprintf` with `strcpy` for `GB_8BIT` case (since no formatting needed).
+
+- **Reference strategy:**  
+  Replace integer division/modulo with bitwise shift/AND in `GB_16BIT` case. No caching, no `strcpy` change.
+
+These are **different optimization strategies**:
+- Proposed: caching + `strcpy` for speed.
+- Reference: bitwise ops for speed.
+
+The reference does **not** cache `gb_op[buf[0]]` and does **not** change `sprintf` to `strcpy`.  
+The proposed changes are valid and might improve performance, but they do **not** match the reference’s strategy.
+
+---
+
+**5. Validity and performance:**
+
+- Caching `gb_op[buf[0]]` is safe and correct.
+- `strcpy` instead of `sprintf` for plain string copy is safe (assuming `opdef->name` is null-terminated).
+- Performance: Both changes likely improve speed, but the reference’s bitwise optimization is unrelated.
+
+---
+
+**6. Strategy match verdict:**
+
+The reference’s optimization is specifically about replacing `/8` and `%8` with `>>3` and `&7`.  
+The proposed optimization does **not** do that; it does caching and `strcpy`.  
+Therefore, the **strategies differ significantly**.
+
+---
+
+**Final Verdict:**

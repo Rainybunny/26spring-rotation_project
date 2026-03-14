@@ -1,0 +1,29 @@
+Let me analyze the `fill_from_cache` function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function is called multiple times per frame (for each y-coordinate)
+- It performs a linear scan through the point cache for each call
+- The main operations are:
+  - Checking if morphamp is set (early exit)
+  - Looping through cache points
+  - Comparing y-coordinates (p->p[1] > py)
+  - Calculating x position and bounds checking
+  - Conditional assignments
+
+2. **Optimization Strategy**:
+- The key observation is that the cache is scanned multiple times with increasing `py` values
+- We can optimize by:
+  - Sorting the cache by y-coordinate to enable binary search
+  - Pre-calculating x positions if possible
+  - Moving invariant checks outside loops
+
+3. **Selected Optimization**:
+- The highest impact change would be to sort the cache by y-coordinate and use binary search to find the starting point for each scan
+- This would reduce the O(n) scan to O(log n) + O(m) where m is the number of points processed
+
+4. **Implementation**:
+- Add a sorted flag to track if cache is sorted
+- Sort the cache by y-coordinate when first populated
+- Use binary search to find the starting index for each fill operation
+
+Here's the optimized function:

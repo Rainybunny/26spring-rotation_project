@@ -1,0 +1,15 @@
+Looking at the optimized function, I can see several critical issues:
+
+1. **Memory access pattern in second pass is incorrect**: In the second pass, the code loads `row0`, `row1`, `row2`, and `row3` all from the same memory location `&tmp[8*k+j]`, but these should be different rows. The original algorithm accesses `tmp[8*k+j]` where `k` varies, but the optimized code loads the same value for all four rows.
+
+2. **Coefficient handling is wrong**: In the second pass, the coefficient is being overwritten multiple times before being used. The code sets `coeff` four times with different values, but then uses the same `coeff` variable for all four FMA operations, which will use the last value set (for `i+3`) for all operations.
+
+3. **Horizontal reduction is incorrect**: The code tries to access `sum0[0]` etc. as array indices, but `__m256d` doesn't support array indexing like that. The proper way would be to extract the elements or use horizontal addition instructions.
+
+4. **Missing includes**: The optimized code uses `av_clip_uint8` but doesn't include the necessary headers. However, this is a minor issue compared to the algorithmic problems.
+
+5. **Potential alignment issues**: The code uses unaligned loads/stores which is fine for `tmp` array, but the algorithm correctness is the main concern.
+
+The original function performs a 2D IDCT on an 8x8 block. It first computes row-wise transforms, then column-wise transforms. The optimized version attempts to vectorize both passes but has fundamental algorithmic errors that would produce incorrect results.
+
+The performance might be better if the algorithm were correct (using SIMD instructions), but since it produces wrong results, it's not a valid optimization.

@@ -1,0 +1,25 @@
+Let me analyze the `createParameterTypes` function for potential optimizations:
+
+1. **Analysis**:
+- The function creates debug info for function parameters by:
+  - First handling the return type
+  - Then iterating through all parameters
+- It uses `SmallVector` with initial capacity 16 (reasonable)
+- Each parameter type is processed by `createParameterType`
+- The function creates a generic context scope which may have some overhead
+
+2. **Bottlenecks**:
+- The function is called for every function type in debug info
+- The `getResultTypeForDebugInfo` and `getSILType` calls may be expensive
+- The `getOrCreateTypeArray` at the end creates a new metadata array each time
+
+3. **Optimization Idea**:
+The most impactful optimization would be to **cache the parameter type arrays** since function types are often reused. We can:
+- Create a cache keyed by the function type
+- Store the resulting `DITypeRefArray` to avoid recomputation
+- Invalidate cache entries when types change (unlikely in this context)
+
+4. **Selected Optimization**:
+Implement a cache for parameter type arrays to avoid redundant computations.
+
+Here's the optimized implementation:

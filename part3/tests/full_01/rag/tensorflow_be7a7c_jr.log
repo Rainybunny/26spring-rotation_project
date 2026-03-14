@@ -1,0 +1,80 @@
+Looking at the provided code, the optimized function is a replacement for the `Preprocess` method in the `InstructionVerifier` class. Let's analyze it step by step.
+
+**Original `Preprocess` method:**
+```cpp
+Status Preprocess(HloInstruction* instruction) override {
+    auto previous = instructions_by_name_.find(instruction->name());
+    TF_RET_CHECK(previous == instructions_by_name_.end())
+        << "HLO has name that is not unique within module:\n"
+        << instruction->ToString()
+        << " in computation: " << instruction->parent()->name()
+        << "\nPrevious HLO with same name:\n"
+        << previous->second->ToString()
+        << " in computation: " << previous->second->parent()->name();
+    instructions_by_name_[instruction->name()] = instruction;
+
+    if (instruction->has_sharding()) {
+      Status status =
+          instruction->sharding().Validate(instruction->shape(), num_devices_);
+      if (!status.ok()) {
+        return Status(status.code(),
+                      absl::StrCat("Invalid sharding for instruction: ",
+                                   instruction->ToString(), ": ",
+                                   status.error_message()));
+      }
+    }
+
+    return OkStatus();
+  }
+```
+
+**Optimized `Preprocess` method:**
+```cpp
+Status Preprocess(HloInstruction* instruction) override {
+    auto [it, inserted] = instructions_by_name_.try_emplace(instruction->name(), instruction);
+    if (!inserted) {
+      return InternalError(
+          "HLO has name that is not unique within module:\n"
+          "%s in computation: %s\n"
+          "Previous HLO with same name:\n"
+          "%s in computation: %s",
+          instruction->ToString(), instruction->parent()->name(),
+          it->second->ToString(), it->second->parent()->name());
+    }
+
+    if (instruction->has_sharding()) {
+      Status status =
+          instruction->sharding().Validate(instruction->shape(), num_devices_);
+      if (!status.ok()) {
+        return Status(status.code(),
+                      absl::StrCat("Invalid sharding for instruction: ",
+                                   instruction->ToString(), ": ",
+                                   status.error_message()));
+      }
+    }
+
+    return OkStatus();
+  }
+```
+
+**Changes:**
+1. The original uses `find()` followed by `[]` insertion, which performs two hash table lookups.
+2. The optimized version uses `try_emplace()`, which performs only one hash table lookup in the common case (when the name is unique). This is more efficient.
+3. The error message formatting is slightly changed to use `%s` format specifiers instead of chaining `<<` operators, but the content remains the same.
+
+**Correctness:**
+- The `try_emplace` function inserts the key-value pair only if the key doesn't already exist. It returns a pair consisting of an iterator to the element (inserted or existing) and a bool indicating whether insertion happened.
+- The logic for checking duplicate names is preserved: if insertion fails (`!inserted`), an error is returned with the same information.
+- The sharding validation logic is unchanged.
+- The function signature and return types are the same.
+
+**Performance:**
+- The optimized version reduces the number of hash table lookups from two to one in the common case (no duplicate names), which improves performance.
+- Memory allocation behavior is similar since `try_emplace` constructs the element in-place when needed.
+
+**Potential issues:**
+- The optimized code uses structured bindings (`auto [it, inserted]`), which requires C++17. The original code uses C++14 or earlier. However, the full source code includes headers like `<optional>` (C++17) and uses `std::nullopt`, suggesting the codebase already uses C++17. So this should be fine.
+- The error message now uses `%s` format specifiers with string arguments. This is correct because `InternalError` likely uses a `printf`-style format string (common in TensorFlow). The original strings are valid C strings, so this is safe.
+
+**Conclusion:**
+The optimized function is a valid replacement that improves performance while maintaining correctness. The changes are minimal and focused on efficiency.

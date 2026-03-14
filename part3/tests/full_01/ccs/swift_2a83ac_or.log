@@ -1,0 +1,25 @@
+Let me analyze the `emitCondition` function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function handles both constant and variable boolean conditions
+- For variable conditions, it creates basic blocks and conditional branches
+- The main overhead comes from branch instructions and basic block creation
+- The current implementation uses conditional checks (if-else) for constant folding
+
+2. **Optimization Strategy**:
+- Replace conditional checks for constant folding with branchless bit manipulation
+- Use arithmetic to compute results rather than control flow
+- This eliminates branch mispredictions and enables better instruction pipelining
+- The strategy matches the reference examples where bit operations replaced conditionals
+
+3. **Key Observations**:
+- The function already handles constant conditions specially
+- We can optimize the constant condition path further by using arithmetic
+- The variable condition path is already fairly optimal with just one branch
+
+4. **Selected Optimization**:
+- Replace the constant condition check with arithmetic operations
+- Use bitwise AND to select between true/false cases
+- This avoids branches entirely for constant conditions
+
+Here's the optimized implementation:

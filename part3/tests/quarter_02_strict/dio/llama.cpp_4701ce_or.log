@@ -1,0 +1,27 @@
+Let me analyze the function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes logits for each token in vocabulary (n_vocab can be large, e.g. 32k+)
+- Main operations: logit bias application, guidance application, and token data array construction
+- The current implementation uses emplace_back() in a loop to build the token data array
+
+2. **Key Observations**:
+- The token data array (cur) is cleared and rebuilt every call
+- We know the exact size needed (n_vocab) upfront
+- emplace_back() involves repeated reallocations until capacity is reached
+- Memory locality could be improved for better cache utilization
+
+3. **Optimization Opportunities**:
+- Pre-allocate vector capacity to avoid reallocations
+- Replace emplace_back with direct indexing (faster for known sizes)
+- Consider parallelization (but would complicate code significantly)
+- Optimize the penalty application loop (but it's already quite efficient)
+
+4. **Selected Optimization**:
+The highest impact change with minimal complexity is to pre-allocate the vector and use direct indexing instead of emplace_back. This:
+- Eliminates multiple reallocations
+- Improves memory locality
+- Maintains identical functionality
+- Is a simple, safe change
+
+Here's the optimized implementation:

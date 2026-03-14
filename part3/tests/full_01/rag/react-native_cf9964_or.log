@@ -1,0 +1,24 @@
+Let me analyze the `executeApplicationScript` function for optimization opportunities:
+
+1. Current Analysis:
+- The function is a simple wrapper that calls two methods on the Bridge object
+- It has basic exception handling that translates C++ exceptions to Java exceptions
+- The function passes strings by value (std::string), which involves copying
+- The function is called frequently during React Native operation (script execution)
+
+2. Bottlenecks:
+- String copying is potentially expensive for large scripts
+- The function is simple and already quite optimized in terms of structure
+- The main costs are likely in the called Bridge methods rather than this wrapper
+
+3. Optimization Opportunities:
+- Pass strings by const reference to avoid copying
+- The exception handling is necessary and can't be optimized away
+- The bridge calls are essential and can't be changed here
+
+4. Selected Optimization:
+- Change string parameters from pass-by-value to pass-by-const-reference
+- This avoids unnecessary string copies while maintaining the same functionality
+- Simple change with potential performance benefit for large scripts
+
+Here's the optimized implementation:

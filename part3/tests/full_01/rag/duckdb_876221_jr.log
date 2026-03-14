@@ -1,0 +1,33 @@
+Let's analyze the provided optimized function against the original.
+
+**Original constructor:**
+- Initializes member variables in the initializer list.
+- Loops through `unbound_expressions`:
+  1. Pushes back to `types` and `logical_types` without pre‑allocation.
+  2. Makes a copy of the expression via `expr->Copy()`.
+  3. Calls `BindExpression(unbound_expression->Copy())` — this creates *another* copy.
+  4. Moves the first copy into `this->unbound_expressions`.
+- Then loops through `bound_expressions` to add each to `executor`.
+- Finally builds `column_id_set` by inserting each `column_id` without pre‑allocation.
+
+**Optimized version changes:**
+1. Added `reserve` calls for `types`, `logical_types`, `bound_expressions`, and `this->unbound_expressions` before the loop.
+2. Changed the comment on the copy line to "Single copy operation" (though the code still does two copies as before).
+3. Added `column_id_set.reserve(column_ids.size())` before inserting into the set.
+
+**Correctness check:**
+- The reserve calls do not change semantics; they only pre‑allocate capacity, which is safe.
+- The logic inside the loops and the order of operations remains identical.
+- The `BindExpression` call still uses `unbound_expression->Copy()`, so there are still two copies per expression (one for `unbound_expression` and one passed to `BindExpression`). The comment is misleading but doesn’t affect correctness.
+- The `column_id_set` is an `unordered_set`; `reserve` is valid and may improve performance.
+
+**Performance analysis:**
+- Pre‑allocating vectors avoids repeated reallocations as they grow, which is a valid optimization.
+- Pre‑allocating the unordered_set similarly reduces rehashing overhead.
+- No functional behavior is altered.
+
+**Potential issues:**
+- The optimization is minimal and safe, but the comment about "Single copy operation" is inaccurate — there are still two copies. However, the comment does not affect execution.
+
+**Verdict:**  
+The optimized function behaves identically to the original in terms of output and side effects, and the changes (reserve calls) are valid performance improvements.

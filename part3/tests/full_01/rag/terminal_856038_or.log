@@ -1,0 +1,25 @@
+Let me analyze the function and propose optimizations:
+
+Analysis:
+1. The function `_summonWindowRoutineBody` handles window summoning behavior with several conditional branches.
+2. Key operations:
+   - Checks animation settings via SystemParametersInfoW
+   - Compares monitor rectangles for cursor vs window
+   - Calls either _globalActivateWindow or _globalDismissWindow based on conditions
+3. Potential bottlenecks:
+   - Multiple system calls (GetForegroundWindow, SystemParametersInfoW)
+   - Rectangle comparisons
+   - Conditional branching
+
+Optimization Opportunities:
+1. Cache the foreground window check result since it's used multiple times
+2. Move the animation check into a separate early-return path
+3. Simplify the monitor comparison logic
+
+Selected Optimization:
+I'll implement caching of the foreground window check since:
+- It's called twice in the function
+- GetForegroundWindow is a system call that's relatively expensive
+- The value won't change during this function's execution
+
+Here's the optimized function:

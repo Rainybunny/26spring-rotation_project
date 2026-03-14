@@ -1,0 +1,24 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function performs multiple passes over dimension data structures
+   - Heavy use of SmallVector operations (push_back, erase)
+   - Multiple calls to IsSimpleProduct which involves recursive analysis
+   - Several conditional checks and early returns
+
+2. **Key Observations**:
+   - The most expensive parts are the loops and vector operations
+   - The IsSimpleProduct calls are recursive and could be optimized
+   - The wildcard dimension check could be streamlined
+   - The symbolic factor matching could be made more efficient
+
+3. **Potential Optimizations**:
+   - Pre-allocate vectors to avoid reallocations
+   - Combine loops where possible to reduce passes over data
+   - Optimize the IsSimpleProduct calls (though this is in another function)
+   - Early exit optimizations for common cases
+
+4. **Selected Optimization**:
+   The highest impact change would be to combine the wildcard dimension check with the first factor analysis loop, reducing the number of passes over the dynShapeDims data.
+
+Here's the optimized implementation:

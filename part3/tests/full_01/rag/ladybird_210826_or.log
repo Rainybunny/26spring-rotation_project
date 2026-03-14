@@ -1,0 +1,26 @@
+Let me analyze the `memmove` function and potential optimizations based on the reference examples:
+
+1. Analysis of current implementation:
+- The function handles overlapping memory regions by checking if dest is after src with enough space
+- If no overlap, it delegates to memcpy (which is already optimized with ASM on x86_64)
+- For overlapping regions where dest < src, it copies backwards byte-by-byte
+
+2. Observations from reference examples:
+- Example 2 shows optimized memory operations using SIMD (SSE/AVX) for bulk copies
+- Example 1 shows optimized handling of different cases with early returns
+- The current implementation does byte-by-byte copy which could be slow for large n
+
+3. Potential optimizations:
+- For large n, we could use word-sized copies (e.g., 8 bytes at a time) when possible
+- Add alignment handling to enable more efficient copies
+- Use SIMD instructions when available (like in Example 2)
+- However, we must maintain the exact same behavior for overlapping regions
+
+4. Selected optimization:
+The highest impact change would be to implement word-sized copies for the backward copy case while maintaining the exact same behavior. This provides:
+- Significant speedup for large copies (8x fewer operations)
+- Maintains identical behavior for all cases
+- Doesn't require any new dependencies
+- Works across all architectures
+
+Here's the optimized implementation:

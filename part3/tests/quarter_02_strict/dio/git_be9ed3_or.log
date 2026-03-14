@@ -1,0 +1,27 @@
+Let me analyze the `same_name` function for optimization opportunities:
+
+1. Current behavior analysis:
+- The function compares a cache entry's name with an input name
+- First does exact comparison (fast path)
+- Falls back to case-insensitive comparison if needed (slow path)
+- Returns 1 if names match, 0 otherwise
+
+2. Bottlenecks identified:
+- The function calls `cache_name_compare` for exact comparison
+- Then calls `slow_same_name` for case-insensitive comparison
+- Both are external functions that may involve function call overhead
+- The case-insensitive path is particularly expensive due to character-by-character comparison with toupper()
+
+3. Optimization opportunities:
+- Inline the exact comparison logic to avoid function call overhead
+- Optimize the case-insensitive comparison by processing words instead of bytes
+- Precompute string lengths or hash values for faster comparison
+
+4. Selected optimization:
+Inline the exact comparison logic since:
+- It's the common/fast path
+- Eliminates function call overhead
+- Simple change with high impact
+- Doesn't change behavior or add complexity
+
+Here's the optimized implementation:

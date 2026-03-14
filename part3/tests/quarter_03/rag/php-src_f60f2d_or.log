@@ -1,0 +1,23 @@
+Let me analyze the `compare_function` and identify optimization opportunities:
+
+1. **Analysis**:
+- The function handles comparison of different PHP variable types (NULL, string, bool, numbers, arrays, objects)
+- Most common cases are likely string vs string and numeric comparisons
+- Current implementation makes copies of operands (op1_copy, op2_copy) for type conversions
+- The function has many conditional branches which could impact performance
+
+2. **Reference Example Insights**:
+- Example 3 shows optimization by avoiding unnecessary pointer dereferencing and using direct value access
+- Example 1 shows optimization by handling common cases first and minimizing conversions
+- Example 2 shows optimization by simplifying type checks and comparisons
+
+3. **Optimization Ideas**:
+- Reorder checks to handle most common cases first (strings, numbers)
+- Minimize copying/conversions when not needed
+- Simplify type checking logic
+- Use direct value comparisons where possible
+
+4. **Selected Optimization**:
+The highest impact optimization would be to reorder the checks to handle the most common cases first (string and numeric comparisons) before less common cases. This reduces the number of checks needed for the common paths.
+
+Here's the optimized function:

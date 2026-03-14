@@ -1,0 +1,25 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The main loop `for (absl::string_view cert : certs)` performs string copies and vector pushes
+- Each `push_back()` does bounds checking and potential reallocation
+- The cert_chain vector is immediately passed to jvmVerifyX509CertChain after population
+- We know the exact size needed (certs.size()) before populating cert_chain
+
+2. **Strategy Application**:
+- The selected strategy of replacing container appends with unchecked appends applies here
+- We can optimize by:
+  - Pre-allocating the vector to avoid reallocations
+  - Using unchecked appends since we control the size
+  - Avoiding temporary string construction in the loop
+
+3. **Optimization Selection**:
+- The highest impact change would be to reserve vector capacity upfront and use emplace_back
+- This avoids multiple allocations and moves/copies
+
+4. **Final Optimization Idea**:
+- Pre-allocate cert_chain vector with certs.size()
+- Use emplace_back to construct strings in-place
+- This reduces memory operations and eliminates bounds checking
+
+Here's the optimized function:

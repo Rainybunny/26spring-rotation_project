@@ -1,0 +1,24 @@
+Let me analyze the `GetShape` function for optimization opportunities:
+
+1. Current Analysis:
+- The function takes a Value and returns its shape as a DenseElementsAttr
+- It performs type casting to RankedTensorType
+- It copies shape dimensions into a std::vector<int32_t>
+- Creates a new RankedTensorType for the result
+- Constructs a DenseElementsAttr from the shape data
+
+2. Bottlenecks:
+- The std::vector allocation and copy could be avoided
+- The shape data is being copied twice (once into std::vector, then into ArrayRef)
+- The RankedTensorType creation could potentially be cached if shapes are reused
+
+3. Optimization Opportunities:
+- Most impactful would be to eliminate the intermediate std::vector
+- We can directly create the ArrayRef from the shape data
+- The type creation is unavoidable but relatively cheap
+
+4. Selected Optimization:
+- Replace std::vector copy with direct ArrayRef construction from shape data
+- This removes one allocation and copy operation
+
+Here's the optimized implementation:

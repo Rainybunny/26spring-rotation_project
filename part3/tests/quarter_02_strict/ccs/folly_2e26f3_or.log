@@ -1,0 +1,27 @@
+Let me analyze the `wake()` function and identify optimization opportunities:
+
+1. **Current Implementation Analysis**:
+   - The function acquires a mutex lock, sets a boolean flag, and notifies one waiting thread
+   - This is a common pattern for condition variable signaling
+   - The mutex protects access to `signaled_` and synchronizes with the waiters
+
+2. **Potential Bottlenecks**:
+   - The mutex lock/unlock operations have overhead
+   - The function is called frequently in parking/unparking operations
+   - The critical section is very small (just setting a boolean and notification)
+
+3. **Optimization Opportunities**:
+   - We could consider using atomic operations for `signaled_` to avoid mutex
+   - However, we must maintain proper synchronization with the condition variable
+   - The condition variable requires the mutex for correct operation (per C++ standard)
+   - Relaxed memory ordering might be possible for the flag, but we still need the mutex for the condvar
+
+4. **Selected Optimization**:
+   - Keep the mutex but use `std::lock_guard` instead of `std::unique_lock` since we don't need its extra features
+   - This reduces some overhead from `unique_lock`'s more complex implementation
+   - The change is safe as we don't need to unlock before scope end
+
+**Final Optimization Idea**:
+Replace `std::unique_lock` with `std::lock_guard` since we don't need the additional capabilities of `unique_lock` in this simple wake operation. This reduces some overhead while maintaining correct synchronization.
+
+Here's the optimized implementation:

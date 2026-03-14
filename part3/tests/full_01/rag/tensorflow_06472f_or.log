@@ -1,0 +1,26 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs multiple type checks and validations upfront which are necessary and can't be optimized away.
+- The main computational work happens in the loop where we process start indices (rank=1 case).
+- Each iteration creates multiple operations (SliceOp, ReshapeOp) which could be expensive.
+- The slice_start_indices vector grows dynamically which may cause reallocations.
+
+2. **Key Observations**:
+- The loop creates a SliceOp and ReshapeOp for each index in rank=1 case.
+- The GetI64ElementsAttr function is called repeatedly with small constant arrays.
+- The slice_start_indices vector size is known beforehand for rank=1 case.
+
+3. **Potential Optimizations**:
+- Pre-allocate slice_start_indices vector when size is known (rank=1 case).
+- Hoist constant attribute creation out of the loop.
+- Consider batching operations if possible (though MLIR ops are typically created individually).
+
+4. **Selected Optimization**:
+The highest impact optimization would be to pre-allocate the slice_start_indices vector when processing rank=1 tensors, since:
+- Avoids multiple reallocations as the vector grows
+- Size is known (gather_start_indices_ty.getDimSize(0))
+- Simple change with no behavior modification
+- Should reduce memory operations significantly
+
+Here's the optimized implementation:

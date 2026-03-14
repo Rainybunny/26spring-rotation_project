@@ -1,0 +1,42 @@
+Looking at the provided code, the optimized function `fz_insert_gel_raw` is intended to replace the original version. The main changes are in how the bounding box (`gel->bbox`) is updated.
+
+Original bbox updates:
+```c
+if (x0 < gel->bbox.x0) gel->bbox.x0 = x0;
+if (x0 > gel->bbox.x1) gel->bbox.x1 = x0;
+if (x1 < gel->bbox.x0) gel->bbox.x0 = x1;
+if (x1 > gel->bbox.x1) gel->bbox.x1 = x1;
+
+if (y0 < gel->bbox.y0) gel->bbox.y0 = y0;
+if (y1 > gel->bbox.y1) gel->bbox.y1 = y1;
+```
+
+Optimized bbox updates:
+```c
+gel->bbox.x0 = fz_mini(gel->bbox.x0, fz_mini(x0, x1));
+gel->bbox.x1 = fz_maxi(gel->bbox.x1, fz_maxi(x0, x1));
+gel->bbox.y0 = fz_mini(gel->bbox.y0, y0);
+gel->bbox.y1 = fz_maxi(gel->bbox.y1, y1);
+```
+
+The optimization replaces multiple conditional branches with branchless operations using `fz_mini` and `fz_maxi` functions. However, there's a critical issue: the original code initializes `gel->bbox.x0` and `gel->bbox.y0` to `BBOX_MAX` (a large positive number), and `gel->bbox.x1` and `gel->bbox.y1` to `BBOX_MIN` (a large negative number). The branchless version should work correctly with these initial values since `fz_mini` and `fz_maxi` should handle them properly.
+
+But there's a more subtle problem: the original code updates `y1` to the bounding box only when `y1 > gel->bbox.y1`, but the optimized version always updates it to `fz_maxi(gel->bbox.y1, y1)`. This is actually correct because `y1` is the maximum y-coordinate of the edge (after swapping if needed). The same applies to x-coordinates.
+
+However, I notice that the optimized version uses `fz_mini` and `fz_maxi` functions which are not defined in the provided code. These must be available in the broader codebase (likely in "mupdf/fitz.h" or similar). Assuming they work as expected (return the minimum/maximum of two integers), the optimization is valid.
+
+The performance improvement comes from reducing branch mispredictions, as the original has up to 6 conditional branches while the optimized version has only 4 function calls (which likely compile to conditional move instructions or similar).
+
+But wait, there's another issue: the original code updates the bounding box for both x0 and x1 separately, checking each against both min and max. The optimized version takes the minimum of x0 and x1 once, then compares with the current min. This is mathematically equivalent and more efficient.
+
+The rest of the function is identical, so the optimization is localized to the bounding box updates.
+
+**Correctness**: The optimized version should produce identical results to the original. The bounding box updates are equivalent, and the edge initialization logic is unchanged.
+
+**Performance**: The optimized version reduces branching, which should improve performance on modern CPUs with deep pipelines.
+
+However, I need to consider whether `fz_mini` and `fz_maxi` are available. Since this is part of the MuPDF codebase, these are likely defined as simple macros or inline functions. Even if they're not, the optimizer would need to see their definitions. But since we're only replacing this function, we must assume the broader context provides them.
+
+One more thing: the comment says "Branchless bbox updates", but `fz_mini` and `fz_maxi` likely still contain branches internally unless they're implemented with bitwise operations. However, even if they contain branches, the compiler might be able to optimize them better when inlined.
+
+Given that the optimization maintains correctness and likely improves performance, it's valid.

@@ -1,0 +1,72 @@
+Let's analyze the optimization.  
+
+The original `same_name` function:  
+
+```c
+static int same_name(const struct cache_entry *ce, const char *name, int namelen, int icase)
+{
+	int len = ce_namelen(ce);
+
+	if (len == namelen && !cache_name_compare(name, namelen, ce->name, len))
+		return 1;
+
+	if (!icase)
+		return 0;
+
+	return slow_same_name(name, namelen, ce->name, len);
+}
+```
+
+The optimized version:  
+
+```c
+static int same_name(const struct cache_entry *ce, const char *name, int namelen, int icase)
+{
+	int len = ce_namelen(ce);
+
+	if (len == namelen) {
+		if (!cache_name_compare(name, namelen, ce->name, len))
+			return 1;
+		if (!icase)
+			return 0;
+	} else if (!icase) {
+		return 0;
+	}
+
+	return slow_same_name(name, namelen, ce->name, len);
+}
+```
+
+**Step-by-step reasoning:**  
+
+1. **Semantic equivalence**  
+   - Original logic:  
+     - If lengths match and `cache_name_compare` returns 0 (exact match), return 1.  
+     - If `icase` is false, return 0 (already failed exact match).  
+     - Otherwise, call `slow_same_name` for case-insensitive comparison.  
+   - Optimized logic:  
+     - If lengths match:  
+       - If exact match succeeds, return 1.  
+       - If `icase` is false, return 0 (since exact match already failed).  
+     - Else if lengths don’t match and `icase` is false, return 0 immediately.  
+     - Otherwise, call `slow_same_name`.  
+
+   Both versions behave identically for all inputs.  
+   The optimized version avoids calling `cache_name_compare` when lengths differ and `icase` is false, which is a minor performance improvement.
+
+2. **Performance improvement**  
+   The optimization adds an early exit when `len != namelen` and `icase == 0`, skipping the unnecessary `cache_name_compare` call.  
+   This is a valid micro-optimization because `cache_name_compare` does a `memcmp`, which is wasted if lengths differ and case-sensitivity is required anyway.
+
+3. **Correctness**  
+   The control flow is restructured but preserves all original behavior.  
+   The `slow_same_name` function is only called when either:  
+   - Lengths differ and `icase == 1`, or  
+   - Lengths match, exact match failed, and `icase == 1`.  
+
+   This matches the original’s logic.
+
+4. **Potential issues**  
+   None — the restructured conditions are logically equivalent and no edge cases are broken.
+
+**Verdict:** This is a valid optimization that reduces unnecessary comparisons in the case where lengths differ and case-sensitive matching is requested.

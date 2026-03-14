@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import math
 import concurrent.futures
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -53,6 +54,8 @@ class Strategy:
 # Global storage for strategies
 STRATEGIES: dict[str, Strategy] = {}
 STRATEGIES_FILE = os.path.join(utils.project_root, "data", "strategies.json")
+STRATEGY_IDS: list[str] = []
+STRATEGY_EMBEDDINGS: list[list[float]] = []
 
 def generate_cluster_summary(cluster_id: str, commit_summaries: list[str]) -> str:
     """
@@ -202,18 +205,79 @@ def init_strategy_base():
     except Exception as e:
         print(f"[Error] Failed to initialize strategies: {e}")
 
+
+def build_strategy_embeddings():
+    """
+    Builds in-memory embeddings for strategy summaries to support fast
+    similarity-based candidate retrieval at inference time.
+    """
+    global STRATEGY_IDS, STRATEGY_EMBEDDINGS
+    if STRATEGY_IDS and STRATEGY_EMBEDDINGS:
+        return
+
+    if not STRATEGIES:
+        return
+
+    try:
+        STRATEGY_IDS = sorted(
+            STRATEGIES.keys(),
+            key=lambda x: int(x) if x.isdigit() else x
+        )
+        docs = [STRATEGIES[s_id].summary for s_id in STRATEGY_IDS]
+        STRATEGY_EMBEDDINGS = utils.embeddings_model.embed_documents(docs)
+    except Exception as e:
+        print(f"[Warning] Failed to build strategy embeddings: {e}")
+        STRATEGY_IDS = []
+        STRATEGY_EMBEDDINGS = []
+
+
+def cosine_similarity(v1: list[float], v2: list[float]) -> float:
+    dot = sum(a * b for a, b in zip(v1, v2))
+    norm1 = math.sqrt(sum(a * a for a in v1))
+    norm2 = math.sqrt(sum(b * b for b in v2))
+    if norm1 == 0.0 or norm2 == 0.0:
+        return -1.0
+    return dot / (norm1 * norm2)
+
+
+def retrieve_strategy_candidates(mission: utils.Mission, top_k: int = 12) -> list[str]:
+    """
+    Retrieves top-k candidate strategy IDs by embedding similarity between
+    mission source function and strategy summaries.
+    """
+    build_strategy_embeddings()
+    if not STRATEGY_IDS or not STRATEGY_EMBEDDINGS:
+        return []
+
+    try:
+        query_emb = utils.embeddings_model.embed_query(mission.origin_func)
+    except Exception as e:
+        print(f"[Warning] Failed to embed mission for strategy retrieval: {e}")
+        return []
+
+    scored = []
+    for s_id, emb in zip(STRATEGY_IDS, STRATEGY_EMBEDDINGS):
+        scored.append((cosine_similarity(query_emb, emb), s_id))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [s_id for _, s_id in scored[:max(1, top_k)]]
+
 # Initialize strategies when module is loaded
 init_strategy_base()
+build_strategy_embeddings()
 
-def get_strategy_catalog_text():
+def get_strategy_catalog_text(strategy_ids: list[str] | None = None):
     """
     Generates a text representation of the strategy catalog for the LLM.
     """
     lines = []
-    try:
-        sorted_ids = sorted(STRATEGIES.keys(), key=lambda x: int(x))
-    except ValueError:
-        sorted_ids = sorted(STRATEGIES.keys())
+    if strategy_ids is None:
+        try:
+            sorted_ids = sorted(STRATEGIES.keys(), key=lambda x: int(x))
+        except ValueError:
+            sorted_ids = sorted(STRATEGIES.keys())
+    else:
+        sorted_ids = strategy_ids
         
     for s_id in sorted_ids:
         lines.append(f"Strategy {s_id}: {STRATEGIES[s_id].summary}")
@@ -224,7 +288,8 @@ def select_strategy(mission: utils.Mission) -> str:
     Phase 1: Select the most applicable strategy from the catalog.
     Returns the strategy ID or None.
     """
-    catalog = get_strategy_catalog_text()
+    candidate_ids = retrieve_strategy_candidates(mission, top_k=12)
+    catalog = get_strategy_catalog_text(candidate_ids if candidate_ids else None)
     if not catalog:
         print("Strategy catalog is empty.")
         return None
@@ -241,7 +306,10 @@ def select_strategy(mission: utils.Mission) -> str:
         "Strategy ID: <output ONLY the ID, e.g. '12', or 'None'>"
     )
     
-    user_prompt = f"Strategy Catalog:\n{catalog}\n\nTask Code:\n```{mission.lang}\n{mission.origin_func}\n```"
+    user_prompt = (
+        f"Strategy Catalog:\n{catalog}\n\n"
+        f"Task Code:\n```{mission.lang}\n{mission.origin_func}\n```"
+    )
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt),
@@ -253,18 +321,26 @@ def select_strategy(mission: utils.Mission) -> str:
     try:
         response = chain.invoke({"user_prompt": user_prompt})
         
-        # improved parsing logic
-        match = re.search(r"Strategy ID:\s*(None|\d+)", response, re.IGNORECASE)
+        # Robust parsing for slight format deviations.
+        match = re.search(r"Strategy\s*ID\s*[:：\-]\s*(None|\d+)", response, re.IGNORECASE)
         if match:
             s_id = match.group(1).strip()
             if s_id.lower() == "none":
-                return None
-            return s_id
-            
-        return None
+                return candidate_ids[0] if candidate_ids else None
+            if s_id in STRATEGIES:
+                return s_id
+
+        # Fallback: if the model mentions any candidate ID, take the first one.
+        if candidate_ids:
+            for s_id in candidate_ids:
+                if re.search(rf"\b{s_id}\b", response):
+                    return s_id
+
+        # Deterministic fallback to top embedding candidate.
+        return candidate_ids[0] if candidate_ids else None
     except Exception as e:
         print(f"Error during strategy selection: {e}")
-        return None
+        return candidate_ids[0] if candidate_ids else None
 
 def optimize(mission: utils.Mission) -> tuple[str, str]:
     """
@@ -278,10 +354,17 @@ def optimize(mission: utils.Mission) -> tuple[str, str]:
         strategy = STRATEGIES[selected_strategy_id]
         strategy_details = strategy.get_details()
     else:
-        # Fallback handling could go here
-        print(f"[Warning] No applicable strategy selected for mission\n"
-              f"> {mission.repo_name}/{mission.commit_hash}.")
-        strategy_details = None
+        # Deterministic retrieval fallback to avoid dropping strategy guidance.
+        fallback_candidates = retrieve_strategy_candidates(mission, top_k=1)
+        if fallback_candidates and fallback_candidates[0] in STRATEGIES:
+            strategy = STRATEGIES[fallback_candidates[0]]
+            strategy_details = strategy.get_details()
+            print(f"[Info] Falling back to retrieved strategy {fallback_candidates[0]} for mission\n"
+                  f"> {mission.repo_name}/{mission.commit_hash}.")
+        else:
+            print(f"[Warning] No applicable strategy selected for mission\n"
+                  f"> {mission.repo_name}/{mission.commit_hash}.")
+            strategy_details = None
 
     system_prompt = (
         f"{utils.system_prompt_role_prelog}"

@@ -1,0 +1,25 @@
+Let me analyze the `bitopCommand` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function processes bitwise operations (AND/OR/XOR/NOT) on Redis strings
+   - Main operations happen in two phases:
+     * Fast path using 4-word (32-byte) chunks when possible
+     * Slow path byte-by-byte processing for remaining bytes
+   - Memory allocation and copying happens multiple times
+
+2. **Key Observations**:
+   - The fast path is already well optimized with word-sized operations
+   - The slow path processes bytes one at a time which could be improved
+   - The function handles NULL keys by treating them as zero-filled, which adds checks
+
+3. **Optimization Opportunities**:
+   - The biggest gain would come from optimizing the slow path byte processing
+   - We can process multiple bytes at once even in the slow path
+   - We can reduce branching by pre-computing operation type
+
+4. **Selected Optimization**:
+   - Implement 4-byte processing in the slow path when possible
+   - This reduces loop iterations and leverages CPU word operations
+   - Only fall back to byte-by-byte for the last 0-3 bytes
+
+Here's the optimized implementation:

@@ -1,0 +1,30 @@
+Looking at the proposed optimization and the reference solution, I need to evaluate them based on the criteria:
+
+## Analysis of Proposed Optimization
+
+**Correctness Issues:**
+1. The proposed solution uses a `static std::unordered_map` with a custom hash function. This is problematic because:
+   - The map should be per-instance, not static across all instances
+   - Using `static` means all InstructionVerifier instances would share the same map, which is incorrect
+   - The original code uses a member variable `instructions_by_name_` that should be instance-specific
+
+2. The proposed solution changes the lookup logic from using `insert()` to `find()` + manual insertion, which is less efficient than the reference solution's single `insert()` call.
+
+**Performance:**
+- The proposed custom hash function using `std::hash<std::string_view>` on a `std::string` is questionable and may not provide significant performance benefits
+- The reference solution uses `absl::flat_hash_map` which is generally faster than `std::unordered_map`
+
+**Strategy Comparison:**
+- **Reference Strategy**: Uses `absl::flat_hash_map::insert()` which returns a pair indicating whether insertion occurred, providing both insertion and duplicate detection in one operation.
+- **Proposed Strategy**: Uses `find()` + separate insertion, which requires two hash computations and map lookups instead of one.
+
+The strategies are fundamentally different:
+- Reference: Single insertion operation with built-in duplicate checking
+- Proposed: Two separate operations (find + insert) with a custom hash function
+
+## Final Verdict
+
+The proposed optimization is not a valid replacement because:
+1. It introduces a critical bug by making the map `static`
+2. It uses a less efficient algorithm (two lookups instead of one)
+3. The optimization strategy differs significantly from the reference solution

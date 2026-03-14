@@ -1,0 +1,23 @@
+Let me analyze the `GetRunningTransactionData()` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function iterates through all active processes twice (once for main XIDs, once for subXIDs)
+- It performs memory copies for subtransaction XIDs
+- It holds two locks (ProcArrayLock and XidGenLock) during the entire operation
+- Memory allocation happens on first call but is static thereafter
+
+2. **Key Optimization Strategies**:
+- Cache locality: The current code already accesses PGPROC arrays sequentially
+- Lock contention: The locks are necessary for correctness
+- Memory operations: The memcpy of subXIDs is a potential hotspot
+
+3. **High-Impact Optimization**:
+The most promising optimization is to **reduce the number of memory copies** when gathering subtransaction XIDs. Currently, it copies each subxid array individually. We can:
+- First count total needed subxids to size a temp buffer
+- Copy all subxids in one pass
+- Then memcpy from temp buffer to final array
+
+4. **Selected Optimization**:
+Implement a two-pass approach for subxid collection to minimize memcpy operations.
+
+Here's the optimized implementation:

@@ -1,0 +1,20 @@
+Let me analyze the `SortedAggregateBindData` constructor for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The constructor performs multiple loops over children and order_by expressions
+   - Each iteration involves potentially expensive operations like `Equals()` comparisons
+   - Memory allocations through `emplace_back` could be optimized
+   - The `sorted_on_args` check does redundant work when sizes don't match
+
+2. **Key Observations**:
+   - The `sorted_on_args` check can be short-circuited early when sizes differ
+   - The loops for children and order_bys are independent and could be merged
+   - `GetSegmentDataFunctions` is called repeatedly with similar types
+
+3. **Optimization Idea**:
+   The most impactful optimization would be to:
+   - First check if sizes match (quick early exit for non-matching cases)
+   - Merge the two main loops into one where possible
+   - Reduce redundant checks in the `sorted_on_args` comparison
+
+Here's the optimized implementation:

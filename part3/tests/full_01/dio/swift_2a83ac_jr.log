@@ -1,0 +1,30 @@
+Looking at the provided code, the optimized function is `IRGenFunction::emitCondition`. The optimization is in the non-constant condition case: instead of creating an XOR to invert the condition and then branching, it directly swaps the true/false targets when `invertValue` is true.
+
+Original approach:
+```cpp
+if (invertValue)
+    V = Builder.CreateXor(V, llvm::Constant::getIntegerValue(IGM.Int1Ty, llvm::APInt(1, 1)));
+Builder.CreateCondBr(V, trueBB, falseDestBB);
+```
+
+Optimized approach:
+```cpp
+if (invertValue) {
+    Builder.CreateCondBr(V, falseDestBB, trueBB);
+} else {
+    Builder.CreateCondBr(V, trueBB, falseDestBB);
+}
+```
+
+This optimization is valid because:
+1. It eliminates an extra XOR instruction when `invertValue` is true.
+2. The logic remains correct: when `invertValue` is true, we want to branch to `falseDestBB` when `V` is true (since `V` needs to be inverted), and to `trueBB` when `V` is false.
+3. The behavior for constant conditions is unchanged.
+4. All other parts of the function remain the same.
+
+The optimization improves performance by:
+- Removing one instruction (XOR) from the IR when `invertValue` is true
+- Maintaining the same number of basic blocks
+- Preserving all control flow semantics
+
+The optimization is a valid micro-optimization that reduces instruction count without changing behavior.

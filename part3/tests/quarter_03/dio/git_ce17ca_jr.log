@@ -1,0 +1,30 @@
+Let's analyze the optimized `contains` function compared to the original.
+
+**Original function:**
+- For regex case: same as optimized version.
+- For exact string match: uses a simple `memcmp` loop scanning every byte, counting non-overlapping occurrences.
+
+**Optimized function:**
+- For regex case: identical to original.
+- For exact string match: implements Boyer-Moore algorithm with a simplified bad character heuristic (using only the last character for shift).
+
+**Correctness analysis:**
+1. The Boyer-Moore implementation has issues:
+   - The bad character table is computed incorrectly: `bad_char[needle_bytes[i]] = len - 1 - i` should be `len - 1 - i` for characters in the needle, but for characters not in the needle, it should be `len`. However, the initialization sets all entries to `len`, then overwrites for characters in the needle except the last character. This means the last character's entry remains `len` instead of its proper shift value.
+   - The shift calculation uses `bad_char[(unsigned char)data[offset + len - 1]]` which looks at the character at position `offset + len - 1` (the last character of the current window). However, when a mismatch occurs at position `j`, we should look at the mismatched character `data[offset + j]`, not the last character.
+   - The match skipping logic: after finding a match at `offset`, it does `offset += len` to skip forward, which correctly gives non-overlapping matches (same as original). But the shift calculation when mismatched uses the last character of the window, which is not standard Boyer-Moore.
+
+**Performance analysis:**
+- Boyer-Moore can theoretically be faster than naive scanning for long needles, but this implementation is flawed.
+- The original code counts non-overlapping matches by advancing `offset += len - 1` after a match (actually `offset += len - 1` in the loop increment, then `offset++` in the for loop). The optimized version uses `offset += len` after a match, which gives the same non-overlapping behavior.
+
+**Critical bug:**
+The shift calculation is wrong. In standard Boyer-Moore, when we mismatch at position `j` of the pattern, we look up the bad character shift for the mismatched text character `data[offset + j]`. Here, the code always uses `data[offset + len - 1]` regardless of where the mismatch occurred. This can cause incorrect shifts and potentially skip over valid matches.
+
+**Example:** Needle = "ABCD", Text = "ABXDABCD". At offset 0, we compare from the end: 'D' vs 'X' mismatch at j=3. The bad_char['X'] = len = 4, so offset += 4, skipping to offset 4, finding "ABCD". That works here, but consider: Needle = "ABAB", Text = "ABXBABAB". At offset 0, mismatch at last char 'B' vs 'X', shift by bad_char['X']=4 to offset 4, but we miss the match at offset 2? Actually, let's trace: The algorithm would compare at offset 0: 'B' vs 'X' mismatch at j=3, shift by 4 to offset 4, find "ABAB" at offset 4. But there's also a match at offset 2? "ABXBABAB" has "ABAB" starting at position 4, not 2. However, the shift is still not based on the mismatched character position.
+
+The bigger issue: if the mismatch occurs not at the last character, the shift might be too small. For instance, if we mismatch early in the pattern, we might shift only 1 (if the last character gives a small shift) when we could shift more.
+
+But more importantly, the algorithm may produce incorrect counts because it might skip over matches due to incorrect shifts. The original algorithm guarantees correctness with its naive scan.
+
+**Verdict:** The optimized function is not a valid replacement because it changes the algorithm to a buggy Boyer-Moore implementation that may not find all non-overlapping matches (or may find different matches) compared to the original.

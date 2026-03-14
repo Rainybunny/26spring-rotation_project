@@ -1,0 +1,17 @@
+Let me analyze the `triangulate_delaunay` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function calls `Delaunay2D::triangulate()` which is likely the most expensive operation
+   - The main loop simply copies triangle indices from one vector to another
+   - The current implementation does a push_back() for each index, which may cause multiple reallocations
+
+2. **Optimization Opportunities**:
+   - Pre-allocate the output vector to avoid reallocations
+   - Use direct assignment instead of push_back() since we know the exact size needed
+   - The triangulation itself is handled by another function and can't be optimized here
+
+3. **Selected Optimization**:
+   - Pre-allocate the output vector since we know exactly how many elements we'll need (3 * tr.size())
+   - This avoids multiple reallocations and capacity checks during push_back()
+
+Here's the optimized implementation:

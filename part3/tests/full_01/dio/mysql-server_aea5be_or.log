@@ -1,0 +1,28 @@
+Let me analyze the `findUniqueId()` function for optimization opportunities:
+
+1. Current Behavior Analysis:
+- The function generates random IDs between 1-8191 (0 is excluded)
+- It checks for collisions with existing IDs
+- It uses a brute-force approach with potentially many iterations
+- The process list is locked during the entire operation
+
+2. Bottlenecks:
+- Random number generation + collision checking is O(n) per attempt
+- Worst-case scenario could require many iterations if most IDs are taken
+- Locking duration increases with more iterations
+- No upper bound on runtime
+
+3. Potential Optimizations:
+- Pre-generate a list of available IDs to avoid random guessing
+- Use a bitmask to track used IDs for O(1) collision checking
+- Implement a sequential ID generator (but may not fit requirements)
+- Use a more efficient random number generator
+
+4. Selected Optimization:
+The most impactful change would be to implement a bitmask to track used IDs. This would:
+- Reduce collision checking from O(n) to O(1)
+- Minimize lock duration
+- Maintain the same random distribution behavior
+- Keep the same ID range constraints
+
+Here's the optimized implementation:

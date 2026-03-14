@@ -1,0 +1,28 @@
+Let me analyze this function and propose optimizations:
+
+1. Analysis:
+- The function checks if a given SharedFunctionInfo is enqueued in the dispatcher
+- It does this by calling GetJobFor() and comparing the result to jobs_.end()
+- GetJobFor() performs a multi-map lookup and linear search through equal_range
+- The function is const and doesn't modify any state
+- The lookup happens frequently during compilation to check job status
+
+2. Key observations:
+- The current implementation always performs a full lookup
+- We could potentially cache the result if we know the function hasn't changed
+- However, caching would require more complex state management
+- The lookup itself can be optimized by:
+  - Early exit if script isn't valid (already checked in GetJobFor)
+  - Using direct key comparison rather than full range search
+
+3. Optimization idea:
+- The most impactful simple optimization is to inline GetJobFor's key generation
+- This avoids the function call overhead and allows better optimization
+- We keep the same logic but make it more direct
+
+4. Selected optimization:
+- Inline the key generation and lookup logic from GetJobFor
+- Keep the same behavior but eliminate function call overhead
+- This is simple and maintains exact same semantics
+
+Here's the optimized implementation:

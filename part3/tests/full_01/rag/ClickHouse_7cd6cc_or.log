@@ -1,0 +1,30 @@
+Let me analyze the function and propose optimizations:
+
+1. Analysis:
+- The function processes each row independently, computing a bitmask value based on a checker function
+- Main operations per row: get set_index, compute value via bit shifting, insert into result
+- Potential bottlenecks:
+  - Memory allocation in result column creation
+  - Per-row Field insertion (potentially expensive due to type checking)
+  - Loop over arguments_indexes for each row (could be unrolled if small)
+
+2. Key Observations:
+- The result is always a UInt64 column, so we can create it more efficiently
+- Field insertion can be avoided by working directly with the column's data
+- The arguments_indexes loop is likely small (grouping sets are typically small)
+
+3. Optimization Opportunities:
+- Pre-allocate result column with exact size needed
+- Use direct data access instead of insert() with Field
+- Unroll arguments_indexes loop if size is known to be small (but we don't have that info)
+- Vectorize the operations (but checker function might prevent this)
+
+4. Selected Optimization:
+The highest impact change would be to:
+- Create a ColumnUInt64 directly instead of through DataType
+- Pre-allocate the column's data vector
+- Use direct data access instead of insert()
+
+This avoids multiple allocations and expensive Field conversions.
+
+Here's the optimized implementation:

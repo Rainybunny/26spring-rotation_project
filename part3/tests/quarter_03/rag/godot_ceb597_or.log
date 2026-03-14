@@ -1,0 +1,17 @@
+Let me analyze the code and propose optimizations:
+
+Analysis:
+1. The `interpolate()` function handles interpolation between different Variant types with a large switch-case structure.
+2. The most performance-critical cases are likely the numeric types (INT, REAL) and vector types (VECTOR2, VECTOR3, etc.) since these are commonly used in animations/games.
+3. The string interpolation case has some complexity but is probably less performance-critical.
+4. The array cases (POOL_VECTOR2_ARRAY, POOL_VECTOR3_ARRAY) involve memory allocations and loops that could be optimized.
+
+Optimization Ideas:
+1. For numeric types, we can optimize the interpolation math by avoiding redundant operations.
+2. For vector/array types, we can optimize memory access patterns and reduce temporary allocations.
+3. We can reorder the switch cases to put the most common types first for better branch prediction.
+
+Selected Optimization:
+I'll focus on optimizing the numeric cases (INT and REAL) since they are simplest and most common. The current implementation does unnecessary type conversions and calculations that can be simplified.
+
+Optimized Function:

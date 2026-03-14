@@ -1,0 +1,25 @@
+Let me analyze the `interpolate` function for optimization opportunities:
+
+1. **Analysis**:
+- The function handles interpolation between two Variants of the same type
+- For numeric types (INT, REAL), it performs simple linear interpolation
+- For vector/matrix types (VECTOR2, VECTOR3, etc.) it uses their built-in interpolation methods
+- The most expensive cases are POOL_VECTOR2_ARRAY and POOL_VECTOR3_ARRAY which require:
+  - Memory allocation for new arrays
+  - Looping through all elements
+  - Performing interpolation on each element
+
+2. **Bottlenecks**:
+- The string interpolation case has some inefficiencies:
+  - Multiple length calculations
+  - Character-by-character processing
+  - Temporary string construction
+- The array cases do bounds checking twice (size check and then in the loop)
+
+3. **Optimization Idea**:
+The most impactful optimization would be to optimize the STRING case since:
+- It's a common operation (used for typewriter effects)
+- Current implementation has multiple inefficiencies
+- We can pre-calculate lengths and avoid some branches
+
+4. **Optimized Implementation**:

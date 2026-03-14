@@ -1,0 +1,28 @@
+Let me analyze the keyboard_task() function for optimization opportunities:
+
+1. Key Observations:
+- The function is called repeatedly in a tight loop (keyboard main loop)
+- It handles matrix scanning, key processing, and peripheral tasks
+- The matrix scanning and key processing section has several memory accesses and function calls
+- The most performance-critical part is the matrix scanning and key event processing
+
+2. Bottlenecks Identified:
+- Multiple calls to matrix_get_row() inside the nested loop
+- Repeated calls to timer_read() for each key event
+- Multiple pointer dereferences for matrix_prev access
+- Multiple bit shift operations in the inner loop
+
+3. Optimization Strategy:
+Apply caching of frequently accessed values and function results:
+- Cache timer_read() result at start of function since time only needs to be accurate within a single scan
+- Cache matrix_get_row() results to avoid repeated calls
+- Cache matrix_prev[r] access in local variable
+- Precompute bit shift values where possible
+
+4. Selected Optimization:
+Cache timer_read() result and matrix_prev[r] access since these are:
+- Called multiple times per scan
+- Expensive operations (timer_read() involves hardware access)
+- Don't need to be recalculated within a single scan
+
+Here's the optimized function:

@@ -1,0 +1,24 @@
+Let me analyze the function and identify potential optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The main loop processes each day from DATE_LUT_MIN to DATE_LUT_MAX, which could span many years (potentially thousands of iterations)
+   - Each iteration makes multiple system calls (localtime_r and mktime) which are relatively expensive
+   - The vector push_back operation may cause multiple reallocations as the vector grows
+   - The second loop scanning for year starts is O(n) but operates on already computed data
+
+2. **Potential Optimizations**:
+   - Pre-allocate the vector to avoid reallocations (knowing the approximate date range)
+   - Cache the results of Time2Date/TimeDayShift if they're called frequently with same inputs
+   - Replace localtime_r/mktime with a more efficient date calculation if possible
+   - Parallelize the first loop (but this would complicate the code significantly)
+
+3. **Selected Optimization**:
+   - The highest impact, simplest change is to pre-allocate the vector. This avoids:
+     - Multiple reallocations as the vector grows
+     - Potential cache misses from memory fragmentation
+     - The overhead of checking capacity and growing the vector
+
+Final Optimization Idea:
+Pre-calculate the approximate number of days needed and reserve space in the vector before the main loop. This is a simple change that can significantly improve performance by avoiding multiple reallocations.
+
+Here's the optimized function:

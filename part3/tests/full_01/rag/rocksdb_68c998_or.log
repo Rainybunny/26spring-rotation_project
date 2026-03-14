@@ -1,0 +1,23 @@
+Let me analyze the `CorruptFile` function and potential optimizations:
+
+1. Current Bottlenecks:
+- Reads entire file contents into memory (inefficient for large files)
+- Performs byte-by-byte corruption in a loop
+- Writes back entire file even if only small portion is modified
+- Uses high-level file operations (ReadFileToString/WriteStringToFile) which may have overhead
+
+2. Reference Example Insights:
+- Example 4 shows optimization by switching from stdio to direct file I/O (fwrite->write)
+- Example 2 shows optimization by using static buffers instead of dynamic allocation
+- Example 3 shows optimization by pre-initializing memory
+
+3. Potential Optimizations:
+- Use direct file I/O with pread/pwrite to modify only needed portions
+- Use memory-mapped files for direct access
+- Buffer the file operations instead of reading/writing entire file
+- Use bulk XOR operation instead of byte-by-byte
+
+4. Selected Optimization:
+The highest impact change would be to use direct file I/O with pwrite to modify only the corrupted portion, avoiding reading/writing the entire file. This is similar to Example 4's approach but applied to file corruption.
+
+Here's the optimized implementation:

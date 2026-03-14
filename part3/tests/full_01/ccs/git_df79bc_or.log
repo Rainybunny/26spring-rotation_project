@@ -1,0 +1,31 @@
+Let me analyze the `get_strategy()` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function is called frequently during merge operations to lookup strategies
+- It performs string comparisons in multiple places (strcmp/strncmp)
+- It loads and processes command lists on first call (lazy initialization)
+- The main operations are:
+  - Environment variable check
+  - Array scan of `all_strategy`
+  - Command list loading and filtering
+  - Command list searching
+
+2. **Optimization Strategy**:
+The best approach here is to optimize the hot path - the strategy lookup. We can:
+- Cache the loaded command lists to avoid repeated processing
+- Optimize the string comparisons by storing lengths
+- Pre-compute hash values for strategy names for faster comparison
+
+3. **Selected Optimization**:
+The highest impact change would be to optimize the `all_strategy` array scan by:
+- Pre-computing string lengths for each strategy name
+- Using length-first comparison to quickly reject mismatches
+- Adding a fast path for exact matches
+
+4. **Final Optimization Idea**:
+Modify the strategy lookup to:
+1. First check exact pointer equality (unlikely but fast)
+2. Then compare lengths before doing full string compare
+3. Store lengths with strategy names to avoid recomputation
+
+Here's the optimized implementation:

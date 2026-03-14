@@ -1,0 +1,19 @@
+Looking at the optimized function, I can see it replaces the floating-point coefficient calculation with fixed-point arithmetic. The original code uses `double coeff = (omax - omin) / (double)(imax - imin);` and then computes `(src[x + offset] - imin) * coeff + omin`.
+
+The optimized version uses:
+- `coeff_num = (int64_t)(omax - omin) * (1 << 16);` (scaled by 2^16)
+- `coeff_denom = imax - imin;`
+- Then computes: `val = (val * coeff_num / coeff_denom + (1 << 15)) >> 16;`
+
+This is a valid fixed-point implementation with 16 bits of fractional precision. The `+ (1 << 15)` before the right shift provides proper rounding.
+
+**Analysis:**
+1. **Correctness**: The fixed-point arithmetic should produce results very close to the original floating-point calculations. The scaling factor (1 << 16) provides sufficient precision for 8-bit and 16-bit color values. The rounding is handled correctly.
+
+2. **Performance**: Fixed-point arithmetic is generally faster than floating-point on many platforms, especially on architectures without hardware FPU or where integer operations are cheaper. This should provide a performance improvement.
+
+3. **Edge Cases**: The code handles the same edge cases as the original (imin/imax < 0 triggers min/max scanning). The data types are appropriate (int64_t for the scaled coefficient to avoid overflow).
+
+4. **Compatibility**: The function signature and all external dependencies remain unchanged. The optimization only affects the internal calculation.
+
+The optimization maintains the same algorithm but uses fixed-point arithmetic instead of floating-point, which is a common and valid optimization for performance-critical image processing code.

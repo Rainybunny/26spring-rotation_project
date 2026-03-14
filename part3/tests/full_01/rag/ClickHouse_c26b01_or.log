@@ -1,0 +1,28 @@
+Let me analyze the `finalizeExecution()` function for optimization opportunities:
+
+1. Current Analysis:
+- The function checks 3 conditions in sequence:
+  a) Query cancellation status via process_list_element
+  b) Global cancelled flag
+  c) Whether all processors have finished
+- The main loop iterates through all nodes in the graph to check their status
+- The dumpPipeline() call is expensive but only happens in error case
+
+2. Bottlenecks:
+- The loop checking node statuses is linear O(n) and touches each node's memory
+- The all_processors_finished flag requires checking every node even if first node is unfinished
+- The dumpPipeline() call is only needed in error case but is prepared unconditionally
+
+3. Optimization Opportunities:
+- Early exit from the loop when first unfinished processor is found
+- Move the dumpPipeline() call inside the error condition
+- Reorder checks to put cheapest conditions first
+
+4. Selected Optimization:
+Implement early exit in the processor status check loop since we don't need to check remaining nodes once we find one that's unfinished. This provides the biggest potential gain as it:
+- Reduces average case time complexity
+- Minimizes memory accesses
+- Maintains identical behavior
+- Is simple and safe to implement
+
+Here's the optimized implementation:

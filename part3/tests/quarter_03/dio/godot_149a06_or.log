@@ -1,0 +1,17 @@
+Let me analyze the `triangulate_delaunay` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function calls `Delaunay2D::triangulate()` which is likely the most expensive operation
+   - The loop that converts triangles to indices is relatively simple but could be optimized
+   - The current implementation creates a temporary `Vector<Delaunay2D::Triangle>` and then converts it to indices
+
+2. **Optimization Opportunities**:
+   - The main overhead is in the temporary vector creation and the push_back operations
+   - We can pre-allocate the output vector since we know the exact size needed (3 indices per triangle)
+   - We can avoid the temporary vector by directly writing to the output vector
+
+3. **Selected Optimization**:
+   - Pre-allocate the output vector to avoid reallocations during push_back
+   - This is simple, safe, and provides good performance benefits for large meshes
+
+Here's the optimized implementation:

@@ -1,0 +1,28 @@
+Let me analyze the function and propose optimizations:
+
+Analysis:
+1. The function generates OpenCL code strings for various elementwise operations.
+2. Current implementation uses string concatenation and substitution which has overhead.
+3. The ELU case does 4 separate component operations when it could be vectorized.
+4. The SIGMOID case has different implementations for different precisions, but the F16 case does component-wise operations unnecessarily.
+5. String operations are relatively expensive compared to the actual computation they represent.
+
+Key Observations:
+1. The ELU operation can be optimized by using vector operations instead of component-wise.
+2. The SIGMOID F16 case could potentially use vector operations if the hardware supports it.
+3. String building could be optimized by using string_view or pre-allocating strings.
+
+Optimization Priority:
+The ELU case stands out as the most promising optimization target since:
+1. It's doing 4 separate operations that could be vectorized
+2. It's a common activation function in neural networks
+3. The current implementation does redundant comparisons and function calls
+
+Final Optimization Idea:
+Optimize the ELU case by using vector comparison and operations instead of component-wise. This will:
+1. Reduce the number of comparison operations from 4 to 1
+2. Use vectorized exp operation
+3. Generate more efficient OpenCL code
+4. Reduce string operations by combining into a single expression
+
+Here's the optimized function:

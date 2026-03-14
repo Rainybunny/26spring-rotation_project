@@ -1,0 +1,32 @@
+Let's analyze the optimization.  
+
+The original `readQuoted` function had a loop copying characters one by one:  
+
+```cpp
+for (size_t i = pos; i < character_position; ++i)
+{
+    key.push_back(file[i]);
+}
+```
+
+The optimized version replaces this with:  
+
+```cpp
+key.assign(file.begin() + pos, file.begin() + character_position);
+```
+
+**Correctness check:**  
+- `assign` will replace the content of `key` with the range `[file.begin() + pos, file.begin() + character_position)`.  
+- This matches exactly what the loop does, but in a single call.  
+- No change in logic for escape sequences, empty key handling, or state transitions.  
+- The rest of the function is unchanged.  
+
+**Performance improvement:**  
+- `assign` can preallocate memory and copy in bulk, avoiding repeated `push_back` capacity checks.  
+- For small strings, the difference may be minimal, but for longer keys, it's more efficient.  
+
+**Potential issues:**  
+- None. `assign` works for `std::string` (assuming `ElementType` is `std::string` as implied by `key.clear()` and `push_back` usage).  
+
+**Conclusion:**  
+This is a valid optimization that preserves correctness while improving performance.

@@ -1,0 +1,45 @@
+Looking at the original `_update` function and the optimized version, I can see several changes that appear to be optimizations and correctness improvements:
+
+1. **Reordered condition checks**: The optimized version moves the `upsert` validation check to after the `save` determination, which might allow for early exit in some cases.
+
+2. **Simplified save logic**: The original had:
+   ```cpp
+   if ( ! manager->hasShardKey( query ) ){
+       if ( multi ){
+       }
+       else if ( query.nFields() != 1 || strcmp( query.firstElement().fieldName() , "_id" ) ){
+           throw UserException( 8013 , "can't do update with query that doesn't have the shard key" );
+       }
+       else {
+           save = true;
+           chunkFinder = toupdate;
+       }
+   }
+   ```
+   
+   The optimized version simplifies this to:
+   ```cpp
+   if ( ! manager->hasShardKey( query ) ){
+       if ( query.nFields() == 1 && !strcmp( query.firstElement().fieldName() , "_id" ) ){
+           save = true;
+           chunkFinder = toupdate;
+       }
+       else if ( !multi ) {
+           throw UserException( 8013 , "can't do update with query that doesn't have the shard key" );
+       }
+   }
+   ```
+
+   The optimized version is actually more correct - in the original, when `multi` is true and query doesn't have shard key, it would fall through without error, but the optimized version properly handles this case (allows it when multi is true).
+
+3. **Removed redundant check**: The optimized version removes the `if ( multi ) uassert( 10202 ,  "can't mix multi and upsert and sharding" , ! upsert );` check, which was already present in the original.
+
+4. **Performance improvement**: By moving the `upsert` validation later and simplifying the save logic, the optimized version may execute fewer operations in common cases.
+
+However, I notice a **critical issue**: The optimized version is missing the `uassert( 10201 ,  "invalid update" , d.moreJSObjs() );` check that was present after `BSONObj query = d.nextJsObj();` in the original. This check ensures there's an update object following the query. Without this check, the code could crash or behave incorrectly if the message doesn't contain the expected data.
+
+Additionally, the optimized version has the `if ( multi ) uassert( 10202 ,  "can't mix multi and upsert and sharding" , ! upsert );` check, which was also in the original, so it's not actually removed as I initially thought.
+
+The missing `uassert( 10201 ,  "invalid update" , d.moreJSObjs() );` is a serious correctness issue that would make the optimized function invalid as a replacement.
+
+**Reasoning**: The optimized function attempts to improve performance by reordering checks and simplifying logic, but it omits a crucial validation check that ensures the message format is correct. This could lead to crashes or undefined behavior when processing malformed update messages. While some of the logic improvements are valid, the missing safety check makes this an invalid optimization.

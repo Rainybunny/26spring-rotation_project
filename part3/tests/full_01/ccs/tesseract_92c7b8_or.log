@@ -1,0 +1,27 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes ambiguity specifications line by line from a file
+- Main operations are parsing lines, creating ambiguity specs, and updating various tables
+- The most time-consuming parts appear to be:
+  - The nested loops when updating `ambigs_for_adaption_` (O(n^2) complexity)
+  - The similar nested loops when building `reverse_ambigs_for_adaption_`
+  - Multiple memory allocations for vectors and ambiguity specs
+
+2. **Key Optimization Opportunity**:
+- The strategy of optimizing container element removal/insertion applies well here
+- The current code uses linear searches and insertions when updating `adaption_ambigs_entry`
+- We can optimize by:
+  - Using binary search to find insertion points (since vector is kept sorted)
+  - Avoiding duplicate checks by using the sorted property
+
+3. **Selected Optimization**:
+- Optimize the inner loop that inserts into `adaption_ambigs_entry` by:
+  - Using `std::lower_bound` for binary search insertion
+  - Eliminating redundant checks since we know the vector is sorted
+  - This reduces O(n) search to O(log n) for each insertion
+
+4. **Final Optimization Idea**:
+Replace the manual sorted insertion in the `ambigs_for_adaption_` update section with `std::lower_bound` for more efficient insertion while maintaining sorted order.
+
+Here's the optimized function:

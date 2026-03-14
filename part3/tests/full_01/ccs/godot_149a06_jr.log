@@ -1,0 +1,54 @@
+Let's analyze the provided optimized function against the original.
+
+**Original function:**
+```c
+static Vector<int> triangulate_delaunay(const Vector<Vector2> &p_points) {
+    Vector<Delaunay2D::Triangle> tr = Delaunay2D::triangulate(p_points);
+    Vector<int> triangles;
+
+    for (int i = 0; i < tr.size(); i++) {
+        triangles.push_back(tr[i].points[0]);
+        triangles.push_back(tr[i].points[1]);
+        triangles.push_back(tr[i].points[2]);
+    }
+    return triangles;
+}
+```
+
+**Optimized function:**
+```c
+static Vector<int> triangulate_delaunay(const Vector<Vector2> &p_points) {
+    Vector<Delaunay2D::Triangle> tr = Delaunay2D::triangulate(p_points);
+    Vector<int> triangles;
+    triangles.resize(tr.size() * 3); // Pre-allocate exact size needed
+
+    for (int i = 0; i < tr.size(); i++) {
+        triangles.write[i * 3 + 0] = tr[i].points[0];
+        triangles.write[i * 3 + 1] = tr[i].points[1];
+        triangles.write[i * 3 + 2] = tr[i].points[2];
+    }
+    return triangles;
+}
+```
+
+**Changes made:**
+1. Added `triangles.resize(tr.size() * 3)` before the loop.
+2. Changed `triangles.push_back(...)` to direct assignment using `triangles.write[i * 3 + ...]`.
+
+**Correctness analysis:**
+- The function still calls `Delaunay2D::triangulate(p_points)` identically.
+- The pre-allocation ensures the vector has exactly the required capacity (3 indices per triangle).
+- The indexing logic `i * 3 + 0/1/2` correctly maps each triangle's three vertex indices to consecutive positions in the output array.
+- The `write` method is a Godot-specific safe way to write to pre-allocated vector elements (equivalent to `operator[]` but with bounds checking in debug builds).
+- The output should be identical to the original in both content and order.
+
+**Performance analysis:**
+- Pre-allocating with `resize()` eliminates repeated reallocations that would occur with `push_back()` as the vector grows.
+- For `n` triangles, the original performs `3n` `push_back()` calls, each potentially causing reallocation and copying. The optimized version does one allocation and direct assignments.
+- This is a classic optimization for building vectors when the final size is known beforehand.
+
+**Potential concerns:**
+- The `write` method is specific to Godot's `Vector` template. It exists in the original codebase (used elsewhere, e.g., in `convex_hull`), so it's safe.
+- The optimization assumes `tr.size() * 3` doesn't overflow `int`. This matches the original's implicit assumption.
+
+**Conclusion:** The optimized function is a valid replacement that improves performance by eliminating repeated reallocations while maintaining identical behavior.

@@ -1,0 +1,29 @@
+Let me analyze the function and identify potential optimizations:
+
+1. **Bottleneck Analysis**:
+   - The function processes each row individually in a loop
+   - For each row, it performs a nested loop over arguments_indexes
+   - Each iteration involves:
+     - A column value lookup (get64)
+     - Multiple bit shift operations
+     - A conditional check through the checker lambda
+     - Field insertion into the result column
+
+2. **Key Observations**:
+   - The result column is created empty and grows dynamically with insert()
+   - Field insertion involves memory allocation and potential reallocations
+   - The bit shifting operation could potentially be vectorized
+   - The checker lambda is called multiple times per row
+
+3. **Optimization Opportunities**:
+   - Pre-allocate result column memory to avoid reallocations (highest impact)
+   - Unroll the inner loop (moderate impact, but compiler might do this)
+   - Use bulk insertion (not applicable here)
+   - Vectorize operations (complex, might not be worth it)
+
+4. **Selected Optimization**:
+   - Pre-allocate the result column's memory upfront since we know the exact size (input_rows_count)
+   - This avoids multiple reallocations as the column grows
+   - Simple change with high impact on performance
+
+Here's the optimized function implementation:

@@ -1,0 +1,59 @@
+#include <xmmintrin.h>
+
+static void calc_volume_levels(struct obs_source *source, float *array,
+		size_t frames, float volume)
+{
+	audio_t        *audio          = obs_get_audio();
+	const uint32_t sample_rate    = audio_output_get_sample_rate(audio);
+	const size_t   channels       = audio_output_get_channels(audio);
+	const size_t   count          = frames * channels;
+	const size_t   vol_peak_delay = sample_rate * 3;
+	const float    alpha          = 0.15f;
+	
+	__m128 sum_vec = _mm_setzero_ps();
+	__m128 max_vec = _mm_setzero_ps();
+	size_t i;
+
+	// Process 4 samples at a time using SSE
+	for (i = 0; i + 3 < count; i += 4) {
+		__m128 samples = _mm_loadu_ps(&array[i]);
+		__m128 squared = _mm_mul_ps(samples, samples);
+		
+		sum_vec = _mm_add_ps(sum_vec, squared);
+		max_vec = _mm_max_ps(max_vec, squared);
+	}
+
+	// Horizontal sum and max
+	float sum_val = sum_vec[0] + sum_vec[1] + sum_vec[2] + sum_vec[3];
+	float max_val = fmaxf(fmaxf(max_vec[0], max_vec[1]), 
+			     fmaxf(max_vec[2], max_vec[3]));
+
+	// Process remaining samples
+	for (; i < count; i++) {
+		float val = array[i];
+		float val_pow2 = val * val;
+		sum_val += val_pow2;
+		max_val = fmaxf(max_val, val_pow2);
+	}
+
+	float rms_val = to_db(sqrtf(sum_val / (float)count));
+	max_val = to_db(sqrtf(max_val));
+
+	if (max_val > source->vol_max)
+		source->vol_max = max_val;
+	else
+		source->vol_max = alpha * source->vol_max +
+			(1.0f - alpha) * max_val;
+
+	if (source->vol_max > source->vol_peak ||
+	    source->vol_update_count > vol_peak_delay) {
+		source->vol_peak         = source->vol_max;
+		source->vol_update_count = 0;
+	} else {
+		source->vol_update_count += count;
+	}
+
+	source->vol_mag = alpha * rms_val + source->vol_mag * (1.0f - alpha);
+	
+	UNUSED_PARAMETER(volume);
+}

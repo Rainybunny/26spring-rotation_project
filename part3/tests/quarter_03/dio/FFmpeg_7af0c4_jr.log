@@ -1,0 +1,23 @@
+Looking at the provided code, the optimized function is only partially optimized. Specifically, the optimization has been applied to the `case 1:` (8-bit) path but not to the `case 2:` (16-bit) path. The optimization introduces fixed-point arithmetic with 16 bits of fractional precision to avoid floating-point operations, which should improve performance.
+
+However, there are several issues with the optimized implementation:
+
+1. **Incorrect fixed-point formula**: The original formula is `dst = (src - imin) * coeff + omin`, where `coeff = (omax - omin) / (imax - imin)`. The optimized version uses:
+   - `coeff = (omax - omin) * (1 << 16) / (imax - imin)` (integer division)
+   - `offset_fp = (omin << 16) - imin * coeff`
+   - Then computes `val = src * coeff + offset_fp`
+   - This is algebraically equivalent to `(src - imin) * coeff + (omin << 16)`, which matches the original formula scaled by `1 << 16`.
+
+2. **Rounding**: The optimized version uses `(val + (1 << 15)) >> 16` for rounding, which is correct for rounding to nearest.
+
+3. **Potential overflow**: The computation `src[x + offset] * coeff` could overflow a 32-bit integer when `src` is up to 255 and `coeff` could be up to `(255 * (1 << 16)) / 1 = 16711680`, resulting in a product up to ~4.26e9 which exceeds 2^31-1. This is a serious issue.
+
+4. **Division by zero**: The code doesn't handle the case where `imax - imin` could be zero, which would cause division by zero in both the original and optimized versions.
+
+5. **Inconsistent optimization**: Only the 8-bit path is optimized, while the 16-bit path remains unchanged with floating-point operations.
+
+6. **Missing `break` statement**: In the original code, the `case 2:` block doesn't have a `break` statement at the end, which is also missing in the optimized version. This is likely intentional as it falls through, but there's no further code after the switch.
+
+Given these issues, particularly the potential overflow in the fixed-point calculation, the optimization is not safe and could produce incorrect results. The original code uses floating-point arithmetic which, while potentially slower, is more robust to large intermediate values.
+
+Therefore, this optimized function is not a valid replacement.

@@ -1,0 +1,18 @@
+Let me analyze the `CheckCollisionCircles` function for optimization:
+
+1. Current Analysis:
+- The function calculates the distance between two circle centers using sqrtf()
+- It then compares this distance against the sum of radii
+- The sqrtf() operation is relatively expensive computationally
+
+2. Optimization Opportunities:
+- We can avoid the sqrtf() call by comparing squared distances instead
+- The comparison (distance <= radius1 + radius2) is equivalent to (distance² <= (radius1 + radius2)²)
+- This eliminates the need for the expensive square root operation
+
+3. Selected Optimization:
+- Replace the distance calculation with squared distance comparison
+- This maintains the exact same logic but is more efficient
+- No behavior change, just faster execution
+
+Here's the optimized function:

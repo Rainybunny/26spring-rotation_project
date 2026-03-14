@@ -1,0 +1,20 @@
+Let me analyze the function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function calls `strlen(name)` twice when name is not NULL - once for the length check and once for `_zip_string_new`
+- The `_zip_name_locate` call happens before checking if the name is actually changing, which could be unnecessary work
+- The string comparison (`_zip_string_equal`) happens after memory allocation which could be avoided if we check for changes first
+
+2. **Potential Optimizations**:
+- Cache the `strlen(name)` result to avoid computing it twice
+- Reorder operations to check for no-change case before expensive operations
+- Early exit if new name is same as current name
+
+3. **Selected Optimization**:
+The most impactful yet simple change is to cache the `strlen(name)` result since:
+- It's called unconditionally when name is not NULL
+- String length calculation is O(n) operation
+- The change is simple and doesn't affect logic
+- Avoids recomputation of the same value
+
+Here's the optimized function:

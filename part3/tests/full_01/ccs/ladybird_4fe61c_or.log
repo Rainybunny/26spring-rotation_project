@@ -1,0 +1,27 @@
+Let me analyze the `setsockopt` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function has a switch statement handling different socket options
+- The most common operations (SO_SNDTIMEO/SO_RCVTIMEO) are checked first
+- The SO_TIMESTAMP case has a compound condition check that could be optimized
+- The function performs user-space memory access which is expensive
+
+2. **Optimization Strategy**:
+- Reorder the switch cases to put most frequently used options first
+- Optimize condition checks in SO_TIMESTAMP case by:
+  - Moving simpler checks first (domain() check before type() check)
+  - Leveraging short-circuit evaluation
+- The current order is already decent with common timeout options first
+
+3. **Selected Optimization**:
+The most impactful change would be optimizing the SO_TIMESTAMP condition check by:
+- Moving the simpler `domain() != AF_INET` check before the more complex `type() == SOCK_STREAM` check
+- This allows short-circuiting if the domain check fails, avoiding the type check
+
+4. **Final Optimization Idea**:
+Reorder the condition in SO_TIMESTAMP case to check domain before socket type, since:
+- Domain check is simpler/faster than type check
+- AF_INET is likely the most common case, so we optimize for the failure path
+- Maintains same functionality but with better performance
+
+Here's the optimized function:

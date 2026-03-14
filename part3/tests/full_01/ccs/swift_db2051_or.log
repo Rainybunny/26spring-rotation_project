@@ -1,0 +1,22 @@
+Let me analyze the `createParameterTypes` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function creates a vector of metadata pointers for function parameters
+- It processes the return type first, then iterates through all parameters
+- Each parameter type lookup involves SIL type conversion
+- The SmallVector is created with a default size of 16, which may be too large for most cases
+
+2. **Optimization Strategy**:
+- Pre-allocate the exact required capacity for the SmallVector to avoid reallocations
+- The number of parameters is known upfront (FnTy->getParameters().size() + 1 for return type)
+- This matches our selected strategy of pre-allocating container capacity when final size is known
+
+3. **Optimization Idea**:
+- Calculate the exact number of parameters needed upfront
+- Reserve the exact required capacity in the SmallVector
+- This avoids multiple reallocations as we push elements
+
+4. **Selected Optimization**:
+- Pre-allocate the SmallVector capacity to exactly fit all parameters plus return type
+
+Here's the optimized implementation:

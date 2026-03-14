@@ -1,0 +1,23 @@
+Let me analyze the function and propose optimizations:
+
+1. Analysis:
+- `strbuf_addch` is a small, frequently called function that adds a single character to a string buffer
+- Current implementation calls `strbuf_grow` for every character added, which may be inefficient
+- The function is already marked inline, which is good
+- The main bottleneck is the potential repeated growth checks/calls
+
+2. Optimization Strategy:
+- The selected strategy is inlining small functions, but this one is already inline
+- Instead, we can optimize by reducing the growth check overhead
+- Since we know we're only adding 1 character, we can check if we have space first before calling grow
+
+3. Optimization Idea:
+- First check if there's available space (sb->alloc - sb->len > 1)
+- Only call strbuf_grow if we actually need more space
+- This avoids a function call in the common case where there's already space
+
+4. Selected Optimization:
+- Add a fast path check for available space before calling strbuf_grow
+- This reduces overhead in the common case where buffer has space
+
+Here's the optimized implementation:

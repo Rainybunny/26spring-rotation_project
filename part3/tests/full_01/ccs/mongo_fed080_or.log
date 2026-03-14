@@ -1,0 +1,108 @@
+Let me analyze the `nextInterval` function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function creates multiple temporary objects (S2Region, S2CellUnion, vectors) which could be cached/reused
+- The `buildS2Region` call creates a new region each time, which involves memory allocation
+- The `get2dsphereCovering` and cell union operations are computationally expensive
+- The field position lookup (`getFieldPosition`) is called repeatedly but could be cached
+
+2. **Selected Strategy Application**:
+- The strategy of caching frequently accessed values applies well here since:
+  - `_nearParams.nearQuery->field` and index descriptor don't change between calls
+  - The S2Region construction pattern is consistent
+  - Field position lookup is constant
+- We can cache these values in member variables to avoid repeated computations
+
+3. **Optimization Ideas**:
+- Cache the field position lookup result
+- Cache the S2Field name string
+- Reuse S2Region and S2CellUnion objects where possible
+- Move some computations to initialization
+
+4. **Chosen Optimization**:
+Cache the field position and field name since:
+- They are accessed multiple times per call
+- They never change after initialization
+- The lookup operation is non-trivial
+- This provides a simple, safe optimization with clear benefits
+
+Here's the optimized implementation:
+
+```cpp
+std::unique_ptr<NearStage::CoveredInterval> GeoNear2DSphereStage::nextInterval(
+    OperationContext* opCtx, WorkingSet* workingSet, const CollectionPtr& collection) {
+    // The search is finished if we searched at least once and all the way to the edge
+    if (_currBounds.getInner() >= 0 && _currBounds.getOuter() == _fullBounds.getOuter()) {
+        return nullptr;
+    }
+
+    //
+    // Setup the next interval
+    //
+
+    if (!_specificStats.intervalStats.empty()) {
+        const IntervalStats& lastIntervalStats = _specificStats.intervalStats.back();
+
+        // TODO: Generally we want small numbers of results fast, then larger numbers later
+        if (lastIntervalStats.numResultsReturned < 300)
+            _boundsIncrement *= 2;
+        else if (lastIntervalStats.numResultsReturned > 600)
+            _boundsIncrement /= 2;
+    }
+
+    invariant(_boundsIncrement > 0.0);
+
+    R2Annulus nextBounds(_currBounds.center(),
+                         _currBounds.getOuter(),
+                         min(_currBounds.getOuter() + _boundsIncrement, _fullBounds.getOuter()));
+
+    bool isLastInterval = (nextBounds.getOuter() == _fullBounds.getOuter());
+    _currBounds = nextBounds;
+
+    //
+    // Setup the covering region and stages for this interval
+    //
+
+    IndexScanParams scanParams(opCtx, collection, indexDescriptor());
+
+    // This does force us to do our own deduping of results.
+    scanParams.bounds = _nearParams.baseBounds;
+
+    // Use cached field position and clear intervals
+    OrderedIntervalList* coveredIntervals = &scanParams.bounds.fields[_s2FieldPosition];
+    coveredIntervals->intervals.clear();
+
+    std::unique_ptr<S2Region> region(buildS2Region(_currBounds));
+    std::vector<S2CellId> cover = ExpressionMapping::get2dsphereCovering(*region);
+
+    // Generate a covering that does not intersect with any previous coverings
+    S2CellUnion coverUnion;
+    coverUnion.InitSwap(&cover);
+    invariant(cover.empty());
+    S2CellUnion diffUnion;
+    diffUnion.GetDifference(&coverUnion, &_scannedCells);
+    for (auto cellId : diffUnion.cell_ids()) {
+        if (region->MayIntersect(S2Cell(cellId))) {
+            cover.push_back(cellId);
+        }
+    }
+
+    // Add the cells in this covering to the _scannedCells union
+    _scannedCells.Add(cover);
+
+    ExpressionMapping::S2CellIdsToIntervalsWithParents(cover, _indexParams, coveredIntervals);
+
+    auto scan = std::make_unique<IndexScan>(expCtx(), collection, scanParams, workingSet, nullptr);
+
+    // FetchStage owns index scan
+    _children.emplace_back(std::make_unique<FetchStage>(
+        expCtx(), workingSet, std::move(scan), _nearParams.filter, collection));
+
+    return std::make_unique<CoveredInterval>(
+        _children.back().get(), nextBounds.getInner(), nextBounds.getOuter(), isLastInterval);
+}
+```
+
+Note: This optimization requires adding two member variables to the class:
+1. `_s2FieldPosition` - to cache the field position
+2. The field position should be initialized in the constructor like:

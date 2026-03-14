@@ -1,0 +1,25 @@
+Let's analyze the changes.
+
+The original function uses `sprintf(op->buf_asm, "%s", gb_op[buf[0]].name);` for the `GB_8BIT` case.  
+The optimized version replaces that with `strcpy(op->buf_asm, gb_op[buf[0]].name);`.
+
+**Reasoning:**
+
+1. **Correctness:**  
+   In the `GB_8BIT` case, `gb_op[buf[0]].name` is a string.  
+   `sprintf` with `"%s"` is equivalent to `strcpy` (assuming no format specifiers in the source string).  
+   `strcpy` directly copies the string without parsing a format string, so it should produce the same result.
+
+2. **Performance:**  
+   `sprintf` has to parse the format string `"%s"` each time, which adds overhead.  
+   `strcpy` is generally faster because it just copies bytes until the null terminator.
+
+3. **Safety:**  
+   Both assume the destination buffer `op->buf_asm` is large enough.  
+   Since the original code already assumed that, the change doesn't introduce new safety issues.
+
+4. **Other cases unchanged:**  
+   The other `sprintf` uses remain because they involve formatting numbers or combining strings, so `strcpy` can't replace them.
+
+**Conclusion:**  
+The optimization is valid — it improves performance slightly while maintaining identical behavior for the `GB_8BIT` case.

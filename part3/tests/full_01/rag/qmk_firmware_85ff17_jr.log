@@ -1,0 +1,40 @@
+Looking at the optimized function, I can see it's a modified version of the `keyboard_task()` function. The main optimization is in how it processes changed keys within a row.
+
+Original approach:
+- Iterated through all columns (0 to MATRIX_COLS) using a for loop
+- For each column, checked if the bit was set using bitmask operations
+
+Optimized approach:
+- Uses `__builtin_ctz()` (count trailing zeros) to find the first set bit
+- Clears the least significant set bit using `changed_bits &= changed_bits - 1`
+- Processes only the bits that are actually set, skipping zero bits
+
+Analysis:
+
+1. **Correctness**: The optimized version maintains the same logic:
+   - Still checks for ghosting when MATRIX_HAS_GHOST is defined
+   - Still updates matrix_prev with XOR operation
+   - Still respects QMK_KEYS_PER_SCAN limit
+   - Still calls action_exec with the same parameters
+   - The while loop processes all set bits, just like the original for loop
+
+2. **Performance improvement**: 
+   - The original iterates through ALL columns (MATRIX_COLS times) even when few keys are pressed
+   - The optimized version only iterates through the number of set bits (number of changed keys)
+   - For typical keyboard usage where few keys change per scan, this is more efficient
+   - `__builtin_ctz()` is a compiler intrinsic that maps to efficient hardware instructions on most architectures
+
+3. **Potential issues**:
+   - `__builtin_ctz()` behavior is undefined when input is 0, but the while loop condition ensures we only call it when `changed_bits != 0`
+   - The optimization assumes `matrix_row_t` is an unsigned integer type where `__builtin_ctz()` works correctly
+   - The code still maintains all the same conditional compilation flags
+
+4. **Compatibility**: 
+   - `__builtin_ctz()` is available in GCC and Clang, which are the main compilers for embedded systems like AVR and ARM
+   - The QMK project already uses GCC/Clang, so this should be compatible
+
+The optimization is valid because:
+- It produces identical results for all inputs
+- It's more efficient (processes only changed bits instead of all columns)
+- Maintains all the same functionality and conditional compilation
+- Uses compiler intrinsics that are available in the target toolchain

@@ -1,0 +1,26 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The main computational hotspots are in the error computation and sorting operations inside the RANSAC loop
+- The `computeError` and `std::sort` operations are performed for each model candidate in each iteration
+- Memory allocations for temporary matrices (err, errf) happen repeatedly in the loop
+
+2. **Key Observations**:
+- The error computation and sorting dominate the runtime
+- The sorting is needed only to find the median value
+- Current implementation converts error to float32 even when not needed
+- Memory allocations could be moved outside the loop
+
+3. **Optimization Strategy**:
+- Pre-allocate error buffers outside the main loop to avoid repeated allocations
+- Optimize the median calculation to avoid full sorting when possible
+- Skip error conversion when already in float32 format
+- Use more efficient data structures for error storage
+
+4. **Selected Optimization**:
+The highest impact change would be to optimize the median calculation by:
+- Pre-allocating error buffers
+- Using partial sorting (nth_element) instead of full sort since we only need the median
+- Avoiding unnecessary data conversions
+
+Here's the optimized implementation:

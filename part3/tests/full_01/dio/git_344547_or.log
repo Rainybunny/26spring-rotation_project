@@ -1,0 +1,20 @@
+Let me analyze the `sha1_file_name` function for optimization:
+
+1. Current Analysis:
+- The function constructs a path to a loose object file by:
+  - First adding the object directory path (from get_object_directory())
+  - Then appending the SHA1 path via fill_sha1_path()
+- This involves two separate string operations which could be combined
+- get_object_directory() may involve some computation/checks each time
+
+2. Optimization Opportunities:
+- The main overhead is likely the multiple string operations and potential redundant calls
+- We could cache the object directory path since it rarely changes
+- We could combine the two string operations into one
+
+3. Selected Optimization:
+- Cache the object directory path in a static variable to avoid repeated calls to get_object_directory()
+- Pre-compute the full path format string once
+- Use a single strbuf operation to build the path
+
+Here's the optimized implementation:

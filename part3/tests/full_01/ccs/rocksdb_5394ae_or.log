@@ -1,0 +1,10 @@
+Analysis:
+1. The `convertKey` function is a simple helper that just returns the input slice unchanged. It's called for every key during filter creation and checking.
+2. Since it's a small, frequently called function, inlining it would eliminate the function call overhead.
+3. The function is called in hot code paths (filter creation and key checking), so inlining could provide measurable performance benefits.
+4. The function is trivial (just returns its input), making it an ideal candidate for inlining.
+
+Optimization Idea:
+Inline the `convertKey` function to eliminate call overhead in the hot filter paths. Since the function is trivial, inlining will not increase code size significantly while providing performance benefits.
+
+Final Optimized Implementation:

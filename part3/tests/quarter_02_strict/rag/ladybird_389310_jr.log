@@ -1,0 +1,37 @@
+Let’s analyze step by step.
+
+**1. Original code (copy function):**  
+It handles trivial types with `__builtin_memmove` for all counts, and for non-trivial types it does a forward or backward copy depending on whether `destination <= source`, to avoid overlap issues.
+
+**2. Proposed optimized function:**  
+It changes the non-trivial case from a single loop with a condition inside to two separate loops, removing the per-iteration branch. This is a valid micro-optimization:  
+- If `destination <= source`, loop forward `i = 0..count-1`.  
+- Else, loop backward `i = 0..count-1` but indexing `count - i - 1`.  
+This still respects overlap correctness (copy backward when `destination > source`).  
+For trivial types, it’s unchanged from original (still uses `__builtin_memmove` for all counts).
+
+**3. Reference optimized function:**  
+For trivial types, it adds a special case for `count == 1`: `*destination = *source` instead of calling `__builtin_memmove`.  
+For non-trivial types, it keeps the original’s single loop with a per-iteration condition (no splitting into two loops).  
+
+**Comparison of strategies:**  
+- **Proposed optimization:** Removes branch inside non-trivial loop by splitting into two loops.  
+- **Reference optimization:** Optimizes trivial case for `count == 1` to avoid `memmove` call overhead.  
+
+These are **completely different optimization strategies**.  
+The proposed change does not match the reference’s strategy at all.  
+The reference does not change the non-trivial loop structure; it only adds a trivial-count special case.  
+The proposed change does not add the trivial-count special case; it changes the non-trivial loop.
+
+**Validity:**  
+The proposed change is valid (still correct for overlap) and might improve performance for non-trivial types by removing a branch inside the loop.  
+
+**Performance:**  
+Yes, it’s an improvement over original for non-trivial types.  
+
+**Strategy match:**  
+No — the reference’s main idea is handling `count == 1` for trivial types specially. Proposed solution’s main idea is splitting the non-trivial loop to avoid per-element condition.  
+
+Since the task says: “The optimization idea/strategy in the PROPOSED solution MUST match the detailed idea in the REFERENCE solution” — they do not match.
+
+**Final verdict:**

@@ -1,0 +1,26 @@
+Let me analyze the `updateCollectionMetadataInTransaction` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs a series of CRUD operations in a transaction: delete, insert chunks, update collection, insert placement history
+- The main overhead comes from:
+  - Multiple round trips between transaction steps
+  - BSON serialization/deserialization for each operation
+  - Memory allocations for intermediate objects
+
+2. **Optimization Opportunities**:
+- The biggest win would be to combine all operations into a single batch write
+- However, this would require significant logic changes which violates our "no drastic logic changes" rule
+- The next best option is to optimize the chunk entries insertion which is the most expensive part (O(n) where n is number of chunks)
+
+3. **Selected Optimization**:
+- Pre-allocate the entries vector and statement IDs vector to avoid reallocations
+- Use emplace_back instead of push_back to avoid temporary copies
+- Reserve exact capacity needed upfront
+
+4. **Final Optimization**:
+The optimization focuses on the chunk insertion part by:
+- Pre-calculating exact capacity needed
+- Using emplace_back for more efficient insertion
+- Avoiding temporary BSONObj copies
+
+Here's the optimized function:

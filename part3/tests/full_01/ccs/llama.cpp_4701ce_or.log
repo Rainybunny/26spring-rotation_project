@@ -1,0 +1,28 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function is called frequently during token sampling
+- Main operations: logits processing, token data array creation, penalty application
+- Multiple calls to `llama_get_model()` and `llama_token_nl()` which could be cached
+- The loop creating `cur` vector could be optimized
+
+2. **Key Observations**:
+- `llama_get_model(ctx_main)` is called 3 times - can be cached
+- `llama_token_nl()` is called twice - can be cached
+- `penalty_tokens.size()` is called multiple times - can be cached
+- The token data array creation loop is simple but runs for all vocab tokens
+
+3. **Optimization Strategy**:
+Apply caching of frequently accessed values and optimize the token data array creation:
+- Cache model pointer and newline token
+- Cache penalty tokens size
+- Pre-allocate and reuse the `cur` vector if possible
+- Use pointer arithmetic instead of vector operations where safe
+
+4. **Selected Optimization**:
+Cache the model pointer and newline token, and optimize the token data array creation by:
+- Moving model and token lookups before the loop
+- Pre-allocating the `cur` vector
+- Using direct assignment instead of emplace_back
+
+Here's the optimized function:

@@ -1,0 +1,23 @@
+Let me analyze this function for optimization:
+
+1. Current Analysis:
+- The function is called frequently to record painting commands
+- It creates a temporary PaintingCommandWithScrollFrame struct
+- It calls state() which involves a vector lookup (m_state_stack.last())
+- The append operation may trigger vector reallocations
+
+2. Key Observations:
+- The state().scroll_frame_id access is the same for multiple commands in sequence
+- The append operation is the main bottleneck here
+- The temporary struct construction could be optimized
+
+3. Potential Optimizations:
+- Cache the scroll_frame_id if it doesn't change often
+- Pre-allocate m_painting_commands vector if possible
+- Use emplace_back instead of append to avoid temporary construction
+- Inline the state() access
+
+4. Selected Optimization:
+The most impactful change would be to use emplace_back instead of append to avoid constructing a temporary PaintingCommandWithScrollFrame. This is a simple change that can provide immediate benefits without changing the logic.
+
+Here's the optimized implementation:

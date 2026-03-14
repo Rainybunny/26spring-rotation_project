@@ -1,0 +1,30 @@
+Let me analyze this function and identify potential optimizations:
+
+1. **Current Implementation Analysis**:
+   - The function creates a temporary `PaintingCommandWithScrollFrame` struct by copying the command and getting scroll_frame_id from state()
+   - It then appends this temporary struct to m_painting_commands vector
+   - The state() call involves accessing the last element of m_state_stack vector
+
+2. **Bottlenecks**:
+   - The main overhead comes from:
+     a) Creating a temporary struct (copy/move operations)
+     b) Potential vector reallocations during append()
+     c) Accessing state() which involves vector access
+
+3. **Optimization Opportunities**:
+   - We can use emplace_back() instead of append() to construct directly in vector memory
+   - We can cache state() result if it's used multiple times (though here it's only used once)
+   - The command parameter could potentially be moved instead of copied
+
+4. **Best Optimization Choice**:
+   - Using emplace_back() is the most impactful change here as it:
+     - Avoids creating a temporary struct
+     - Constructs directly in vector memory
+     - Potentially enables move semantics for the command
+
+5. **Safety Considerations**:
+   - The optimization maintains exactly the same behavior
+   - No risk of introducing new bugs
+   - Still preserves all the existing functionality
+
+Here's the optimized implementation:

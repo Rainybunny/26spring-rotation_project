@@ -1,0 +1,25 @@
+Let me analyze the `emitCondition` function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function handles both constant and variable boolean conditions
+- For variable conditions, it creates basic blocks and conditional branches
+- The main overhead comes from branch instructions and basic block creation
+- The XOR operation for inversion could be optimized
+
+2. **Optimization Strategy**:
+- The key insight is that branch mispredictions can be costly
+- We can optimize the variable condition path by:
+  - Using arithmetic operations instead of branches where possible
+  - Minimizing basic block creation when not needed
+  - Optimizing the inversion operation
+
+3. **Selected Optimization**:
+- Replace the XOR-based inversion with a select instruction when possible
+- This avoids creating an extra instruction and keeps the value in registers
+- The select instruction is often cheaper than a branch
+
+4. **Final Optimization Idea**:
+- For the variable condition case, instead of unconditionally creating an XOR for inversion, use a select instruction when the inverted value is only used once (in the branch)
+- This reduces instruction count and keeps the operation in the same basic block
+
+Here's the optimized function:

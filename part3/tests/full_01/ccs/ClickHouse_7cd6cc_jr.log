@@ -1,0 +1,79 @@
+Let's analyze the optimized function against the original.
+
+**Original function:**
+```c
+template <typename AggregationKeyChecker>
+ColumnPtr executeImpl(const ColumnsWithTypeAndName & arguments, size_t input_rows_count, AggregationKeyChecker checker) const
+{
+    auto grouping_set_column = checkAndGetColumn<ColumnUInt64>(arguments[0].column.get());
+
+    auto result = std::make_shared<DataTypeUInt64>()->createColumn();
+    for (size_t i = 0; i < input_rows_count; ++i)
+    {
+        UInt64 set_index = grouping_set_column->get64(i);
+
+        UInt64 value = 0;
+        for (auto index : arguments_indexes)
+            value = (value << 1) + (checker(set_index, index) ? 1 : 0);
+
+        result->insert(Field(value));
+    }
+    return result;
+}
+```
+
+**Optimized function:**
+```c
+template <typename AggregationKeyChecker>
+ColumnPtr executeImpl(const ColumnsWithTypeAndName & arguments, size_t input_rows_count, AggregationKeyChecker checker) const
+{
+    auto grouping_set_column = checkAndGetColumn<ColumnUInt64>(arguments[0].column.get());
+    const auto & indexes_data = arguments_indexes;
+    const size_t indexes_size = indexes_data.size();
+
+    auto result = std::make_shared<DataTypeUInt64>()->createColumn();
+    result->reserve(input_rows_count);
+
+    for (size_t i = 0; i < input_rows_count; ++i)
+    {
+        UInt64 set_index = grouping_set_column->get64(i);
+
+        UInt64 value = 0;
+        for (size_t j = 0; j < indexes_size; ++j)
+        {
+            const auto index = indexes_data[j];
+            value = (value << 1) + (checker(set_index, index) ? 1 : 0);
+        }
+
+        result->insert(Field(value));
+    }
+    return result;
+}
+```
+
+**Changes made:**
+1. Added `const auto & indexes_data = arguments_indexes;` and `const size_t indexes_size = indexes_data.size();`
+2. Changed the inner loop from range-based `for (auto index : arguments_indexes)` to indexed `for (size_t j = 0; j < indexes_size; ++j)`
+3. Added `result->reserve(input_rows_count);`
+
+**Correctness analysis:**
+- The optimization preserves the exact same logic: it still iterates over all `arguments_indexes` in the same order.
+- The `reserve()` call is safe and improves performance by pre-allocating memory.
+- The indexed loop vs range-based loop should produce identical results since both iterate in order over the container.
+- The function signature and return type remain unchanged.
+
+**Performance analysis:**
+1. `reserve(input_rows_count)` prevents multiple reallocations as rows are inserted, which is a clear performance improvement.
+2. The indexed loop might be slightly more efficient than range-based for `ColumnNumbers` (which is likely `std::vector<UInt64>`), as it avoids creating iterator objects. However, compilers often optimize both similarly. The main benefit is caching `size()` outside the loop.
+3. The changes don't introduce any new dependencies or side effects.
+
+**Potential issues:**
+None. The optimization maintains the same behavior while potentially improving performance.
+
+**Reasoning:**
+The optimized function is a valid replacement because:
+- It produces identical results for all inputs
+- It improves performance by pre-allocating result memory
+- It may provide minor loop optimization
+- It maintains the same interface and contract
+- All derived classes (`FunctionGroupingForRollup`, `FunctionGroupingForCube`, `FunctionGroupingForGroupingSets`) will continue to work correctly since they call this base implementation

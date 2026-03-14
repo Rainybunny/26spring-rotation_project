@@ -1,0 +1,64 @@
+Looking at the provided code, I need to analyze the optimized `getIndexingMaps` function for the `TransposeConverter` class. Let me compare it with the original implementation.
+
+**Original Implementation:**
+```cpp
+static SmallVector<AffineMap, 2> getIndexingMaps(OpTy op, Builder* b) {
+  auto result_type = GetHloOpResultType(op).template cast<ShapedType>();
+  auto nloops = result_type.getRank();
+  SmallVector<AffineExpr, 2> input_exprs;
+  input_exprs.resize(result_type.getRank());
+  for (auto permutation : llvm::enumerate(op.permutation())) {
+    input_exprs[permutation.value().getZExtValue()] =
+        b->getAffineDimExpr(permutation.index());
+  }
+  return {
+      AffineMap::get(nloops, /*symbolCount=*/0, input_exprs, b->getContext()),
+      b->getMultiDimIdentityMap(nloops)};
+}
+```
+
+**Optimized Implementation:**
+```cpp
+static SmallVector<AffineMap, 2> getIndexingMaps(OpTy op, Builder* b) {
+  auto result_type = GetHloOpResultType(op).template cast<ShapedType>();
+  auto nloops = result_type.getRank();
+  
+  // Directly construct the permutation map expressions
+  SmallVector<AffineExpr, 4> input_exprs;
+  input_exprs.reserve(nloops);
+  for (int64_t i = 0; i < nloops; ++i) {
+    input_exprs.push_back(b->getAffineDimExpr(i));
+  }
+  
+  // Apply the permutation by swapping the expressions
+  auto permutation = op.permutation();
+  for (auto [i, perm_val] : llvm::enumerate(permutation)) {
+    std::swap(input_exprs[i], input_exprs[perm_val.getZExtValue()]);
+  }
+
+  return {
+      AffineMap::get(nloops, /*symbolCount=*/0, input_exprs, b->getContext()),
+      b->getMultiDimIdentityMap(nloops)};
+}
+```
+
+**Analysis:**
+
+1. **Correctness Issue**: The optimized implementation has a critical bug. It's trying to use `std::swap` on `AffineExpr` objects, but these are immutable value types in MLIR. More importantly, the logic is incorrect:
+   - Original: `input_exprs[permutation.value()] = b->getAffineDimExpr(permutation.index())`
+   - Optimized: `std::swap(input_exprs[i], input_exprs[perm_val.getZExtValue()])`
+   
+   These are not equivalent operations. The original creates a mapping where output dimension `i` comes from input dimension `permutation[i]`. The optimized version incorrectly swaps expressions, which would only work for self-inverse permutations and doesn't implement the correct mapping.
+
+2. **Performance**: Even if the logic were corrected, the performance improvement would be minimal since both implementations are O(n) where n is the rank of the tensor.
+
+3. **Code Clarity**: The original implementation is clearer about its intent - it directly builds the permutation mapping.
+
+4. **Compatibility**: The optimized code uses C++17 structured bindings (`auto [i, perm_val]`), which might not be supported in all compilation environments where this MLIR code is used.
+
+**Conclusion**: The optimized implementation is not a valid replacement because:
+1. It contains a logical error that changes the functionality
+2. It doesn't correctly implement the transpose operation
+3. It introduces potential compatibility issues with C++17 features
+
+The optimization attempt fails both correctness and compatibility requirements.

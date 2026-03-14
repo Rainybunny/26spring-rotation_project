@@ -1,0 +1,27 @@
+Looking at the provided optimized `bitopCommand` function, I can see several changes compared to the original implementation. Let me analyze the key differences:
+
+1. **NOT operation handling**: The optimized version separates NOT operation into its own loop after the fast path, using `0xff` for missing bytes instead of `0`.
+
+2. **Function pointers**: The optimized version uses function pointers (via lambda expressions) to avoid the switch statement inside the inner loop for AND/OR/XOR operations.
+
+3. **Default values for missing bytes**: For AND operations with missing bytes, the optimized version uses `0xff` instead of `0`, and for OR/XOR it uses `0`.
+
+Let me verify the correctness:
+
+**Issue 1: Default values for missing bytes**
+- In the original code, when a byte is missing (`len[i] <= j`), it uses `0` for all operations
+- In the optimized code, for AND operations it uses `0xff` when bytes are missing
+- This is incorrect! For bitwise AND, if a key is shorter, its missing bits should be treated as 0, not 1
+
+**Example**: If we have two strings of length 1: `0x01` and an empty string (treated as all zeros), the AND should be `0x00`. With the optimized code, it would be `0x01 & 0xff = 0x01`, which is wrong.
+
+**Issue 2: NOT operation logic**
+The optimized NOT loop has `(len[0] <= j) ? 0xff : ~src[0][j]`. This means for bytes beyond the length of the source string, it produces `0xff` (all ones). But the original logic would produce `~0 = 0xff` anyway, so this part is actually correct.
+
+**Issue 3: C++ lambda in C code**
+The optimized code uses C++ lambda expressions `[](unsigned char a, unsigned char b) { ... }`, but this is C code (Redis is written in C). This won't compile.
+
+**Performance considerations**:
+Even if the logic were fixed, using function pointers might not provide significant performance benefits over a simple switch statement, and the lambda syntax is invalid in C.
+
+The optimization attempts to improve performance but introduces critical correctness bugs and uses invalid C syntax.

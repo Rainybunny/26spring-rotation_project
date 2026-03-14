@@ -1,0 +1,21 @@
+Let me analyze the `ValidateHostPortPair` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function performs string operations (substr, find_last_of, find) which can be expensive
+   - The BNS prefix check happens for every call, even when not needed
+   - Multiple string copies are made via substr operations
+   - The port number parsing happens after string operations, which could fail
+
+2. **Optimization Opportunities**:
+   - Early return for empty strings (though not part of current logic)
+   - Avoid string copies by using string_view where possible
+   - Combine the BNS prefix check with the port validation path
+   - Use more efficient string searching (like compare instead of substr)
+
+3. **Selected Optimization**:
+   The most impactful change would be to optimize the BNS prefix check by:
+   - Using string::compare instead of substr+comparison
+   - Moving the BNS check after the port validation (since BNS is rare case)
+   - This reduces string operations in the common case
+
+Here's the optimized function:

@@ -1,0 +1,114 @@
+Let's analyze the optimization.  
+
+The original `xdl_recmatch` function handles three whitespace-related flags:  
+- `XDF_IGNORE_WHITESPACE` (ignore all whitespace differences)  
+- `XDF_IGNORE_WHITESPACE_CHANGE` (treat sequences of whitespace as equal)  
+- `XDF_IGNORE_WHITESPACE_AT_EOL` (ignore whitespace at end of line)  
+
+The optimized version changes the logic for `XDF_IGNORE_WHITESPACE`.  
+
+**Original logic for `XDF_IGNORE_WHITESPACE`**:  
+It uses a `goto skip_ws` to jump into a loop that compares characters, then skips whitespace after each comparison. This ensures that after comparing a non-whitespace character, it skips any following whitespace before the next comparison.  
+
+**Optimized logic for `XDF_IGNORE_WHITESPACE`**:  
+It first skips whitespace in both strings, then compares one character, then loops back to skip whitespace again. This is actually **incorrect** because if there is whitespace *between* non-whitespace characters in one string but not in the other, the original algorithm would catch it, but the optimized one would not.  
+
+Example:  
+`"a b"` vs `"ab"` with `XDF_IGNORE_WHITESPACE` should match (spaces ignored), but let's trace the optimized version:  
+
+1. Skip initial whitespace (none).  
+2. Compare `'a'` vs `'a'`, advance i1, i2.  
+3. Skip whitespace: in `"a b"`, i1 moves past space; in `"ab"`, i2 stays at `'b'`.  
+4. Now i1 points to `'b'`, i2 points to `'b'`, compare equal.  
+5. Ends with i1 = 3, i2 = 2, both at end, returns 1.  
+
+Wait, that actually matches. Let's try `"ab "` vs `"a b"`:  
+
+1. Skip initial whitespace (none).  
+2. Compare `'a'` vs `'a'`.  
+3. Skip whitespace: in `"ab "`, no whitespace yet, i1=1; in `"a b"`, i2 moves past space to `'b'`.  
+4. Compare `'b'` vs `'b'`.  
+5. Skip whitespace: in `"ab "`, i1 moves past `'b'` to space, skip it; in `"a b"`, i2 at end.  
+6. i1 at end, i2 at end, returns 1.  
+
+Hmm, maybe it works? Let's check the original algorithm's order:  
+Original: compare char, then skip whitespace, then compare next char.  
+Optimized: skip whitespace, compare char, repeat.  
+
+Actually, for `XDF_IGNORE_WHITESPACE`, the rule is: all whitespace is ignored, so `"a b"` equals `"ab"`. Both original and optimized seem to handle that.  
+
+But there is a subtle difference:  
+Original: after comparing a char, it jumps to `skip_ws` label, skipping whitespace before next compare.  
+Optimized: before comparing a char, it skips whitespace.  
+
+Are these equivalent? Yes, because if you start with no whitespace at front, compare char, skip whitespace after it, then loop, you compare next non-ws char. That’s same as: skip whitespace, compare char, loop.  
+
+But careful: original loop order is:  
+```
+if (flags & XDF_IGNORE_WHITESPACE) {
+		goto skip_ws;
+		while (i1 < s1 && i2 < s2) {
+			if (l1[i1++] != l2[i2++])
+				return 0;
+		skip_ws:
+			while (i1 < s1 && isspace(l1[i1]))
+				i1++;
+			while (i2 < s2 && isspace(l2[i2]))
+				i2++;
+		}
+	}
+```
+So first time, it jumps to `skip_ws`, skipping leading whitespace, then enters loop comparing chars, then skipping whitespace.  
+
+Optimized:  
+```
+while (1) {
+	while (i1 < s1 && isspace(l1[i1])) i1++;
+	while (i2 < s2 && isspace(l2[i2])) i2++;
+	if (i1 >= s1 || i2 >= s2) break;
+	if (l1[i1++] != l2[i2++]) return 0;
+}
+```
+This also skips whitespace first, compares, loops.  
+
+They seem logically identical for `XDF_IGNORE_WHITESPACE`.  
+
+But the original code after the flag-specific block has trailing checks for remaining whitespace. The optimized version has the same trailing checks.  
+
+So the optimization appears valid and maybe improves readability by removing the `goto`.  
+
+But wait — the original `XDF_IGNORE_WHITESPACE` block ends with the `while` loop, then proceeds to trailing checks. The optimized version’s `while(1)` loop breaks when one string ends, then goes to trailing checks. That’s fine.  
+
+Let’s test edge case:  
+`"a "` vs `"a"` with `XDF_IGNORE_WHITESPACE`:  
+Original: compare 'a','a', skip space in first, i1=2, i2=1, loop ends (i2>=s2), go to trailing checks: i1< s1, skip space, i1=2, s1=2, i1 not < s1, i2< s2? i2=1, s2=1 → no, return 1.  
+Optimized: skip leading ws (none), compare 'a','a', skip ws: i1 skips space, i2 at end, break loop (i2>=s2), trailing checks same → 1. Works.  
+
+`" "` vs `""`:  
+Original: skip ws, i1=1, i2=0, loop ends, trailing: i1< s1, skip ws, i1=1, s1=1 → i1 not < s1? Wait i1==s1, so i1< s1? No, so go to i2< s2? i2=0, s2=0 → no, return 1.  
+Optimized: skip ws, i1=1, i2=0, break loop, same trailing → 1.  
+
+So logic matches.  
+
+But there’s a bug in optimized trailing check:  
+Original:  
+```
+if (i2 < s2) {
+	while (i2 < s2 && isspace(l2[i2]))
+		i2++;
+	return (s2 == i2);
+}
+```
+Optimized:  
+```
+if (i2 < s2) {
+	while (i2 < s2 && isspace(l2[i2]))
+		i2++;
+	return (i2 >= s2);
+}
+```
+These are equivalent (`i2 >= s2` means all remaining chars were whitespace, same as `s2 == i2`).  
+
+So the optimized version is correct and removes the `goto`, improving readability.  
+
+**Verdict**: This is a valid optimization.

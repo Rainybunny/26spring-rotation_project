@@ -1,0 +1,56 @@
+Looking at the provided original and optimized functions for `triangulate_delaunay`, I can analyze the changes:
+
+**Original function:**
+```c
+static Vector<int> triangulate_delaunay(const Vector<Vector2> &p_points) {
+    Vector<Delaunay2D::Triangle> tr = Delaunay2D::triangulate(p_points);
+    Vector<int> triangles;
+
+    for (int i = 0; i < tr.size(); i++) {
+        triangles.push_back(tr[i].points[0]);
+        triangles.push_back(tr[i].points[1]);
+        triangles.push_back(tr[i].points[2]);
+    }
+    return triangles;
+}
+```
+
+**Optimized function:**
+```c
+static Vector<int> triangulate_delaunay(const Vector<Vector2> &p_points) {
+    Vector<Delaunay2D::Triangle> tr = Delaunay2D::triangulate(p_points);
+    Vector<int> triangles;
+    int triangle_count = tr.size();
+    triangles.resize(triangle_count * 3);
+    
+    for (int i = 0; i < triangle_count; i++) {
+        int base_idx = i * 3;
+        triangles.write[base_idx] = tr[i].points[0];
+        triangles.write[base_idx + 1] = tr[i].points[1];
+        triangles.write[base_idx + 2] = tr[i].points[2];
+    }
+    return triangles;
+}
+```
+
+**Analysis:**
+
+1. **Correctness:** The optimized function produces the same output as the original. Both functions:
+   - Call `Delaunay2D::triangulate(p_points)` to get triangles
+   - Extract the 3 vertex indices from each triangle
+   - Return a flat array of indices
+
+2. **Performance improvements:**
+   - Pre-calculates `triangle_count = tr.size()` to avoid repeated function calls
+   - Pre-allocates the exact required memory with `triangles.resize(triangle_count * 3)` instead of using `push_back()` which may cause multiple reallocations
+   - Uses direct indexing with `.write[]` instead of `push_back()` for better cache locality
+
+3. **Memory efficiency:** The optimized version avoids potential reallocations by pre-sizing the vector, which is more efficient for larger triangle counts.
+
+4. **Compatibility:** The optimized function maintains the same interface and behavior. The `.write[]` method is a Godot-specific API for writing to vector elements, which is appropriate in this context.
+
+The optimization is valid because:
+- It produces identical results
+- It improves performance by reducing memory allocations and avoiding repeated size calculations
+- It uses Godot's vector APIs correctly
+- The logic remains clear and maintainable

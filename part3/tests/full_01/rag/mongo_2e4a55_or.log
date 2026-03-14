@@ -1,0 +1,24 @@
+Let me analyze the `getTargetConsumer` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function is called for every document in the kKeyRange policy
+   - Main operations: building BSON key, hashing (if needed), key string construction, binary search
+   - Current implementation creates multiple temporary objects (BSONObjBuilder, BSON, KeyString)
+   - Memory allocations for these temporaries could be expensive
+
+2. **Key Observations**:
+   - The key pattern (_keyPattern) and paths (_keyPaths) are constant for the Exchange instance
+   - The hashing case (elem.str() == "hashed") requires creating a temporary BSON object just for hashing
+   - The binary search at the end is already efficient (O(log n))
+
+3. **Potential Optimizations**:
+   - Pre-compute which fields need hashing during Exchange construction
+   - Avoid temporary BSON construction for hashing by hashing the Value directly
+   - Reuse BSONObjBuilder if possible (though thread safety might be an issue)
+   - Consider caching common key patterns
+
+4. **Selected Optimization**:
+   - The highest impact change would be to optimize the hashing path by avoiding temporary BSON creation
+   - We can modify the hashing case to work directly with the Value instead of creating a BSONElement
+
+Here's the optimized implementation:

@@ -1,0 +1,26 @@
+Let me analyze the `spi_printtup` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function is called for every tuple processed by the executor, so it's performance-critical
+- Main operations: memory context switching, tuple copying, and array management
+- Current implementation uses a simple array with reallocation when full
+- The reallocation strategy (adding 256 entries each time) may not be optimal
+
+2. **Reference Example Insights**:
+- Example 4 shows optimization of memory operations in a similar context
+- The key insight is reducing memory allocations and copies
+- The example demonstrates how to optimize array growth patterns
+
+3. **Optimization Ideas**:
+- More aggressive array growth to reduce reallocations (exponential growth)
+- Pre-allocation of memory when possible
+- Inlining of ExecCopySlotTuple if it's a small function
+- Batch processing if multiple tuples are available
+
+4. **Selected Optimization**:
+I'll implement exponential growth for the tuple array, which will reduce the number of reallocations significantly. This is a simple, high-impact change that:
+- Maintains the same behavior
+- Doesn't introduce any new failure modes
+- Reduces memory operations for large result sets
+
+Here's the optimized implementation:

@@ -1,0 +1,23 @@
+Let me analyze the Handshake function for optimization opportunities:
+
+1. Bottlenecks identified:
+- Multiple string searches (strstr) on the response buffer which are O(n) operations
+- Multiple memory allocations and frees (psz_handshake_url, psz_url)
+- Multiple string operations (snprintf, strndup, strcspn)
+- The function does multiple passes over the response buffer
+
+2. Key observations:
+- The response parsing is sequential and could be done in a single pass
+- The response format is known and fixed (OK\n followed by session ID and URLs)
+- Error cases are checked first before processing success case
+
+3. Potential optimizations:
+- Combine multiple strstr calls into a single parsing pass
+- Pre-allocate memory for URLs if possible
+- Optimize the string search pattern matching
+- Reduce redundant buffer scans
+
+4. Selected optimization:
+The highest impact optimization would be to combine the multiple strstr calls into a single parsing pass since string searching is expensive. We can parse the response buffer sequentially once and extract all needed information in one go.
+
+Here's the optimized implementation:

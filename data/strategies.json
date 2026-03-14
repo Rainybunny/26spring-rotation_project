@@ -1,0 +1,2116 @@
+[
+  {
+    "id": "1",
+    "summary": "Cache frequently accessed values, function results, and pointer dereferences in local variables to reduce memory access overhead, redundant computations, and pointer dereferencing, especially within loops and complex conditional checks.",
+    "examples": [
+      {
+        "repo": "FFmpeg",
+        "hash": "959ec353ce974ff22863927c0a9dd354d0968c85"
+      },
+      {
+        "repo": "FFmpeg",
+        "hash": "ef7fdc8cff2c5cabd51eb4a47e6fc92f885b7352"
+      }
+    ]
+  },
+  {
+    "id": "2",
+    "summary": "\"Pre-allocate container capacity using reserve() or resize() when the final size is known to avoid repeated memory reallocations, and use move semantics (std::move) instead of copying when inserting objects with movable members to eliminate unnecessary deep copies.\"",
+    "examples": [
+      {
+        "repo": "tensorflow",
+        "hash": "4ca1258da5f15f686e7caae3850f4aff30e9a9c0"
+      },
+      {
+        "repo": "mongo",
+        "hash": "111fb9e41d6fac036c71f2d43763e3c7d3d492fa"
+      }
+    ]
+  },
+  {
+    "id": "3",
+    "summary": "Use pass-by-reference (preferably `const auto&`) instead of pass-by-value when iterating over container elements in loops to avoid unnecessary object copying.",
+    "examples": [
+      {
+        "repo": "tensorflow",
+        "hash": "5e0db672b677752b19ab2c7b52d3a32b7e3ae8b7"
+      },
+      {
+        "repo": "mongo",
+        "hash": "2e4fe82c3d264917757e9738cf9bfd5d05181a55"
+      }
+    ]
+  },
+  {
+    "id": "4",
+    "summary": "Optimize performance-critical code by replacing conditional branching with equivalent bit manipulation operations (arithmetic shifts, bitwise AND/OR, and sign-based absolute value calculations) to eliminate branch mispredictions, enable auto-vectorization, and improve instruction-level parallelism. Consolidate related bit operations into single expressions and move common calculations outside branches to reduce redundant operations.",
+    "examples": [
+      {
+        "repo": "FFmpeg",
+        "hash": "90509ec7bfbd18b89f1fce52fd16f51de09a3685"
+      },
+      {
+        "repo": "ladybird",
+        "hash": "b1297a267c68b9cb2e1c1ebdeac77c81e0b6623f"
+      }
+    ]
+  },
+  {
+    "id": "5",
+    "summary": "\"Optimize UTF-8 string operations by adding fast paths for ASCII characters and skipping redundant validation, processing single-byte sequences separately and using direct conversion when input is already valid UTF-8 to avoid unnecessary decoding overhead.\"",
+    "examples": [
+      {
+        "repo": "serenity",
+        "hash": "6a9222ffd3b4a3098d2d646fd17f10adc8e6e84e"
+      },
+      {
+        "repo": "ladybird",
+        "hash": "1e8cc97b731871409316c121e637c32806135122"
+      }
+    ]
+  },
+  {
+    "id": "6",
+    "summary": "\"Use pass-by-const-reference instead of pass-by-value for function parameters and constructor arguments when dealing with non-trivial or large objects (like strings or containers) that are only read and not modified, to avoid unnecessary copying overhead.\"",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "815a87100ec472436929720f7d40e4741e5c4100"
+      },
+      {
+        "repo": "rocksdb",
+        "hash": "063471bf7613544496a4d4b5a1e1ba4a7aa605cf"
+      }
+    ]
+  },
+  {
+    "id": "7",
+    "summary": "Optimize condition ordering in if statements by placing simpler, less expensive, or more likely-to-be-true checks before complex or expensive ones to leverage short-circuit evaluation for better performance.",
+    "examples": [
+      {
+        "repo": "rocksdb",
+        "hash": "20dc5e74f276bdcb26c44c13bced506a2d920d3f"
+      },
+      {
+        "repo": "radare2",
+        "hash": "78ece9fd2b422636ec4ca024ddca2a7e6ceb51ec"
+      }
+    ]
+  },
+  {
+    "id": "8",
+    "summary": "\"Gradually increase the rollout percentage of parallelized map operations in data processing pipelines to improve throughput by leveraging available computational resources, starting with experimental evaluations and scaling to full deployment once performance benefits are confirmed.\"",
+    "examples": [
+      {
+        "repo": "tensorflow",
+        "hash": "7b637feb1d145d606a7b69481fd4943f3086d5a2"
+      },
+      {
+        "repo": "tensorflow",
+        "hash": "d0d33f6d0431ef4feecda52bc3fd0813412b5905"
+      }
+    ]
+  },
+  {
+    "id": "9",
+    "summary": "Replace round() and floor-based rounding with lrint() or llrint() when converting floating-point to integer values to leverage faster dedicated hardware instructions, improve performance, and ensure more accurate rounding behavior.",
+    "examples": [
+      {
+        "repo": "FFmpeg",
+        "hash": "2a486869d9eae998ed6e1c9f648680309ac4b6a9"
+      },
+      {
+        "repo": "FFmpeg",
+        "hash": "7af14b37260d4923cdd75c8a19d6a82dad7470c4"
+      }
+    ]
+  },
+  {
+    "id": "10",
+    "summary": "Optimize I/O performance by using buffered operations with larger buffer sizes (e.g., 32KB) instead of small, repeated reads/writes to reduce system call overhead and improve throughput, especially for large data chunks or networked file systems.",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "ddd83320156e7bff5703a00b63d11d812c2ed891"
+      },
+      {
+        "repo": "ladybird",
+        "hash": "73b2cb9ed81124e294337738a323c2f28b0b64ec"
+      }
+    ]
+  },
+  {
+    "id": "11",
+    "summary": "Inline small, frequently called functions to eliminate call overhead, enable better compiler optimizations, and improve performance in hot code paths.",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "92e0378dbd416633013377ace597e1c02ae6bef4"
+      },
+      {
+        "repo": "FFmpeg",
+        "hash": "6d7e522103f3b36103f30329ea3ce152223f8329"
+      }
+    ]
+  },
+  {
+    "id": "12",
+    "summary": "Optimize memory allocation by using av_fast_malloc variants (av_fast_malloc, av_fast_padded_malloc, av_fast_realloc) instead of av_realloc or av_malloc_array to reduce reallocation overhead, combine operations, and maintain appropriate buffer sizes while ensuring safety. Choose the specific variant based on padding needs and array growth patterns.",
+    "examples": [
+      {
+        "repo": "FFmpeg",
+        "hash": "e7b95918fca1c3d057d35f77ba58ee2d00d03151"
+      },
+      {
+        "repo": "FFmpeg",
+        "hash": "4be170c9371dfd3ae07a348b449002fc1d2b70e4"
+      }
+    ]
+  },
+  {
+    "id": "13",
+    "summary": "Optimize string operations by prioritizing fast checks (length, first character) before expensive comparisons, leveraging memcmp for exact matches, and minimizing function call overhead through batched operations when possible.",
+    "examples": [
+      {
+        "repo": "FFmpeg",
+        "hash": "cc4d80c99ff3169b71c62691d5c7602ef673c3dc"
+      },
+      {
+        "repo": "php-src",
+        "hash": "f605f0b708a328a29dac894b25444c3cfb933f2d"
+      }
+    ]
+  },
+  {
+    "id": "14",
+    "summary": "\"Optimize memory copying operations by replacing manual loops with memcpy() for contiguous non-overlapping blocks and memmove() for overlapping cases, while checking for source/destination equality to avoid redundant operations and leveraging the most efficient memory operation for each scenario.\"",
+    "examples": [
+      {
+        "repo": "php-src",
+        "hash": "d3abcae4a25dab4c34fd5f0c8d1d620b2e35fca0"
+      },
+      {
+        "repo": "FFmpeg",
+        "hash": "9d8533368f55e1f6a0ea30d6492b26399b030066"
+      }
+    ]
+  },
+  {
+    "id": "15",
+    "summary": "\"Optimize performance by moving expensive operations after early return conditions or adding early return checks before resource-intensive computations to avoid unnecessary processing when results won't be used.\"",
+    "examples": [
+      {
+        "repo": "git",
+        "hash": "8fe8bae9d28e2b02ceb482ab89ea88bb20556f1d"
+      },
+      {
+        "repo": "redis",
+        "hash": "003cc8a4f575cdff6a79ce5c856bf0e24fe497df"
+      }
+    ]
+  },
+  {
+    "id": "16",
+    "summary": "\"Optimize numeric operations by adding fast-path checks for common cases (e.g., when operands are already numbers, positive integers, or Int32 values) to avoid unnecessary type conversions, method calls, and overflow checks.\"",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "008b9f4c9feeff43c48a1393570eb2b2ee87fdee"
+      },
+      {
+        "repo": "ladybird",
+        "hash": "b727f8113f9280e64e18dcbb0ed2921b19e51083"
+      }
+    ]
+  },
+  {
+    "id": "17",
+    "summary": "Optimize memory access patterns by strategically inserting prefetch instructions before computationally expensive operations and unaligned memory accesses in hash-based lookups and string matching operations to reduce cache misses and improve cache line utilization.",
+    "examples": [
+      {
+        "repo": "zstd",
+        "hash": "a494111385bd7d61dbf8f4e3d817e51d2ba6a81c"
+      },
+      {
+        "repo": "zstd",
+        "hash": "5e91ae27ebdbdde0abb8ef7dcb50cd88e37897f5"
+      }
+    ]
+  },
+  {
+    "id": "18",
+    "summary": "\"Optimize compiler pass pipelines by merging control flows, removing redundant passes, and strategically reordering passes to improve both compilation time and execution efficiency while maintaining performance.\"",
+    "examples": [
+      {
+        "repo": "swift",
+        "hash": "1e99e160e889f386719975b207e00b20d58ffada"
+      },
+      {
+        "repo": "swift",
+        "hash": "f73626eb28dadc0f5c069a8e1e56ef75a0b209c5"
+      }
+    ]
+  },
+  {
+    "id": "19",
+    "summary": "\"Replace manual object lookup and redundant parse_object() calls with direct parse_object() calls, leveraging its internal optimizations to avoid duplicate work and unnecessary parsing overhead.\"",
+    "examples": [
+      {
+        "repo": "git",
+        "hash": "b794ebeac9151af4a9136ef28a22a06c2afb17cc"
+      },
+      {
+        "repo": "git",
+        "hash": "fa96082617e07d988103854fb96c5e92b7587e72"
+      }
+    ]
+  },
+  {
+    "id": "20",
+    "summary": "\"Prefer commit graph lookups (e.g., via lookup_commit()) over full object parsing (e.g., parse_object()) when only commit information is needed to avoid unnecessary buffer reads, object database access, and processing overhead.\"",
+    "examples": [
+      {
+        "repo": "git",
+        "hash": "09b2e40944f297d6cabe0fb0ce2e3a72e610f657"
+      },
+      {
+        "repo": "git",
+        "hash": "ec0c5798ee9376382d44163d38156fd47e8001c2"
+      }
+    ]
+  },
+  {
+    "id": "21",
+    "summary": "\"Optimize property access by adding fast path checks for frequently accessed special properties (like 'length'), array indices, and direct indexed property access when conditions allow (non-negative Int32 key, no interference, existing property, no accessors), bypassing expensive general lookup operations.\"",
+    "examples": [
+      {
+        "repo": "v8",
+        "hash": "ed6e1735b652f7b08aa640b41ef713bda280b36d"
+      },
+      {
+        "repo": "ladybird",
+        "hash": "d8be9ebc1601ad5a26a12ad1f46a1632da398c84"
+      }
+    ]
+  },
+  {
+    "id": "22",
+    "summary": "\"Break out of loops early when a condition is met or a match is found to avoid unnecessary iterations and improve performance.\"",
+    "examples": [
+      {
+        "repo": "git",
+        "hash": "df786f6efeaa302fa0bf1d39f46fe2528103e9bc"
+      },
+      {
+        "repo": "ClickHouse",
+        "hash": "c26cc85142d7ee560492c0b8a73c332e4bcb3b01"
+      }
+    ]
+  },
+  {
+    "id": "23",
+    "summary": "Optimize string buffer operations by pre-allocating capacity based on estimated or known input sizes to minimize memory reallocations, balancing between performance (using generous initial allocations) and memory efficiency (trimming excess capacity when needed).",
+    "examples": [
+      {
+        "repo": "redis",
+        "hash": "f49f0a6f729720cc1462d30d036c8ba2baef361b"
+      },
+      {
+        "repo": "ladybird",
+        "hash": "e8f4ae487d228dac491a446ed548400176331ae9"
+      }
+    ]
+  },
+  {
+    "id": "24",
+    "summary": "Use reference-counted pointers for immutable picture data when handling subpicture regions to avoid unnecessary memory operations.",
+    "examples": [
+      {
+        "repo": "vlc",
+        "hash": "ab6b9ba6c3c8a3797ff71b69c006a515b67cd4a9"
+      },
+      {
+        "repo": "vlc",
+        "hash": "19657e3d4c7fbdd427c2553ddba55f528b024a26"
+      }
+    ]
+  },
+  {
+    "id": "25",
+    "summary": "\"Optimize video encoding/decoding performance by enabling automatic multi-threading (defaulting to available CPU cores) and removing artificial thread limitations to maximize hardware parallelism.\"",
+    "examples": [
+      {
+        "repo": "vlc",
+        "hash": "fb163e84b3de0289ffff7c4ba3831c90595a1ebf"
+      },
+      {
+        "repo": "FFmpeg",
+        "hash": "568d4b810f940710c3e5bc81210aaa2323a0bb7b"
+      }
+    ]
+  },
+  {
+    "id": "26",
+    "summary": "Move invariant condition checks and calculations outside loops to avoid redundant evaluations during iteration.",
+    "examples": [
+      {
+        "repo": "FFmpeg",
+        "hash": "669bbedfa863f8a1491a186fac4238baba407037"
+      },
+      {
+        "repo": "FFmpeg",
+        "hash": "04b502fa368e40835d8e2b3a15245d53541fa742"
+      }
+    ]
+  },
+  {
+    "id": "27",
+    "summary": "\"Wrap debug-only assertions, validations, and type checks in preprocessor directives (e.g., DEBUG_ENABLED) to eliminate their runtime overhead in release builds.\"",
+    "examples": [
+      {
+        "repo": "mongo",
+        "hash": "5a4217538fc8dc370862b25ed15a0333d4c8e058"
+      },
+      {
+        "repo": "v8",
+        "hash": "ec9fa4365d002e2e9ecdefed6563475eb730f5fd"
+      }
+    ]
+  },
+  {
+    "id": "28",
+    "summary": "\"Enable vectorization only when the reduction dimension is fully divisible by the vector size (or tile size for GPUs) to ensure efficient SIMD operations, checking for even sizes as a simpler alignment condition where applicable.\"",
+    "examples": [
+      {
+        "repo": "tensorflow",
+        "hash": "51229ce3ffd9fcdde61147d21c343c5773cc2c48"
+      },
+      {
+        "repo": "tensorflow",
+        "hash": "cc36478cd40377e7d0fc589cad981add37465cf6"
+      }
+    ]
+  },
+  {
+    "id": "29",
+    "summary": "\"Preload the index cache with pathspecs before file status checks to reduce redundant lstat(2) system calls and enable parallel operations for faster working tree updates.\"",
+    "examples": [
+      {
+        "repo": "git",
+        "hash": "6c4ee2244aea924b6d04b4753ca8c7709e8e5f90"
+      },
+      {
+        "repo": "git",
+        "hash": "c673764dde8520e9d46f71882f0d026dfde8bdeb"
+      }
+    ]
+  },
+  {
+    "id": "30",
+    "summary": "\"Use move semantics for RefPtr assignments to avoid unnecessary reference counting operations during ownership transfer.\"",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "4fe99ff0d6ca680e19b9022fef4fa52590ca261c"
+      },
+      {
+        "repo": "ladybird",
+        "hash": "fda48d7a6bfa6f0b6e00e66ffbd078df4ec53dbf"
+      }
+    ]
+  },
+  {
+    "id": "31",
+    "summary": "Optimize numerical calculations by replacing division operations with multiplication by precomputed reciprocals, especially in performance-critical sections, to reduce computational overhead.",
+    "examples": [
+      {
+        "repo": "v8",
+        "hash": "9ee294b302f1520c38af97204cad03cf9b4917e1"
+      },
+      {
+        "repo": "ladybird",
+        "hash": "7ab62ecd16fe7bb86676d9d56a66d919e48cf685"
+      }
+    ]
+  },
+  {
+    "id": "32",
+    "summary": "Optimize string comparisons by using direct pointer checks and strcmp() instead of constructing temporary string objects, and cache frequently compared strings as static FlyString objects to enable faster pointer comparisons.",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "76bb0fab2d6a45962a5fdc2ba54e6c5c6e1c630c"
+      },
+      {
+        "repo": "react-native",
+        "hash": "d31c0c9109374ee917d9917d74b54b0d47197e32"
+      }
+    ]
+  },
+  {
+    "id": "33",
+    "summary": "\"Modify struct fields directly instead of creating temporary copies when updating multiple fields to avoid unnecessary memory operations.\"",
+    "examples": [
+      {
+        "repo": "vlc",
+        "hash": "e6dc15a1d9b5b4b26a38bde0936c7e43c4e21493"
+      },
+      {
+        "repo": "vlc",
+        "hash": "2e0602f0e5cd03c17450b7c08e3ead0cc6e11997"
+      }
+    ]
+  },
+  {
+    "id": "34",
+    "summary": "Optimize nested loops for pixel manipulation by using pointer arithmetic, precomputing loop bounds, and unrolling loops to reduce address calculation overhead and improve computational efficiency.",
+    "examples": [
+      {
+        "repo": "FFmpeg",
+        "hash": "7fabef1f014eea1c7b4a0eed789b7a4e8c76ad5f"
+      },
+      {
+        "repo": "mpv",
+        "hash": "9a2e9050f2a3257785e555e8c68ad4d9f16a152f"
+      }
+    ]
+  },
+  {
+    "id": "35",
+    "summary": "Optimize image processing operations by replacing manual pixel-by-pixel loops with bulk memory copy operations (e.g., av_memcpy_backptr, bytestream2_get_buffer) for uniform regions or aligned full-width lines to reduce function call overhead and improve performance.",
+    "examples": [
+      {
+        "repo": "FFmpeg",
+        "hash": "950a21e83c742714d6afbecd3e3fd1887e80fa40"
+      },
+      {
+        "repo": "FFmpeg",
+        "hash": "5231e89eb9eedc119d4f762469355f83e3628f20"
+      }
+    ]
+  },
+  {
+    "id": "36",
+    "summary": "Optimize interpolation calculations in audio resampling by precomputing and reusing common terms, refactoring polynomial expansions into simpler accumulations, and reducing redundant operations to lower computational complexity and overflow risk.",
+    "examples": [
+      {
+        "repo": "godot",
+        "hash": "94b31c1db7176d7e37ec836747e50a7d89a06c65"
+      },
+      {
+        "repo": "godot",
+        "hash": "73a0f6e90f9703a5eaee5bda25fd1affc0d9cd53"
+      }
+    ]
+  },
+  {
+    "id": "37",
+    "summary": "Optimize hash table rehashing by skipping empty buckets and unnecessary scans, leveraging invariants to directly jump to relevant indexes and adjust random sampling ranges.",
+    "examples": [
+      {
+        "repo": "redis",
+        "hash": "88cd9ebc0964c9daf32d97631b5eeba5fd0e8b09"
+      },
+      {
+        "repo": "redis",
+        "hash": "4f427bc298b0cfc45bd25381cd04df86868c0843"
+      }
+    ]
+  },
+  {
+    "id": "38",
+    "summary": "Optimize base58 decoding by tracking the actual used length of the output buffer during processing and adjusting iteration bounds and memory allocation accordingly to avoid unnecessary operations on unused elements and reduce memory overhead.",
+    "examples": [
+      {
+        "repo": "bitcoin",
+        "hash": "159ed95f7452ab5454e9d660f6f095b8476b1eed"
+      },
+      {
+        "repo": "bitcoin",
+        "hash": "5fa7b07565d2c7c1edfb9a2f8c1af42d039d99ee"
+      }
+    ]
+  },
+  {
+    "id": "39",
+    "summary": "\"Optimize property access by checking cached data first and deferring expensive object initialization until complex properties are actually needed.\"",
+    "examples": [
+      {
+        "repo": "v8",
+        "hash": "76e9ddb8f54524e1defd828375117bfe0f9e652c"
+      },
+      {
+        "repo": "v8",
+        "hash": "8f965daaf8aa8ccd6ee85328df52f17cc97ff1d3"
+      }
+    ]
+  },
+  {
+    "id": "40",
+    "summary": "\"Replace strlen() checks for empty strings with direct character comparison to '\\0' when only checking string emptiness to avoid unnecessary length calculations.\"",
+    "examples": [
+      {
+        "repo": "tesseract",
+        "hash": "92cae8f19418d13a0b698d8cd9b866ee0d3867b8"
+      },
+      {
+        "repo": "php-src",
+        "hash": "42fca623263599100746ce8e02f01b8c52311987"
+      }
+    ]
+  },
+  {
+    "id": "41",
+    "summary": "Enable TCP_NODELAY option on sockets to disable Nagle's algorithm and reduce network latency for frequent small packet transmissions, particularly beneficial for low-latency communication scenarios like HTTP servers.",
+    "examples": [
+      {
+        "repo": "bitcoin",
+        "hash": "94c307b3c0746a08c6135ff38d6f1ad1ed6693bb"
+      },
+      {
+        "repo": "bitcoin",
+        "hash": "03d49d0f25ab5660524d5ddd171de677a808b984"
+      }
+    ]
+  },
+  {
+    "id": "42",
+    "summary": "Construct strings directly in pre-allocated buffers to avoid temporary allocations and copying, improving performance by reducing memory operations.",
+    "examples": [
+      {
+        "repo": "godot",
+        "hash": "7b15c0622e82c880917a5f3603ae3932f0d9a894"
+      },
+      {
+        "repo": "godot",
+        "hash": "76af9537ed05fe60fe6282a8872d22f2383c96ab"
+      }
+    ]
+  },
+  {
+    "id": "43",
+    "summary": "\"Optimize OpenMP parallel loops by selecting appropriate scheduling (guided or dynamic) based on workload characteristics - use guided for uneven workloads or when synchronization overhead is high, and dynamic with small chunk sizes for better load balancing in computationally intensive tasks.\"",
+    "examples": [
+      {
+        "repo": "godot",
+        "hash": "a402efeb72fbf46f26ec4ef02ed9a5a26c26fec7"
+      },
+      {
+        "repo": "faiss",
+        "hash": "f276c47c76ae8717f56ff00cd3c89f3e84c7f6c4"
+      }
+    ]
+  },
+  {
+    "id": "44",
+    "summary": "\"Optimize bit counting operations by using type-specific built-in popcount functions (__builtin_popcount or __builtin_popcountll) based on input size, with special handling for small integer types to avoid unnecessary conversions and bit extensions.\"",
+    "examples": [
+      {
+        "repo": "ClickHouse",
+        "hash": "9fa877341bbd189600774b92092f26b737ea4d42"
+      },
+      {
+        "repo": "ClickHouse",
+        "hash": "28ad3b46da493b7abdcf2f4e9884971577820580"
+      }
+    ]
+  },
+  {
+    "id": "45",
+    "summary": "Prioritize immediate handling of expired and canceled timers in event loops by checking for zero or negative durations to prevent memory buildup from delayed cleanup.",
+    "examples": [
+      {
+        "repo": "mysql-server",
+        "hash": "765d800c79ae4bfaafd1a9da48592124f3c44298"
+      },
+      {
+        "repo": "mysql-server",
+        "hash": "60e4835bb9660085869f1d439663e4f5fd3090ae"
+      }
+    ]
+  },
+  {
+    "id": "46",
+    "summary": "Cancel pending timeout operations immediately upon successful completion in asynchronous wait operations to avoid unnecessary event loop wake-ups.",
+    "examples": [
+      {
+        "repo": "folly",
+        "hash": "2fa3a81ca7ddb0bb3e69de4b7a561afba8d07573"
+      },
+      {
+        "repo": "folly",
+        "hash": "13897bc4d877622981369d5e43081e5237bcd7d1"
+      }
+    ]
+  },
+  {
+    "id": "47",
+    "summary": "\"Replace container appends with unchecked appends in hot paths when size validation is already performed to avoid redundant bounds checking.\"",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "aa77c2ca585531023b9ed53b686200534a65e6ff"
+      },
+      {
+        "repo": "ladybird",
+        "hash": "c978891dda25ee373e3330165a5225d12e6951b6"
+      }
+    ]
+  },
+  {
+    "id": "48",
+    "summary": "\"Use template-specialized pixel access methods for known pixel formats to eliminate runtime branching overhead in image processing loops.\"",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "1268b39ba0b3c7e8a70baf19672c0a65205963cd"
+      },
+      {
+        "repo": "ladybird",
+        "hash": "3f3f3766be3ea26dab457e0886ffa04a841ffb9b"
+      }
+    ]
+  },
+  {
+    "id": "49",
+    "summary": "\"Add early failure checks before expensive state operations in parsing functions to avoid unnecessary work when simple conditions aren't met.\"",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "33f038ba7a81288765d97b26492bd39988220135"
+      },
+      {
+        "repo": "ladybird",
+        "hash": "910de95e7aadcbdb8a3f04ec1ec4c6518ef1cd86"
+      }
+    ]
+  },
+  {
+    "id": "50",
+    "summary": "Optimize buffer access by using direct pointer arithmetic for contiguous data and slice_view() for temporary views to avoid unnecessary memory allocations and copies.",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "8d3d0054ed2adeddb79c00d4bd6afeee12510e2d"
+      },
+      {
+        "repo": "ladybird",
+        "hash": "be1025c03f6f67898a4a3aeadbb4db6e32694fff"
+      }
+    ]
+  },
+  {
+    "id": "51",
+    "summary": "Optimize property access in non-strict mode by combining existence checks with value retrieval/setting operations to avoid redundant lookups in non-with environments.",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "7b30df084048541e6c850d7c4fbe9b40d94a24ac"
+      },
+      {
+        "repo": "ladybird",
+        "hash": "12ceaf37902f173a14b8a8fb92fbd19cdee678b8"
+      }
+    ]
+  },
+  {
+    "id": "52",
+    "summary": "Replace heap-allocated vectors with stack-allocated variable-length arrays (VLAs) for small, bounded-size arrays in performance-critical code to reduce memory allocation overhead.",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "cc083310a75f41681630b973558cba55069e63c8"
+      },
+      {
+        "repo": "ladybird",
+        "hash": "a352099b050fe53e83e1863e9eef1ccefce39f2c"
+      }
+    ]
+  },
+  {
+    "id": "53",
+    "summary": "Optimize memory allocation by rounding sizes to multiples of 16 bytes or power-of-two values to improve memory utilization and management performance.",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "6c3afca6866023b12c5f9d220cbedccd002bfd60"
+      },
+      {
+        "repo": "v8",
+        "hash": "9ab99f2903099c3358fa83174fcc308a4e1ba8ab"
+      }
+    ]
+  },
+  {
+    "id": "54",
+    "summary": "Optimize CSS selector processing by including both immediate child and descendant combinators in ancestor filter checks to enhance style matching efficiency.",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "34fdd0d44fcf916540ea66ba9c895ba005a54b9a"
+      },
+      {
+        "repo": "serenity",
+        "hash": "7bf0f0e908574af28df61ac71925166daef4fc8a"
+      }
+    ]
+  },
+  {
+    "id": "55",
+    "summary": "Optimize tree traversal by replacing O(n) indexed child access with sequential sibling traversal when comparing node children, reducing time complexity from O(n\u00b2) to O(n) and avoiding repeated linear searches.",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "f29457b61ecd5b7d4a27414259010eb7e1ae6d2c"
+      },
+      {
+        "repo": "serenity",
+        "hash": "36f87b9a56017f0561edbb14a8a2a5cad2a0ce52"
+      }
+    ]
+  },
+  {
+    "id": "56",
+    "summary": "Optimize style recomputation by targeting only `before` and `after` pseudo elements instead of all known pseudo elements when updating element styles, avoiding unnecessary computations for pseudo elements that don't generate new nodes.",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "62083bf586a816eea61db4a09a60cc6474585444"
+      },
+      {
+        "repo": "serenity",
+        "hash": "ba6d3aaece45081ca70d7ef6e13f022e78eb6b16"
+      }
+    ]
+  },
+  {
+    "id": "57",
+    "summary": "\"Use buffered writes with large chunks instead of individual byte writes for repeated data to reduce system call overhead.\"",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "6b39c6b1bf62218edf6478c8f55a543e069ea51a"
+      },
+      {
+        "repo": "git",
+        "hash": "df7000cd910a5f6991f73991b87d838a5d75e2fc"
+      }
+    ]
+  },
+  {
+    "id": "58",
+    "summary": "Optimize property access by returning cached values directly when properties are not accessors, avoiding unnecessary accessor checks and function calls.",
+    "examples": [
+      {
+        "repo": "ladybird",
+        "hash": "77a46ab1b8d13f35b11a7bd08459752912dca1bf"
+      },
+      {
+        "repo": "serenity",
+        "hash": "34ae4521ffaa4c14029e6fa873c68b82ece6759d"
+      }
+    ]
+  },
+  {
+    "id": "59",
+    "summary": "Optimize stream data access by enabling prefetching and caching to reduce repeated I/O operations and improve performance, especially for slow sources.",
+    "examples": [
+      {
+        "repo": "vlc",
+        "hash": "cbc4a25619dc8169a0ce16fd2e38355010b351ad"
+      },
+      {
+        "repo": "vlc",
+        "hash": "976cd219465a72daa02d22e60c9ac4c704c0b18b"
+      }
+    ]
+  },
+  {
+    "id": "60",
+    "summary": "\"Use pass-by-reference capture in synchronous, read-only lambda functions to avoid unnecessary object copying, especially for context objects.\"",
+    "examples": [
+      {
+        "repo": "vlc",
+        "hash": "6f998111ffd5d8d0ad7e20d68a402914ce44cd41"
+      },
+      {
+        "repo": "ClickHouse",
+        "hash": "32dcbfb6273fffacda1ec09c8cbf737f82ca0d04"
+      }
+    ]
+  },
+  {
+    "id": "61",
+    "summary": "\"Optimize case-insensitive string operations by using specialized hash functions that handle case conversion internally, avoiding temporary allocations, and pre-processing characters (ASCII case conversion and non-ASCII normalization) before hashing.\"",
+    "examples": [
+      {
+        "repo": "sumatrapdf",
+        "hash": "95be49bef6d8f05c208cbea4b0411cd5bef56c52"
+      },
+      {
+        "repo": "php-src",
+        "hash": "8c8322f6a11e11b3c4b9d7f90e01ec95d5cf791d"
+      }
+    ]
+  },
+  {
+    "id": "62",
+    "summary": "\"Remove redundant CUDA synchronization calls in sequential processing and performance-critical sections to reduce GPU overhead.\"",
+    "examples": [
+      {
+        "repo": "FFmpeg",
+        "hash": "c0b6e4cb6d6d41dbf2684891ed9dd43d9ddfb804"
+      },
+      {
+        "repo": "taichi",
+        "hash": "623f4e9d8164ef6ca2a3793a6aac3bc95988e341"
+      }
+    ]
+  },
+  {
+    "id": "63",
+    "summary": "Replace pixel-by-pixel assignments with memset operations for consecutive identical values in image processing to reduce loop overhead and improve performance.",
+    "examples": [
+      {
+        "repo": "FFmpeg",
+        "hash": "038d291b70bffa550cde552f8325e1b9f71f0646"
+      },
+      {
+        "repo": "FFmpeg",
+        "hash": "07bc603757caa5d2054c56629bb93d7a177e8e88"
+      }
+    ]
+  },
+  {
+    "id": "64",
+    "summary": "\"Add early exit checks before processing PID lookups/lists when no programs are marked for discarding to avoid unnecessary computations and iterations.\"",
+    "examples": [
+      {
+        "repo": "FFmpeg",
+        "hash": "c84ea750cf765c9d8845fca5546eb0ae25b9c855"
+      },
+      {
+        "repo": "FFmpeg",
+        "hash": "5dd8ca7d1b5401d5bfe078f4129db199fe317ad5"
+      }
+    ]
+  },
+  {
+    "id": "65",
+    "summary": "Optimize array indexing by replacing division/modulo operations with bitwise shifts/ANDs when working with power-of-two sized arrays to avoid expensive division operations.",
+    "examples": [
+      {
+        "repo": "FFmpeg",
+        "hash": "eb73742d6e19d72bced2bfec6f65cd45e93308d1"
+      },
+      {
+        "repo": "radare2",
+        "hash": "910bbad2e3747e4fb3e50158e5118041bb3d2b2b"
+      }
+    ]
+  },
+  {
+    "id": "66",
+    "summary": "Optimize hash table usage in motion estimation by reducing size, using a simpler prime-based hash function for cache efficiency, and caching/incrementally updating hash values to minimize redundant computations.",
+    "examples": [
+      {
+        "repo": "FFmpeg",
+        "hash": "a69220cce0aea2d5e017cb1d15b894f7e9cd3e1b"
+      },
+      {
+        "repo": "FFmpeg",
+        "hash": "2d603902f3570de81a26b20bf056c30597be08a2"
+      }
+    ]
+  },
+  {
+    "id": "67",
+    "summary": "Replace while loops with do-while loops when the loop body must execute at least once to eliminate redundant initial condition checks and improve performance.",
+    "examples": [
+      {
+        "repo": "FFmpeg",
+        "hash": "2f955ea41b804c0804f71d27a0bba13e59988726"
+      },
+      {
+        "repo": "git",
+        "hash": "39556fbdadaacf67330bc1464e0172468e9c3a5e"
+      }
+    ]
+  },
+  {
+    "id": "68",
+    "summary": "Replace conditional branching with arithmetic operations or CMOV instructions in performance-critical code to avoid branch mispredictions and improve pipelining efficiency.",
+    "examples": [
+      {
+        "repo": "FFmpeg",
+        "hash": "1f4d5e9f69e84f4d6cd78e31909f547d4d698ed8"
+      },
+      {
+        "repo": "FFmpeg",
+        "hash": "ab0151d163287160038052778ebf21b5529c12fd"
+      }
+    ]
+  },
+  {
+    "id": "69",
+    "summary": "Move lock acquisition outside of loops when thread safety is needed for the entire loop execution to reduce lock overhead and contention.",
+    "examples": [
+      {
+        "repo": "esp-idf",
+        "hash": "4675dc428f26de5de3b9a707ec2dbf774e6bbdfc"
+      },
+      {
+        "repo": "mongo",
+        "hash": "59629331f9aa96e6610ddbe6163777a039d197f0"
+      }
+    ]
+  },
+  {
+    "id": "70",
+    "summary": "\"Remove redundant zero-checks before mixing audio samples when the operation with zero is a no-op, eliminating unnecessary branching.\"",
+    "examples": [
+      {
+        "repo": "BlackHole",
+        "hash": "190aa0207c3d4369f797b265236034659767d379"
+      },
+      {
+        "repo": "BlackHole",
+        "hash": "6fcb34449e95a376dcab7c5f51e83aa0683f22e4"
+      }
+    ]
+  },
+  {
+    "id": "71",
+    "summary": "\"Batch process network receive packets using netif_receive_skb_list() instead of individual netif_receive_skb() calls to improve cache efficiency and reduce per-packet processing overhead.\"",
+    "examples": [
+      {
+        "repo": "openwrt",
+        "hash": "3b936510720b04ec02b4e4a395aa39cdcfbc47d5"
+      },
+      {
+        "repo": "openwrt",
+        "hash": "686050b2b2b7f4e7b54632627d4ef8981c543959"
+      }
+    ]
+  },
+  {
+    "id": "72",
+    "summary": "Optimize hex-escaped character output by using direct stream manipulation instead of stringstream or string concatenation to avoid temporary object overhead.",
+    "examples": [
+      {
+        "repo": "googletest",
+        "hash": "a868e618c0607259c63f37d948b72586a13922ff"
+      },
+      {
+        "repo": "googletest",
+        "hash": "4d26df729c4172a4786fb4ca509a264dfd9b89dc"
+      }
+    ]
+  },
+  {
+    "id": "73",
+    "summary": "\"Optimize database flushing by adjusting loop bounds to skip unnecessary iterations when clearing specific databases rather than all.\"",
+    "examples": [
+      {
+        "repo": "redis",
+        "hash": "fe408ad23f69f2c9a416fcc8cebe8d98f15574b4"
+      },
+      {
+        "repo": "redis",
+        "hash": "dd071ff6c95cbb7427e5f0c3a6ca84e3c672d87a"
+      }
+    ]
+  },
+  {
+    "id": "74",
+    "summary": "Optimize skiplist serialization by traversing in reverse order using backward pointers to improve deserialization performance.",
+    "examples": [
+      {
+        "repo": "redis",
+        "hash": "23ec36909e54a23d90a36f3426bd4ca6b4e643a6"
+      },
+      {
+        "repo": "redis",
+        "hash": "0a942f17516c034a7868bbc68243b5f8a8d06f8d"
+      }
+    ]
+  },
+  {
+    "id": "75",
+    "summary": "\"Add early return checks for empty containers before processing to avoid unnecessary operations when no elements exist.\"",
+    "examples": [
+      {
+        "repo": "redis",
+        "hash": "077f9654264d601a87b801f219e27b6097e9c861"
+      },
+      {
+        "repo": "swift",
+        "hash": "a9b272552089ce4a28e1d4d8c9880237cf15ac60"
+      }
+    ]
+  },
+  {
+    "id": "76",
+    "summary": "Optimize Lua garbage collection by triggering incremental collection periodically instead of after every script execution to balance memory usage and performance overhead.",
+    "examples": [
+      {
+        "repo": "redis",
+        "hash": "40531be0e338556df5510f49f4472ea50713962f"
+      },
+      {
+        "repo": "redis",
+        "hash": "76fda9f8e10eb9cf1299fa6ca04f60d79462759e"
+      }
+    ]
+  },
+  {
+    "id": "77",
+    "summary": "\"Replace `_mm_set1_epi64x` with `_mm_shuffle_epi32` when reusing vector elements in SIMD operations to reduce latency, improve instruction-level parallelism, and minimize unnecessary data movement.\"",
+    "examples": [
+      {
+        "repo": "TDengine",
+        "hash": "d1193b5a7a29d3df3811d77e6bdd5d5ec84f8721"
+      },
+      {
+        "repo": "TDengine",
+        "hash": "2bf438296850919a1a753e842e35e05c21b47533"
+      }
+    ]
+  },
+  {
+    "id": "78",
+    "summary": "\"Remove unnecessary garbage collection invocations in debugger operations when not required for correctness to improve performance.\"",
+    "examples": [
+      {
+        "repo": "v8",
+        "hash": "d88988b1a8e68b866af4e58142603edc9e212134"
+      },
+      {
+        "repo": "v8",
+        "hash": "a7c786319760e9818eb869fd7f9d17b956b1db75"
+      }
+    ]
+  },
+  {
+    "id": "79",
+    "summary": "Add early return checks for identical or empty input values before performing expensive operations to skip unnecessary processing.",
+    "examples": [
+      {
+        "repo": "v8",
+        "hash": "8d18a1910708ecdd3421d6f809fffbd9d28d7fbb"
+      },
+      {
+        "repo": "php-src",
+        "hash": "32cd373dfd4e5b5710929c534f960694853a02e0"
+      }
+    ]
+  },
+  {
+    "id": "80",
+    "summary": "\"Limit inlining to one candidate per iteration and avoid repeated attempts unless new optimization opportunities emerge, prioritizing frequently called functions to manage the inlining budget effectively.\"",
+    "examples": [
+      {
+        "repo": "v8",
+        "hash": "0b0581421e242fe0e87b8bba9e1a9ba1abd853c4"
+      },
+      {
+        "repo": "swift",
+        "hash": "ef5187f713f9101b1d96c7245b8a59a73f6b61d4"
+      }
+    ]
+  },
+  {
+    "id": "81",
+    "summary": "\"Replace multiple individual bit checks with a single bitmask comparison to reduce function calls, intermediate computations, and register usage, improving performance.\"",
+    "examples": [
+      {
+        "repo": "v8",
+        "hash": "8567093bcc6d5a9119c686e55265490dc553f460"
+      },
+      {
+        "repo": "duckdb",
+        "hash": "5d24f21c3dc78e4b18f3f6c0940b14f3d80d830e"
+      }
+    ]
+  },
+  {
+    "id": "82",
+    "summary": "Enable a fast-path optimization for Object.assign when the target is an empty object literal by removing conditional compilation checks.",
+    "examples": [
+      {
+        "repo": "v8",
+        "hash": "b71404f1c80e29afa075ff7269893c3b8137c528"
+      },
+      {
+        "repo": "v8",
+        "hash": "6bf31c4fea720e862276034f32146dd811de362d"
+      }
+    ]
+  },
+  {
+    "id": "83",
+    "summary": "Optimize compiler performance by strategically applying value numbering at multiple stages (both early and late) in the pipeline to eliminate redundant computations and reduce graph size.",
+    "examples": [
+      {
+        "repo": "v8",
+        "hash": "c5ea51259c488572277eced46c4c0149ffe96b56"
+      },
+      {
+        "repo": "v8",
+        "hash": "b18b3877957cd218dda61c4e2cca635a0a6f5884"
+      }
+    ]
+  },
+  {
+    "id": "84",
+    "summary": "\"Optimize JavaScript addition operations by prioritizing string type checks early in the process to avoid redundant operations and improve performance.\"",
+    "examples": [
+      {
+        "repo": "v8",
+        "hash": "d6e2398a9d216b5b410506c93e80b83837b44e5b"
+      },
+      {
+        "repo": "v8",
+        "hash": "d504203e93096aefe35d31094d61c9014a11d377"
+      }
+    ]
+  },
+  {
+    "id": "85",
+    "summary": "Allocate long-lived objects directly in old space instead of new space to reduce garbage collection overhead, especially for frequently created instances or objects meeting specific longevity criteria.",
+    "examples": [
+      {
+        "repo": "v8",
+        "hash": "63454f1afb901f72fe4b53d74248e4b67c15748c"
+      },
+      {
+        "repo": "v8",
+        "hash": "ae37cb350fbb9aca82e0214d6c6f73ebcc92d25b"
+      }
+    ]
+  },
+  {
+    "id": "86",
+    "summary": "\"Implement size bounds checking for arrays using a predefined upper limit to prevent performance degradation from excessively large allocations.\"",
+    "examples": [
+      {
+        "repo": "v8",
+        "hash": "5f06c1a1f32682e6b487a861227d526f36b3b388"
+      },
+      {
+        "repo": "v8",
+        "hash": "0c81c4e924d7bdb45fce98209c21985d754e047d"
+      }
+    ]
+  },
+  {
+    "id": "87",
+    "summary": "\"Optimize frequently called type-checking functions by adding fast-path checks for trivial/common cases to avoid expensive computations or unnecessary branching.\"",
+    "examples": [
+      {
+        "repo": "v8",
+        "hash": "358dfc64f90ba62b7b65942468419d5c3f177313"
+      },
+      {
+        "repo": "v8",
+        "hash": "4f2cc4104e05bb0ffe351a3b24b4c8a6f0fbcb70"
+      }
+    ]
+  },
+  {
+    "id": "88",
+    "summary": "Optimize memory access operations by merging constant offsets with base address calculations to reduce instruction count and address computation overhead.",
+    "examples": [
+      {
+        "repo": "v8",
+        "hash": "0878b351adc46285b651d9d83499511c71cbda3c"
+      },
+      {
+        "repo": "v8",
+        "hash": "76fb582d571f889672d55ea90b52e73f0baecc1c"
+      }
+    ]
+  },
+  {
+    "id": "89",
+    "summary": "\"Optimize variable declarations in loops by moving reusable variables outside to avoid repeated overhead and placing short-lived variables close to their usage for better performance.\"",
+    "examples": [
+      {
+        "repo": "v8",
+        "hash": "9fac6dcb039f96ecc3d125960c0c884dac40e22c"
+      },
+      {
+        "repo": "ClickHouse",
+        "hash": "4a5497498e992b300bdf38372e94968c514703be"
+      }
+    ]
+  },
+  {
+    "id": "90",
+    "summary": "Optimize performance by using pass-by-reference instead of pass-by-value when accessing container elements or object properties in frequently called functions to avoid unnecessary object copying.",
+    "examples": [
+      {
+        "repo": "mongo",
+        "hash": "7c38ed67693fe3ee6e16bfc3f62ced1c9e2d855f"
+      },
+      {
+        "repo": "duckdb",
+        "hash": "d554d7baa20234ce2e7c6a990451531eb3dd5b75"
+      }
+    ]
+  },
+  {
+    "id": "91",
+    "summary": "\"Move expensive debug logging operations inside log level checks to avoid unnecessary computations when logging is disabled.\"",
+    "examples": [
+      {
+        "repo": "mongo",
+        "hash": "1da6a0d35bf4645609bece3d24ad59aec19f1f96"
+      },
+      {
+        "repo": "envoy",
+        "hash": "48743154a35f5751796d39ebceb615453abac8de"
+      }
+    ]
+  },
+  {
+    "id": "92",
+    "summary": "Use query optimizer cursors instead of basic cursor operations to leverage more efficient execution plans and duplicate checking for improved database query performance.",
+    "examples": [
+      {
+        "repo": "mongo",
+        "hash": "aa0865f65528a88f545b1dee8517e1e326ad8390"
+      },
+      {
+        "repo": "mongo",
+        "hash": "de5b7c284bbee4ae3217af675cde3096a3e183bb"
+      }
+    ]
+  },
+  {
+    "id": "93",
+    "summary": "\"Optimize dot product calculations by enabling SIMD vectorization with OpenMP pragmas and increasing the vector processing batch size to better utilize 256-bit registers, reducing loop iterations.\"",
+    "examples": [
+      {
+        "repo": "tesseract",
+        "hash": "88d4028a5a44e3fd7d0d66fe187b197ffccccf4e"
+      },
+      {
+        "repo": "tesseract",
+        "hash": "24a29b79e5811b4d8a7ae9d81bc2ed7c83c8222a"
+      }
+    ]
+  },
+  {
+    "id": "94",
+    "summary": "Optimize memory access patterns by using branchless pre-processing loops to amortize cache misses and improve instruction-level parallelism before entering branch-heavy main loops.",
+    "examples": [
+      {
+        "repo": "duckdb",
+        "hash": "32cda86440e0b16ff173b53dc2518e94cff22ccf"
+      },
+      {
+        "repo": "duckdb",
+        "hash": "965963f881e152bd80cb34fd5a7ebd0f66639e55"
+      }
+    ]
+  },
+  {
+    "id": "95",
+    "summary": "\"Optimize hash join operations by early returning or skipping processing when the build-side is empty for INNER, RIGHT, or SEMI join types to avoid unnecessary computations.\"",
+    "examples": [
+      {
+        "repo": "duckdb",
+        "hash": "8ce02240b73be35150fbf85209a994096de1a953"
+      },
+      {
+        "repo": "duckdb",
+        "hash": "20031c8137895560a67bbf11b11628f067f057ef"
+      }
+    ]
+  },
+  {
+    "id": "96",
+    "summary": "Optimize container element removal by using iterator-based erase operations or direct key lookups with find() instead of linear searches or key-based erase to eliminate redundant lookups and leverage faster container access patterns.",
+    "examples": [
+      {
+        "repo": "rocksdb",
+        "hash": "b8cea7cc279fe609de85b7ce4f50d4ff4f90047f"
+      },
+      {
+        "repo": "x64dbg",
+        "hash": "529e5f1e3a4a1b3bd94c3858fd1fb876a9216859"
+      }
+    ]
+  },
+  {
+    "id": "97",
+    "summary": "\"Use empty() instead of size() > 0 to check container emptiness for better performance and guaranteed constant-time complexity.\"",
+    "examples": [
+      {
+        "repo": "rocksdb",
+        "hash": "b8b7117e97e649fc65d0a4dd397caf9a39fb71b1"
+      },
+      {
+        "repo": "rocksdb",
+        "hash": "43c789c8f246a2a35864e3fca9585b55c40c2095"
+      }
+    ]
+  },
+  {
+    "id": "98",
+    "summary": "Replace random selection with incremental probing when searching for non-empty buckets in sparse data structures to reduce failed attempts and improve lookup efficiency.",
+    "examples": [
+      {
+        "repo": "bitcoin",
+        "hash": "c33c11ebacb93d74370f44f6c24d447da88648f4"
+      },
+      {
+        "repo": "bitcoin",
+        "hash": "ea19c2bc3f2281ad319457c6fa518bff96af13e3"
+      }
+    ]
+  },
+  {
+    "id": "99",
+    "summary": "\"Use `__pushKV` instead of `pushKV` for inserting known-unique keys into UniValue objects to bypass redundant existence checks and improve performance.\"",
+    "examples": [
+      {
+        "repo": "bitcoin",
+        "hash": "2d5cf4c41d86f2bdd1df99edc130ade1d093258f"
+      },
+      {
+        "repo": "bitcoin",
+        "hash": "2d16fb7a2b6a9e5a2535295d2de03e27c2438d1f"
+      }
+    ]
+  },
+  {
+    "id": "100",
+    "summary": "Track unique keys in a separate set when building JSON objects to avoid O(N) existence checks for each insertion, especially when dealing with potentially duplicate or known-unique keys.",
+    "examples": [
+      {
+        "repo": "bitcoin",
+        "hash": "710a7136f93133bf256d37dc8c8faf5a6b9ba89d"
+      },
+      {
+        "repo": "bitcoin",
+        "hash": "cd14d210c4156a0a17450d3d451a92ae3938b019"
+      }
+    ]
+  },
+  {
+    "id": "101",
+    "summary": "Optimize duplicate transaction checks by moving them after input validation and prioritizing cache lookups to minimize disk I/O operations.",
+    "examples": [
+      {
+        "repo": "bitcoin",
+        "hash": "66270a416edb1610f276124483feceef9cba93ff"
+      },
+      {
+        "repo": "bitcoin",
+        "hash": "18bacec6c2c8493fd6b7011778446b3c7473bb25"
+      }
+    ]
+  },
+  {
+    "id": "102",
+    "summary": "\"Use the MSG_MORE flag for non-final network message chunks to enable kernel-level buffer aggregation and reduce TCP segment overhead by combining multiple small writes.\"",
+    "examples": [
+      {
+        "repo": "bitcoin",
+        "hash": "5ecd14a31cad496e58fbc4aca9af0e9a001689d5"
+      },
+      {
+        "repo": "bitcoin",
+        "hash": "691eaf8873fe2f189153ca637506a0291504c97a"
+      }
+    ]
+  },
+  {
+    "id": "103",
+    "summary": "Increase the pruning buffer size during initial block download to reduce frequent pruning operations and chainstate flushes, improving performance and maintaining dbcache benefits.",
+    "examples": [
+      {
+        "repo": "bitcoin",
+        "hash": "9a1ad2c5cbdfa3114d05df57103c34f72e087f26"
+      },
+      {
+        "repo": "bitcoin",
+        "hash": "ac51a26bdc69dc35e1f4f89b62c3134047e93bc1"
+      }
+    ]
+  },
+  {
+    "id": "104",
+    "summary": "Use direct element addition methods (addX()) instead of get-modify-set patterns when deserializing repeated fields to avoid unnecessary copying of elements.",
+    "examples": [
+      {
+        "repo": "protobuf",
+        "hash": "f81d44fafa3687f7d1c0059f1eab3fd4cb6b87f6"
+      },
+      {
+        "repo": "protobuf",
+        "hash": "f7bb8477a8e925090a2209097f5fbb62b1f7f919"
+      }
+    ]
+  },
+  {
+    "id": "105",
+    "summary": "\"Use thread-local copies of shared RNG state variables in parallel loops to prevent false sharing and improve cache performance.\"",
+    "examples": [
+      {
+        "repo": "godot",
+        "hash": "0db512354807318646ac9884f3702733a56b3bb1"
+      },
+      {
+        "repo": "godot",
+        "hash": "1040766725113a3a0813740fe47eb0fe674be54e"
+      }
+    ]
+  },
+  {
+    "id": "106",
+    "summary": "Optimize linear interpolation by replacing `(1.0 - c) * a + b * c` with `a + (b - a) * c` to reduce arithmetic operations and improve numerical stability.",
+    "examples": [
+      {
+        "repo": "godot",
+        "hash": "cebbb2a325cc028f8311e18ea050f91801385597"
+      },
+      {
+        "repo": "godot",
+        "hash": "50fae2b1a7a7a5f3029c50f9884ccdde0762c8a3"
+      }
+    ]
+  },
+  {
+    "id": "107",
+    "summary": "Cache container element pointers before loops when performing multiple sequential writes or shifts to avoid repeated access checks, bounds verification, and copy-on-write overhead.",
+    "examples": [
+      {
+        "repo": "godot",
+        "hash": "0dfbf4a5df27f5529a9d7a9b13976107bfdcd2b2"
+      },
+      {
+        "repo": "godot",
+        "hash": "c1afe7dcdf98ff4f34a91e2290e86630df60c0dd"
+      }
+    ]
+  },
+  {
+    "id": "108",
+    "summary": "\"Switch to 16-bit depth texture formats when supported to reduce memory bandwidth and improve GPU performance while maintaining sufficient precision.\"",
+    "examples": [
+      {
+        "repo": "godot",
+        "hash": "e432181dc3788d3e3454b02e143a823f26e17bcc"
+      },
+      {
+        "repo": "godot",
+        "hash": "565f9c0448cabfffbca76003143893a9f5afc3dc"
+      }
+    ]
+  },
+  {
+    "id": "109",
+    "summary": "Cache frequently accessed string values and their lengths in local or static variables to avoid redundant memory accesses and enable compiler optimizations.",
+    "examples": [
+      {
+        "repo": "php-src",
+        "hash": "b4fbf1d381d23ad3e9ad8f6df572adc1984a0a45"
+      },
+      {
+        "repo": "reactos",
+        "hash": "13cf4c52f50692587873a0e038d1821b79342aec"
+      }
+    ]
+  },
+  {
+    "id": "110",
+    "summary": "Leverage return type information from internal function calls to refine type inference in JIT compilation, improving optimization accuracy for both function calls and trace records.",
+    "examples": [
+      {
+        "repo": "php-src",
+        "hash": "98dbae4feb4f905cf9f429200062880e03f9fa3f"
+      },
+      {
+        "repo": "php-src",
+        "hash": "af0a980f450706f9b709e220f1801a7144447b0f"
+      }
+    ]
+  },
+  {
+    "id": "111",
+    "summary": "\"Optimize object comparison by first checking for identity equality to avoid expensive deep property comparisons when objects are the same instance.\"",
+    "examples": [
+      {
+        "repo": "php-src",
+        "hash": "e029945a02735f83391c60d0f42db75b0c900373"
+      },
+      {
+        "repo": "php-src",
+        "hash": "a0ab81a4da7069fe181e72ebdea00c17bff3c198"
+      }
+    ]
+  },
+  {
+    "id": "112",
+    "summary": "Optimize date conversion calculations for large year values by processing multi-year periods in bulk before handling remaining days incrementally, reducing loop iterations.",
+    "examples": [
+      {
+        "repo": "php-src",
+        "hash": "cd32d5792e147c53c5bb38e7a9b228189d5d7fab"
+      },
+      {
+        "repo": "php-src",
+        "hash": "02bdb521e2137509bc5a2e6abd4e31e9f14d22bc"
+      }
+    ]
+  },
+  {
+    "id": "113",
+    "summary": "Optimize PHP extension functions by replacing traditional parameter parsing with fast ZPP (Zend Parameter Parsing) or ZEND_PARSE_PARAMETERS macros to reduce call overhead and improve performance.",
+    "examples": [
+      {
+        "repo": "php-src",
+        "hash": "e4e6820d103d82bece101597cdbca06f173cd64b"
+      },
+      {
+        "repo": "php-src",
+        "hash": "31f516b4888fcf096fe0912828948bed84f2ad1c"
+      }
+    ]
+  },
+  {
+    "id": "114",
+    "summary": "\"Vectorize reduction operations based on GPU compute capability, input data type size, and row length to enable optimized memory access patterns when conditions allow.\"",
+    "examples": [
+      {
+        "repo": "tensorflow",
+        "hash": "59295ccebeab358e6f9a68269c83a1f1ef4393b1"
+      },
+      {
+        "repo": "tensorflow",
+        "hash": "5704a9a295711ee46b66ad2e33c690c325982dd0"
+      }
+    ]
+  },
+  {
+    "id": "115",
+    "summary": "\"Use pass-by-reference in range-based for loops with llvm::enumerate to avoid unnecessary object copying.\"",
+    "examples": [
+      {
+        "repo": "tensorflow",
+        "hash": "460d330428b22ca0d762d454cffb47efddca4d50"
+      },
+      {
+        "repo": "tensorflow",
+        "hash": "e24ab749b4cc14cb90096775874d8c108dad8c5d"
+      }
+    ]
+  },
+  {
+    "id": "116",
+    "summary": "Cache container size in a variable before loops or repeated comparisons to avoid redundant size() method calls.",
+    "examples": [
+      {
+        "repo": "tensorflow",
+        "hash": "ed89825b68629cac39b7b6c8055c725bab3acd60"
+      },
+      {
+        "repo": "srs",
+        "hash": "afd05f71c38303ef724390736a8e50e6ae2afdd6"
+      }
+    ]
+  },
+  {
+    "id": "117",
+    "summary": "Gradually increase the rollout percentage of experimental optimizations in feature flag configurations to test, evaluate, and scale performance improvements while monitoring impact in production environments.",
+    "examples": [
+      {
+        "repo": "tensorflow",
+        "hash": "19ecdb8652dada0c6049b4c883f00f1ac70af466"
+      },
+      {
+        "repo": "tensorflow",
+        "hash": "b347508e0decd7ac3ec8ae8c9ab53f7a117a6124"
+      }
+    ]
+  },
+  {
+    "id": "118",
+    "summary": "Gradually increase the rollout percentage of experimental performance optimizations in production, starting with a small percentage to evaluate stability and benefits, then scaling to 100% once proven effective.",
+    "examples": [
+      {
+        "repo": "tensorflow",
+        "hash": "8869fdbc2f194b9eb4e10f922d8743288bdb9810"
+      },
+      {
+        "repo": "tensorflow",
+        "hash": "8a7a62c73a98eaf5bcdd02b8da8aab5467891bf1"
+      }
+    ]
+  },
+  {
+    "id": "119",
+    "summary": "\"Replace `std::vector` with pre-sized `llvm::SmallVector` when the maximum element count is known to avoid dynamic allocations and leverage stack-based storage for better performance.\"",
+    "examples": [
+      {
+        "repo": "tensorflow",
+        "hash": "c849329843d165c090d666f3c5ada4acb0196549"
+      },
+      {
+        "repo": "tensorflow",
+        "hash": "cf690d9dc6fd8ac103246168b815e91c3311cd8c"
+      }
+    ]
+  },
+  {
+    "id": "120",
+    "summary": "Optimize XNNPACK transpose operations by selectively enabling/disabling parallel execution (XNN_FLAG_YIELD_WORKERS) based on threadpool availability - enable for performance when threadpools exist, disable to avoid overhead when threadpools are null.",
+    "examples": [
+      {
+        "repo": "tensorflow",
+        "hash": "2c6a627c364fe7f0540b0b63fa2bddecff322a85"
+      },
+      {
+        "repo": "tensorflow",
+        "hash": "a6a42a33f85b10a18d5a5ca7fe8a24ea26bb143e"
+      }
+    ]
+  },
+  {
+    "id": "121",
+    "summary": "\"Optimize UDP packet handling by moving context restoration operations inside conditional blocks where logging occurs, reducing unnecessary overhead in the common case.\"",
+    "examples": [
+      {
+        "repo": "srs",
+        "hash": "19a7c7682edd3d9b6e8b75c6d8805bbb629423f3"
+      },
+      {
+        "repo": "srs",
+        "hash": "5eafcea895ef87f90009bd211dd5bb020a2b28c0"
+      }
+    ]
+  },
+  {
+    "id": "122",
+    "summary": "Optimize SIMDJSON parsing by dynamically selecting the appropriate instruction set (AVX2 or SSE4.2/PCLMUL) based on CPU feature detection to maximize performance across different hardware capabilities.",
+    "examples": [
+      {
+        "repo": "ClickHouse",
+        "hash": "cfe3112bf2ba3c971a18a05e5011ea4931a2a1aa"
+      },
+      {
+        "repo": "ClickHouse",
+        "hash": "309f14d9240fb0607d1c55c0af426161ae8376a2"
+      }
+    ]
+  },
+  {
+    "id": "123",
+    "summary": "\"Annotate error-handling or rare code paths with branch prediction hints (e.g., `unlikely()` or `[[unlikely]]`) to optimize performance by improving processor branch prediction.\"",
+    "examples": [
+      {
+        "repo": "ClickHouse",
+        "hash": "b402a9bed23de90983a683d70e31b620b4c0e90e"
+      },
+      {
+        "repo": "ClickHouse",
+        "hash": "9647818adccb207a393db0aa4eb8cdb6df5b78fe"
+      }
+    ]
+  },
+  {
+    "id": "124",
+    "summary": "Optimize filter push-down operations by verifying if the filter column exists in the sorting description before attempting to push down the filter, avoiding unnecessary processing when the column is already sorted or not present in the sorting criteria.",
+    "examples": [
+      {
+        "repo": "ClickHouse",
+        "hash": "4ddf1b0f488d8d7956624c9113d3875e26632887"
+      },
+      {
+        "repo": "ClickHouse",
+        "hash": "72719584eacff24d74117703dae1c3aa43f72acc"
+      }
+    ]
+  },
+  {
+    "id": "125",
+    "summary": "Replace nested loops with callback-based iteration when processing hierarchical or nested data structures to avoid quadratic complexity in subcolumn operations.",
+    "examples": [
+      {
+        "repo": "ClickHouse",
+        "hash": "d6e88f56cd59f0dfd8c0573c320bf6eec01eea42"
+      },
+      {
+        "repo": "ClickHouse",
+        "hash": "e4fddaa03a5c9f1593d4a9ba823c4953578d8e33"
+      }
+    ]
+  },
+  {
+    "id": "126",
+    "summary": "Optimize vector operations by pre-allocating capacity and using bulk operations like resize_fill() instead of repeated single-element insertions to minimize memory reallocations and improve performance.",
+    "examples": [
+      {
+        "repo": "ClickHouse",
+        "hash": "7cd7782e4f25b0a2aad9cfa69cd9ffcb4da1e6cc"
+      },
+      {
+        "repo": "ClickHouse",
+        "hash": "be28d8363381b984d3d8e1ca5b509a237324f74c"
+      }
+    ]
+  },
+  {
+    "id": "127",
+    "summary": "Optimize I/O operations by skipping prefetch for empty data parts or existence checks to reduce unnecessary overhead.",
+    "examples": [
+      {
+        "repo": "ClickHouse",
+        "hash": "57fa4239e5fc1254dc38fb153fd4b4c4f9dd6b08"
+      },
+      {
+        "repo": "ceph",
+        "hash": "7ba05a29163e1a81fb449e3231200e0bf55c1200"
+      }
+    ]
+  },
+  {
+    "id": "128",
+    "summary": "Optimize SIMD data copying by replacing manual or compiler-generated SSE operations with explicit inline assembly or compiler-intrinsic SSE2 instructions to better utilize CPU registers and improve performance while maintaining code readability.",
+    "examples": [
+      {
+        "repo": "ClickHouse",
+        "hash": "e7aa1cd01c724d5c51b96f770aa5fea3ea8dd687"
+      },
+      {
+        "repo": "ClickHouse",
+        "hash": "5ef7c66c9291c59be2564fda0ca05357c3988965"
+      }
+    ]
+  },
+  {
+    "id": "129",
+    "summary": "\"Run bitmap optimization (runOptimize()) before serialization to reduce memory usage and improve write performance for bitmap data structures.\"",
+    "examples": [
+      {
+        "repo": "ClickHouse",
+        "hash": "62bdf1068af4158391d59885f811e2824f7f58e5"
+      },
+      {
+        "repo": "ClickHouse",
+        "hash": "c8d995e42e4e2595981fed21191a20da00f80192"
+      }
+    ]
+  },
+  {
+    "id": "130",
+    "summary": "Replace null checks with arithmetic multiplication (0/1) when summing nullable numeric values in loops to enable vectorization and avoid branch mispredictions.",
+    "examples": [
+      {
+        "repo": "ClickHouse",
+        "hash": "e6c8100f6342feba3f629e04b39da959bf62e128"
+      },
+      {
+        "repo": "ClickHouse",
+        "hash": "36bc22df98d91feb69661aab3da26f4298d070b6"
+      }
+    ]
+  },
+  {
+    "id": "131",
+    "summary": "\"Use platform-specific optimized operations (inline assembly for x86_64 or native 128-bit integers where available) for 64-bit and 128-bit arithmetic to improve performance and accuracy.\"",
+    "examples": [
+      {
+        "repo": "ClickHouse",
+        "hash": "8334d8aac1565574590255f3b65fe398864bfa5b"
+      },
+      {
+        "repo": "obs-studio",
+        "hash": "c977417747992e3fed32b775073503b25fb82599"
+      }
+    ]
+  },
+  {
+    "id": "132",
+    "summary": "\"Optimize file comparison by adding an early return check using SHA1 hashes to avoid expensive delta operations when files are identical.\"",
+    "examples": [
+      {
+        "repo": "git",
+        "hash": "a64dd34d8cce018742badb49b87c5c565be655ce"
+      },
+      {
+        "repo": "git",
+        "hash": "aeecd23ae2785a0462d42191974e9d9a8e439fbe"
+      }
+    ]
+  },
+  {
+    "id": "133",
+    "summary": "Free temporary tree entry memory immediately after use to reduce memory consumption during tree object processing.",
+    "examples": [
+      {
+        "repo": "git",
+        "hash": "f22ca7c50d79fcfd769ddcda988e0981fb883a16"
+      },
+      {
+        "repo": "git",
+        "hash": "545f229a4b43212e683ac63e5aa740324ac7799e"
+      }
+    ]
+  },
+  {
+    "id": "134",
+    "summary": "Optimize reference iteration by using specialized functions like `for_each_rawref` or `refs_for_each_fullref_in()` instead of `for_each_ref()` to skip unnecessary checks and avoid processing unwanted references.",
+    "examples": [
+      {
+        "repo": "git",
+        "hash": "56a5f3afa74c70261dd2319ad76a6810e102026c"
+      },
+      {
+        "repo": "git",
+        "hash": "cc2a1f98ac1042c7cca0ecedd6d57819c6b8e02e"
+      }
+    ]
+  },
+  {
+    "id": "135",
+    "summary": "\"Process objects in pack order instead of hash order when writing commit graphs to improve cache locality and reduce I/O operations.\"",
+    "examples": [
+      {
+        "repo": "git",
+        "hash": "04d67b6ab222060546af328207ad48ae8ad58fe9"
+      },
+      {
+        "repo": "git",
+        "hash": "d7574c95bb74cd189950cc6e9cad762099382162"
+      }
+    ]
+  },
+  {
+    "id": "136",
+    "summary": "\"Skip loading and processing tree objects during commit traversal when they are not needed by checking the relevant flag early to avoid unnecessary operations.\"",
+    "examples": [
+      {
+        "repo": "git",
+        "hash": "bbfe5f2241f8baf6019c6cb7428aed9fb1353799"
+      },
+      {
+        "repo": "git",
+        "hash": "72ed80c784e65770c4d4944b0ea54b08e098d7e3"
+      }
+    ]
+  },
+  {
+    "id": "137",
+    "summary": "Check buffer length before processing to avoid unnecessary operations on empty data.",
+    "examples": [
+      {
+        "repo": "git",
+        "hash": "9d14ecf39dc70cd2d2cf639d873b8e2c7f039d11"
+      },
+      {
+        "repo": "git",
+        "hash": "fa6758e9afb7cbd211e38b6f81e9d21872d97338"
+      }
+    ]
+  },
+  {
+    "id": "138",
+    "summary": "\"Replace manual merge-base computations with the optimized in_merge_bases() function when checking fast-forward conditions to simplify code and improve performance.\"",
+    "examples": [
+      {
+        "repo": "git",
+        "hash": "5d55915c7a58e59d913b0cfc38a6f49514068cd2"
+      },
+      {
+        "repo": "git",
+        "hash": "6571225137b1ba270b49a0dfc6a30aab6f4b86ba"
+      }
+    ]
+  },
+  {
+    "id": "139",
+    "summary": "Use OBJECT_INFO_QUICK flag when checking for negative objects to skip expensive object existence checks and improve performance in operations like push and send-pack.",
+    "examples": [
+      {
+        "repo": "git",
+        "hash": "5cf7a17dfbe60ea3cfb32ace7264edc3ad97611b"
+      },
+      {
+        "repo": "git",
+        "hash": "403ac1381cc8bed5e02963a955f2a2a626620eaa"
+      }
+    ]
+  },
+  {
+    "id": "140",
+    "summary": "Optimize hash table lookups by moving recently accessed entries to the front of their collision chain or initial hash position to exploit locality and reduce average search time.",
+    "examples": [
+      {
+        "repo": "git",
+        "hash": "4818cfcdcc8011e5eef353d0f64cd9d2374ea381"
+      },
+      {
+        "repo": "git",
+        "hash": "9a414486d9f0325c3663210471e4673ed0cd862c"
+      }
+    ]
+  },
+  {
+    "id": "141",
+    "summary": "\"Add early return for single-commit queries without additional filtering to avoid unnecessary parent/grandparent parsing when only the most recent commit is needed.\"",
+    "examples": [
+      {
+        "repo": "git",
+        "hash": "0910e8cab828b53fd7188a93c0476cab0af81cdc"
+      },
+      {
+        "repo": "git",
+        "hash": "fe5f51ce277df00cb01dfc984dba1e7128718e41"
+      }
+    ]
+  },
+  {
+    "id": "142",
+    "summary": "\"Use pass-by-reference for slice objects in reference counting operations to avoid unnecessary copying.\"",
+    "examples": [
+      {
+        "repo": "grpc",
+        "hash": "93dc228a8a795a9b3820a0ce0f57277408694b6b"
+      },
+      {
+        "repo": "grpc",
+        "hash": "1ef80f46bd9176b8411196b864fd174a2c007bf2"
+      }
+    ]
+  },
+  {
+    "id": "143",
+    "summary": "\"Add a fast path check for the common no-error case at the start of error handling functions to avoid unnecessary processing when no error occurs.\"",
+    "examples": [
+      {
+        "repo": "grpc",
+        "hash": "e26af337263d0be3d16bb4abe36d9cb53b54c717"
+      },
+      {
+        "repo": "grpc",
+        "hash": "926bbe3a2e3f94eec591fbf19795a28f598806c1"
+      }
+    ]
+  },
+  {
+    "id": "144",
+    "summary": "Optimize image upscaling by processing two rows simultaneously, adjusting loop increments and buffer offsets to reduce iterations and improve memory access patterns.",
+    "examples": [
+      {
+        "repo": "lvgl",
+        "hash": "119c4b577b2b8b444994f408d48b5c090c77e7c5"
+      },
+      {
+        "repo": "lvgl",
+        "hash": "0087faf3c35e637f254e5e49267d100ed0afd027"
+      }
+    ]
+  },
+  {
+    "id": "145",
+    "summary": "\"Remove redundant condition checks that have already been validated by the caller to eliminate unnecessary branching and improve performance in transaction processing functions.\"",
+    "examples": [
+      {
+        "repo": "mysql-server",
+        "hash": "7b66953beb0fd1bfc2044ac6c97dfd036af9d616"
+      },
+      {
+        "repo": "mysql-server",
+        "hash": "078fc08a7fcf61636f59a5735d7ac8f67232d3c7"
+      }
+    ]
+  },
+  {
+    "id": "146",
+    "summary": "\"Move prefetch operations before conditional checks and invalidations after data fetching to optimize cache utilization while maintaining correctness.\"",
+    "examples": [
+      {
+        "repo": "mysql-server",
+        "hash": "86e93ea198c9b27a1e764f75702ab7a31df9c5c2"
+      },
+      {
+        "repo": "reactos",
+        "hash": "af80d3517d940e41c032f4323aae572c34cec0f9"
+      }
+    ]
+  },
+  {
+    "id": "147",
+    "summary": "Optimize range analysis expression construction by adding simpler AND trees to OR trees instead of vice versa to avoid exponential time complexity.",
+    "examples": [
+      {
+        "repo": "mysql-server",
+        "hash": "bfc42f437371d38d57ac4c13ccad65ceb47cce4b"
+      },
+      {
+        "repo": "mysql-server",
+        "hash": "a38073dc88f3efb5b799e3a09cf4ee59d111a85a"
+      }
+    ]
+  },
+  {
+    "id": "148",
+    "summary": "Treat string literal instructions as zero-cost operations during inlining to reduce unnecessary overhead in optimization passes.",
+    "examples": [
+      {
+        "repo": "swift",
+        "hash": "601b1e6bd4a6fb489a33b9f5ab3fbd3fb28cae1f"
+      },
+      {
+        "repo": "swift",
+        "hash": "d6403d707e91fc177b267b1be79c7e875dbd5da2"
+      }
+    ]
+  },
+  {
+    "id": "149",
+    "summary": "\"Check for duplicate declarations at the start of function calls to avoid redundant processing of previously seen declarations.\"",
+    "examples": [
+      {
+        "repo": "swift",
+        "hash": "cd7f205ade20915e16c70a22687af5c3c0ea8923"
+      },
+      {
+        "repo": "swift",
+        "hash": "2b7849d9d9eecbb49e4b4e8a3f8e5f56349b7625"
+      }
+    ]
+  },
+  {
+    "id": "150",
+    "summary": "\"Optimize dead code elimination by performing dead function elimination early in the pipeline to avoid unnecessary optimizations, while moving general dead code elimination later to leverage prior optimizations that may expose more elimination opportunities.\"",
+    "examples": [
+      {
+        "repo": "swift",
+        "hash": "909c3b28c4b8f08f24f640f8b0003f889f557588"
+      },
+      {
+        "repo": "swift",
+        "hash": "07fb2909d7f6357b2c674d52e37ca9233a85f731"
+      }
+    ]
+  },
+  {
+    "id": "151",
+    "summary": "Optimize Wayland window rendering by defining opaque regions for non-alpha surfaces, enabling compositors to skip drawing hidden background content.",
+    "examples": [
+      {
+        "repo": "mpv",
+        "hash": "c10fb4ce9fcd3dbbf69741eb8499c4cfabbf5412"
+      },
+      {
+        "repo": "mpv",
+        "hash": "5895d6c24fa3b66230fe1f5177af7f65b4c6a706"
+      }
+    ]
+  }
+]

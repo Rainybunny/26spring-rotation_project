@@ -1,0 +1,26 @@
+Let me analyze the `same_name` function for optimization opportunities:
+
+1. Current behavior analysis:
+- First checks length equality and does exact string comparison (fast path)
+- If lengths differ or exact match fails, checks case-insensitive flag
+- If case-insensitive comparison needed, calls slow_same_name
+
+2. Bottlenecks:
+- The function calls cache_name_compare which may involve another function call overhead
+- The length check and exact comparison are good fast paths
+- The slow_same_name path is already separated out
+
+3. Optimization opportunities:
+- Inline the cache_name_compare functionality to avoid function call overhead
+- The length check is already optimal (early exit if lengths differ)
+- The icase check is also optimal (early exit if not needed)
+
+4. Key insight:
+- The main optimization potential is inlining the exact comparison since it's the common case
+- The slow path (case-insensitive) is already optimized by being separate
+
+5. Selected optimization:
+- Replace the cache_name_compare call with an inline memcmp operation
+- This removes a function call in the hot path while maintaining identical behavior
+
+Here's the optimized implementation:

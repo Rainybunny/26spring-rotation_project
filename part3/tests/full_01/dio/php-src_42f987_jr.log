@@ -1,0 +1,29 @@
+Looking at the provided code, the optimized version introduces a small change: it stores the result of `strlen(name)` in a local variable `name_len` to avoid calling `strlen` twice. In the original, `strlen(name)` is called twice: once in the condition `if (name && strlen(name) > 0)` and once in the call to `_zip_string_new`. The optimized version computes it once and reuses it.
+
+However, there is a subtle issue: the optimized version changes the behavior when `name` is `NULL`. In the original, if `name` is `NULL`, the condition `if (name && strlen(name) > 0)` is false, so it goes to the `else` branch and sets `str = NULL`. In the optimized version, the condition is `if (name && (name_len = strlen(name)) > 0)`. This still evaluates to false when `name` is `NULL` because of short-circuit evaluation, so `name_len` is not assigned, and `str` is set to `NULL` in the `else` branch. That's fine.
+
+But consider the case when `name` is not `NULL` but is an empty string (i.e., `name[0] == '\0'`). In the original, `strlen(name)` returns 0, so the condition `strlen(name) > 0` is false, and it goes to the `else` branch, setting `str = NULL`. In the optimized version, `name_len = strlen(name)` sets `name_len` to 0, and then the condition `name_len > 0` is false, so it also goes to the `else` branch, setting `str = NULL`. So behavior is the same.
+
+Now, what about the call to `_zip_name_locate(za, name, 0, NULL)`? It uses `name` directly, which is fine. The optimization does not affect that.
+
+But there is a potential problem: the optimized version uses `(zip_uint16_t)name_len` in the call to `_zip_string_new`. In the original, the second argument is `(zip_uint16_t)strlen(name)`. Since `name_len` is of type `size_t`, casting to `zip_uint16_t` is the same as before. However, note that `name_len` is only set when `name` is non-NULL and the string length is greater than 0. In the case where `name` is non-NULL but the string is empty, `name_len` is not set (because the condition fails and we go to the `else` branch). But in that case, we don't call `_zip_string_new` at all, so it's not an issue.
+
+Wait, let's trace: in the optimized version:
+```c
+if (name && (name_len = strlen(name)) > 0) {
+    // ...
+}
+else
+    str = NULL;
+```
+If `name` is non-NULL and `strlen(name) == 0`, then `name_len = strlen(name)` sets `name_len` to 0, and then the condition `> 0` is false, so we go to the `else` branch. So `name_len` is set to 0, but we don't use it. That's fine.
+
+Now, what about the case when `name` is NULL? The condition short-circuits, so `name_len` is not assigned. But `name_len` is only used inside the if block, so it's safe.
+
+Therefore, the optimization is valid and improves performance by avoiding a second call to `strlen`. The behavior remains identical in all cases.
+
+One might argue that the variable `name_len` is declared but might be used uninitialized in the `if` block? No, because it is only used inside the `if` block when it has been assigned. The compiler might warn about potential uninitialized use if we used it elsewhere, but we don't.
+
+Also, note that the original code had a comment: "TODO: check for string too long". The optimization does not address that, so it's fine.
+
+Thus, the optimized function is a valid replacement.

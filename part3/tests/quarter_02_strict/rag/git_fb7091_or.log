@@ -1,0 +1,31 @@
+Let me analyze the `rehash_objects` function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function is called when the hash table needs to be resized/rehashed
+   - Main operations: memory allocation, zeroing memory, and rehashing all objects
+   - The loop processes each object sequentially with `locate_object_entry_hash`
+   - Memory operations (`xrealloc`, `memset`) could be expensive for large tables
+
+2. **Key Observations**:
+   - `memset` is clearing the entire new index array, which is necessary
+   - The hash computation (`locate_object_entry_hash`) is called for each object
+   - The hash function is simple (just uses first 4 bytes of SHA1)
+   - No obvious parallelism opportunities in current structure
+
+3. **Potential Optimizations**:
+   - Precompute hash values to avoid recomputing during rehashing
+   - Use bulk memory operations if possible
+   - Optimize the hash function itself (but would change behavior)
+   - Unroll the loop (but compiler likely does this already)
+
+4. **Best Optimization Choice**:
+   - The most impactful change would be to optimize the memory zeroing by:
+     1. Using `calloc` instead of `xrealloc` + `memset` when possible
+     2. Only zeroing the necessary portion when growing the array
+
+5. **Final Optimization Idea**:
+   - Replace the `xrealloc` + `memset` sequence with a more efficient memory allocation pattern
+   - When growing the array, use `xcalloc` to get zeroed memory directly
+   - This combines allocation and zeroing into one operation
+
+Here's the optimized implementation:

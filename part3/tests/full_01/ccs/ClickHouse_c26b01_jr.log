@@ -1,0 +1,58 @@
+Looking at the provided code, the optimized function is `PipelineExecutor::finalizeExecution()`. The original version (from the full source code) is:
+
+```cpp
+void PipelineExecutor::finalizeExecution()
+{
+    if (process_list_element && process_list_element->isKilled())
+        throw Exception("Query was cancelled", ErrorCodes::QUERY_WAS_CANCELLED);
+
+    if (cancelled)
+        return;
+
+    bool all_processors_finished = true;
+    for (auto & node : graph)
+        if (node.status != ExecStatus::Finished)  /// Single thread, do not hold mutex
+            all_processors_finished = false;
+
+    if (!all_processors_finished)
+        throw Exception("Pipeline stuck. Current state:\n" + dumpPipeline(), ErrorCodes::LOGICAL_ERROR);
+}
+```
+
+The optimized version is:
+
+```cpp
+void PipelineExecutor::finalizeExecution()
+{
+    if (process_list_element && process_list_element->isKilled())
+        throw Exception("Query was cancelled", ErrorCodes::QUERY_WAS_CANCELLED);
+
+    if (cancelled)
+        return;
+
+    bool all_processors_finished = true;
+    for (auto & node : graph)
+    {
+        if (node.status != ExecStatus::Finished)  /// Single thread, do not hold mutex
+        {
+            all_processors_finished = false;
+            break;
+        }
+    }
+
+    if (!all_processors_finished)
+        throw Exception("Pipeline stuck. Current state:\n" + dumpPipeline(), ErrorCodes::LOGICAL_ERROR);
+}
+```
+
+The difference is that the optimized version adds a `break` statement when it finds a processor that is not finished, and also adds braces for the `if` statement inside the loop for clarity.
+
+**Analysis:**
+
+1. **Correctness:** The optimized version is logically equivalent to the original. The `break` statement is added to exit the loop early when a non-finished processor is found. This does not change the behavior because once `all_processors_finished` is set to `false`, the loop can terminate early without checking the remaining processors. The condition after the loop (`if (!all_processors_finished)`) will still be true, and the exception will be thrown as expected. The addition of braces does not affect the logic.
+
+2. **Performance:** The optimized version improves performance by exiting the loop early when a non-finished processor is found. In the original version, the loop always iterates over all processors even after finding a non-finished one. The optimized version avoids unnecessary iterations, which is beneficial especially when the graph is large and the first few processors are not finished. This is a valid optimization.
+
+3. **Code Style:** The optimized version adds braces for the `if` statement inside the loop, which improves readability and maintainability, though it is not a performance optimization.
+
+**Conclusion:** The optimized function is a valid replacement for the original function. It maintains correctness while improving performance by early exit from the loop.

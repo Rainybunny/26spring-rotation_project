@@ -1,0 +1,30 @@
+Let’s analyze the changes step by step.
+
+**Original function logic:**
+1. Handle `needle_len == 0` → return start of haystack.
+2. Handle `haystack_len < needle_len` → return NULL.
+3. Loop through each possible starting position in haystack, comparing full `needle_len` bytes with `memcmp` each time.
+
+**Optimized function changes:**
+- Added `const char needle0 = *(const char *)needle;` to cache the first character of the needle.
+- In the loop, before calling `memcmp`, it checks `if (*begin == needle0 && !memcmp(...))`.
+
+**Correctness:**
+- If `needle_len == 0`, the original returns `(void *)begin` immediately. The optimized version does the same before `needle0` is accessed (since `needle_len == 0` is checked first). So no undefined behavior.
+- If `needle_len > 0`, the optimized version accesses `*(const char *)needle` to get `needle0`. This is safe because `needle` is a valid pointer (caller must ensure this, but original function also assumes it’s valid for `memcmp`).
+- The loop condition and bounds are unchanged.
+- The extra check `*begin == needle0` is a fast filter: if the first character doesn’t match, skip the `memcmp`. This does not affect correctness because `memcmp` would fail anyway, but it avoids an expensive call in mismatched cases.
+- Edge case: `needle_len == 1` — still works, `needle0` is that single char, `memcmp` compares 1 byte, but the extra check means we compare the char twice (once manually, once in `memcmp`). That’s fine.
+- Edge case: `haystack_len == needle_len` — `last_possible` = `begin`, loop runs once.
+- Memory safety: No out-of-bounds reads in haystack because loop stops at `last_possible` and `memcmp` reads `needle_len` bytes from `begin`, which is within `[haystack, haystack + haystack_len)`.
+
+**Performance:**
+- The optimization adds one cheap comparison per iteration, but saves costly `memcmp` calls when first character doesn’t match.
+- In random data, this can significantly reduce calls to `memcmp`, improving performance.
+- Worst case: every position matches first char but later bytes differ — then `memcmp` is called every time, adding one extra comparison overhead per iteration. That’s negligible compared to `memcmp` cost.
+- Best case: first char of needle is rare in haystack — most iterations skip `memcmp`.
+
+**Potential issues:**
+- None. This is a classic “first-character check” optimization for string searching.
+
+**Conclusion:** The optimized version is functionally equivalent and improves average-case performance.

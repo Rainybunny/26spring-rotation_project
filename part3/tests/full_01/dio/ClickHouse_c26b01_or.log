@@ -1,0 +1,17 @@
+Let me analyze the `finalizeExecution()` function for optimization opportunities:
+
+1. Current Analysis:
+- The function checks 3 conditions sequentially: process kill status, cancellation flag, and all processors finished status
+- The main bottleneck is the loop checking processor statuses, which is O(n) where n is number of processors
+- The `all_processors_finished` flag requires checking every node even if we find a non-finished one early
+- The `dumpPipeline()` call in the exception case is expensive but only happens in error cases
+
+2. Optimization Opportunities:
+- Early exit from the status check loop when first non-finished processor is found
+- The `dumpPipeline()` call could be moved after the status check to avoid preparation when not needed
+- The cancellation check could be reordered since it's a simple atomic check
+
+3. Selected Optimization:
+The most impactful change would be to modify the status check loop to exit early when finding the first non-finished processor. This changes the worst case from always O(n) to O(1) in the best case (when first processor isn't finished).
+
+Here's the optimized implementation:

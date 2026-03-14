@@ -1,0 +1,26 @@
+Let me analyze this function and potential optimizations:
+
+1. Analysis:
+- The function `IsEnqueued()` checks if a given SharedFunctionInfo is currently enqueued in the dispatcher
+- It does this by calling `GetJobFor()` and comparing the result to `jobs_.end()`
+- `GetJobFor()` performs a lookup in a multimap using a pair of script ID and function literal ID as key
+- The current implementation uses `!= jobs_.end()` to check for existence
+
+2. Optimization Opportunity:
+- The selected strategy suggests using `empty()` instead of `size() > 0` for container checks
+- However, in this case we're not checking container emptiness but rather checking if a lookup result is valid
+- A more relevant optimization would be to avoid the double lookup that happens here:
+  - First lookup in `GetJobFor()`
+  - Then comparison with `end()`
+
+3. Proposed Optimization:
+- We can modify `IsEnqueued()` to directly return the result of `GetJobFor()` comparison
+- This makes the intent clearer and may help the compiler optimize better
+- The behavior remains exactly the same, just expressed more directly
+
+4. Final Optimization Idea:
+- Replace the explicit comparison with `jobs_.end()` with a direct return of the lookup result
+- This makes the code slightly more concise while maintaining identical behavior
+- May help compiler optimization by eliminating redundant operations
+
+Here's the optimized function:

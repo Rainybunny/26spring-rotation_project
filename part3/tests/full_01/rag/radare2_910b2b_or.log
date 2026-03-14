@@ -1,0 +1,13 @@
+Thought process/analysis:
+1. The function `gbDisass` performs disassembly of GameBoy opcodes and formats the output string.
+2. The main bottleneck is the repeated use of `sprintf` which is a relatively expensive function call due to its parsing overhead.
+3. The switch cases are simple string formatting operations that could be optimized by:
+   - Using direct string copying for simple cases (GB_8BIT)
+   - Using snprintf instead of sprintf for safety (though not strictly a performance optimization)
+   - Pre-calculating values before formatting
+4. The most impactful optimization would be to replace `sprintf` with more efficient alternatives where possible, particularly for the GB_8BIT case which is just a direct string copy.
+
+Optimization idea:
+Replace the simple string copy case (GB_8BIT) with `strcpy` instead of `sprintf` since we don't need any formatting in this case. This avoids the format string parsing overhead of sprintf.
+
+Final optimized function implementation:

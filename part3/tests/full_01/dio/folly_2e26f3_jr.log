@@ -1,0 +1,30 @@
+Looking at the provided code, the optimized function is `wake()` in the `WaitNodeBase` struct. The original `wake()` function was:
+
+```c
+void wake() {
+    std::unique_lock<std::mutex> nodeLock(mutex_);
+    signaled_ = true;
+    cond_.notify_one();
+}
+```
+
+The optimized version introduces:
+1. `signaled_` changed from `bool` to `std::atomic<bool>` (implied by the use of `load`/`store`)
+2. A double-checked locking pattern to avoid acquiring the mutex if already signaled
+3. Memory ordering with `std::memory_order_relaxed`
+
+However, there are several issues:
+
+1. **Incompatible type change**: The original `signaled_` is a plain `bool`, but the optimized version uses atomic operations. This changes the struct layout and breaks compatibility with other code that accesses `signaled_` directly (like `signaled()` member function and the check in `park_until`).
+
+2. **The `signaled()` member function** in the original code reads `signaled_` directly. With the atomic change, it would need to use `load()` but the optimized version doesn't show this update.
+
+3. **Memory ordering issues**: The original code had proper synchronization via mutex locks. The optimized version uses relaxed memory ordering which may not provide sufficient synchronization guarantees. The wake-up needs to synchronize with the waiter's check of `signaled_`.
+
+4. **The check in `park_until`** after timeout does `if (!node.signaled())` - this would need to be updated to use atomic load if `signaled_` becomes atomic.
+
+5. **Thread safety**: Double-checked locking is tricky and requires careful memory ordering. The relaxed loads/stores may not prevent reordering issues.
+
+6. **Performance trade-off**: While avoiding mutex acquisition when already signaled is good, the change adds atomic operations on the hot path. For frequently signaled nodes, this might actually be slower.
+
+The optimization attempts to reduce locking overhead but introduces correctness issues and changes the data type without updating all usages. The function cannot be replaced in isolation without updating the entire struct definition and all its uses.

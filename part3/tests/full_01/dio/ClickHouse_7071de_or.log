@@ -1,0 +1,23 @@
+Let me analyze the function and propose optimizations:
+
+1. Analysis:
+- The function reverses the order of rows in a chunk by creating a permutation vector and applying it to each column
+- Current implementation creates permutation vector by pushing elements one by one
+- The permutation vector creation is O(n) but involves repeated memory allocations as the vector grows
+- The permutation values are perfectly predictable (num_rows-1-i)
+
+2. Key Observations:
+- The permutation vector can be pre-allocated to avoid repeated reallocations
+- The permutation values follow a simple arithmetic pattern that could be vectorized
+- The main work (permute operation) is done by the column implementation which we can't optimize here
+
+3. Optimization Opportunities:
+- Pre-allocate permutation vector to exact size needed
+- Fill permutation values in a single pass with predictable pattern
+- The permute operation itself is column-type dependent and can't be optimized here
+
+4. Selected Optimization:
+- Pre-allocate permutation vector to avoid multiple reallocations during emplace_back
+- This is simple, safe, and provides immediate benefit for large chunks
+
+Here's the optimized implementation:

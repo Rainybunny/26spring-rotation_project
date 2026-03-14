@@ -1,0 +1,29 @@
+Let me analyze the function and potential optimizations:
+
+1. Current Function Analysis:
+- The function generates random IDs between 1-8191 and checks for uniqueness
+- It locks the process list for the entire operation
+- The main bottlenecks are:
+  * Random number generation and modulo operation
+  * Linear search through all processes for each attempt
+  * Potential for many iterations if process list is large
+
+2. Reference Example Insights:
+- Example 1 shows removing unnecessary operations (parse_object)
+- Example 4 shows pre-allocation optimization (ensure_capacity)
+- None directly match this case, but we can apply similar principles
+
+3. Potential Optimizations:
+- Pre-compute used IDs once to avoid repeated linear searches
+- Use a more efficient random number generation approach
+- Implement early exit in the search loop
+- Consider using a bitset for tracking used IDs (but may not be worth it for 8192 range)
+
+4. Selected Optimization:
+The highest impact change would be to pre-compute used IDs into a local hash set before the loop. This:
+- Eliminates O(n) search per iteration
+- Reduces lock contention time
+- Maintains same behavior and guarantees
+- Is simple to implement
+
+Here's the optimized function:

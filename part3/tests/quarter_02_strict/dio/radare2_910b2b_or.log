@@ -1,0 +1,20 @@
+Thought process/analysis:
+1. The function `gbDisass` performs Game Boy opcode disassembly by formatting strings based on opcode types.
+2. The main bottleneck is the repeated use of `sprintf` which is relatively expensive for simple string formatting.
+3. The function accesses `gb_op[buf[0]]` multiple times, which could be cached.
+4. The switch statement is efficient, but the string formatting could be optimized.
+
+Key observations:
+- For GB_8BIT case, we're just copying a string, which could use `strcpy` instead of `sprintf`
+- The other cases still need `sprintf` for number formatting
+- The `gb_op[buf[0]]` access happens 3 times (once in gbOpLength call, once in switch, once in sprintf)
+
+Optimization idea:
+1. Cache the `gb_op[buf[0]]` lookup to avoid repeated array access
+2. Replace the GB_8BIT case's `sprintf` with `strcpy` since it's just a string copy
+3. Keep other cases as-is since they need number formatting
+
+Final optimization idea:
+Cache the `gb_op[buf[0]]` lookup and replace GB_8BIT's sprintf with strcpy for better performance while maintaining the same functionality.
+
+Here's the optimized function:

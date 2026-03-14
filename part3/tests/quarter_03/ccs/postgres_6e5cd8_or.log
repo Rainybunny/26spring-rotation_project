@@ -1,0 +1,24 @@
+Let me analyze the `spi_printtup` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function is called for every tuple being processed, so it's performance-critical
+- Main operations are memory allocation and tuple copying
+- Current growth strategy: when free slots run out, increase by 256 and realloc
+- Realloc operations can be expensive as they may require copying the entire array
+
+2. **Optimization Strategy**:
+- The current growth factor (adding 256) is linear, which can lead to frequent reallocs
+- A better approach would be exponential growth (e.g., doubling size) to amortize realloc costs
+- We can also pre-allocate more aggressively based on estimated tuple count if available
+
+3. **Selected Optimization**:
+- Change from linear growth (add 256) to exponential growth (double size)
+- This reduces the number of realloc operations from O(n) to O(log n)
+- Maintains same memory usage characteristics while improving performance
+
+4. **Implementation**:
+- When free slots run out, double the current allocated size instead of adding fixed amount
+- Keep minimum allocation size reasonable (e.g., 128) to avoid tiny allocations
+- The change is behavior-preserving, just more efficient
+
+Here's the optimized implementation:

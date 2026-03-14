@@ -1,0 +1,76 @@
+Let's compare the original `rehash_objects` function with the optimized version.
+
+**Original:**
+```c
+static void rehash_objects(struct packing_data *pdata)
+{
+    uint32_t i;
+    struct object_entry *entry;
+
+    pdata->index_size = closest_pow2(pdata->nr_objects * 3);
+    if (pdata->index_size < 1024)
+        pdata->index_size = 1024;
+
+    pdata->index = xrealloc(pdata->index, sizeof(uint32_t) * pdata->index_size);
+    memset(pdata->index, 0, sizeof(int) * pdata->index_size);
+
+    entry = pdata->objects;
+
+    for (i = 0; i < pdata->nr_objects; i++) {
+        int found;
+        uint32_t ix = locate_object_entry_hash(pdata, entry->idx.sha1, &found);
+
+        if (found)
+            die("BUG: Duplicate object in hash");
+
+        pdata->index[ix] = i + 1;
+        entry++;
+    }
+}
+```
+
+**Optimized:**
+```c
+static void rehash_objects(struct packing_data *pdata)
+{
+    uint32_t i;
+    struct object_entry *entry;
+
+    pdata->index_size = closest_pow2(pdata->nr_objects * 3);
+    if (pdata->index_size < 1024)
+        pdata->index_size = 1024;
+
+    pdata->index = xrealloc(pdata->index, sizeof(uint32_t) * pdata->index_size);
+    memset(pdata->index, 0, sizeof(uint32_t) * pdata->index_size);
+
+    for (i = 0; i < pdata->nr_objects; i++) {
+        int found;
+        uint32_t ix = locate_object_entry_hash(pdata, pdata->objects[i].idx.sha1, &found);
+
+        if (found)
+            die("BUG: Duplicate object in hash");
+
+        pdata->index[ix] = i + 1;
+    }
+}
+```
+
+**Changes:**
+1. Removed the `entry` pointer variable and its increment (`entry++`).
+2. Instead of using `entry->idx.sha1`, directly uses `pdata->objects[i].idx.sha1`.
+3. Changed `memset` from `sizeof(int)` to `sizeof(uint32_t)` for consistency (since `pdata->index` is `uint32_t *`).
+
+**Analysis:**
+
+**Correctness:**
+- The `entry` pointer was used to iterate through `pdata->objects`. The optimized version uses array indexing `pdata->objects[i]` which is equivalent.
+- The `memset` change from `sizeof(int)` to `sizeof(uint32_t)` is actually a bug fix. In the original, `sizeof(int)` might be different from `sizeof(uint32_t)` on some platforms. Since `pdata->index` is `uint32_t *`, using `sizeof(uint32_t)` is correct.
+- The logic for rehashing remains identical: recalculating hash table size, reallocating, clearing, and reinserting all objects.
+
+**Performance:**
+- The optimized version eliminates the pointer increment (`entry++`), but adds an array index calculation (`pdata->objects[i]`).
+- In practice, modern compilers optimize both similarly. The array indexing might be marginally slower due to the multiplication for offset calculation, but the difference is negligible.
+- The real performance improvement is fixing the `memset` size bug, which could cause memory corruption or incomplete clearing if `sizeof(int) < sizeof(uint32_t)`.
+
+**Conclusion:**
+The optimized function is a valid replacement. It maintains correctness and potentially fixes a bug with `memset`. The performance is similar or slightly improved due to the bug fix, though not significantly. The optimization is valid.

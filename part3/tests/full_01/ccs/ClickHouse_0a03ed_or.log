@@ -1,0 +1,24 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. Current Bottlenecks:
+- The function processes a quoted key by iterating through the input string
+- When encountering a non-escape sequence quote character, it uses a slow push_back loop to copy characters
+- The code has a TODO comment suggesting optimization with resize and memcpy
+- The key string is cleared at start but no capacity is reserved, leading to potential reallocations
+
+2. Strategy Application:
+- The selected strategy of pre-allocating capacity and using move semantics applies well here
+- We can estimate the maximum possible key size (character_position - pos) and reserve space
+- Instead of push_back loop, we can use bulk insertion methods like assign() or memcpy
+- The escape sequence handling already uses optimized insertion via consumeWithEscapeSequence
+
+3. Optimization Ideas:
+- Pre-calculate and reserve capacity for key based on remaining input size
+- Replace push_back loop with direct string assignment or memcpy
+- Keep escape sequence handling as is since it's already optimized
+
+4. Selected Optimization:
+- Replace the push_back loop with direct string assignment using string_view::substr
+- This eliminates individual character copies and leverages optimized string operations
+
+Here's the optimized function:

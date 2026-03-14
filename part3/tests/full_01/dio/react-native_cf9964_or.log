@@ -1,0 +1,22 @@
+Let me analyze the `executeApplicationScript` function for optimization opportunities:
+
+1. **Analysis**:
+- The function is a simple wrapper that calls two methods on the Bridge object and handles exceptions
+- The current implementation makes two separate calls to the Bridge object
+- Both operations (execute and flush) are tightly coupled in sequence
+- The exception handling is generic and doesn't distinguish between the two operations
+
+2. **Bottlenecks**:
+- Two separate virtual method calls (potential vtable lookup overhead)
+- No optimization for the case where script is empty
+- Exception handling could be more specific
+
+3. **Optimization Ideas**:
+- Combine execute and flush into a single method in Bridge to reduce virtual calls
+- Add early exit for empty script case
+- More specific exception handling
+
+4. **Selected Optimization**:
+The most impactful change would be to add an early exit for empty scripts, as this is a common case that can be handled quickly without any Bridge operations. This avoids unnecessary virtual calls and exception handling overhead.
+
+Here's the optimized implementation:

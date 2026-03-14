@@ -1,0 +1,21 @@
+Let me analyze the memmove function and identify optimization opportunities:
+
+1. Current Implementation Analysis:
+- The function handles overlapping memory regions correctly by checking if dest is after src with enough space (n bytes)
+- For non-overlapping or forward-safe cases, it uses memcpy (which is already optimized)
+- For backward copy cases (overlapping where src < dest), it does byte-by-byte copy from end to start
+
+2. Bottlenecks:
+- The backward copy loop is byte-oriented which is inefficient for large blocks
+- No utilization of word-sized copies (32/64-bit) when possible
+- No special handling for aligned memory cases
+
+3. Optimization Opportunities:
+- Implement word-sized copying for large blocks in backward copy case
+- Add alignment checks to enable faster word copies
+- Unroll loops for small fixed-size copies
+
+4. Selected Optimization:
+The highest impact change would be to implement word-sized copying for the backward copy case when possible, while maintaining correct behavior for overlapping regions. This provides significant speedup for large memory blocks while keeping the code relatively simple.
+
+Here's the optimized implementation:

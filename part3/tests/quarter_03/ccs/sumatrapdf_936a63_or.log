@@ -1,0 +1,28 @@
+Let me analyze the `fz_insert_gel_raw` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function is called frequently during path rendering to insert edges into the gel (global edge list)
+   - Main operations: edge sorting, bbox updates, edge parameter calculations
+   - Memory allocation happens when capacity is exceeded (relatively rare)
+   - Most time is spent in the parameter calculations and bbox updates
+
+2. **Optimization Opportunities**:
+   - The bbox updates (6 conditional checks) could be optimized by:
+     * Using min/max operations instead of separate conditionals
+     * Pre-calculating min/max values before comparisons
+   - The edge parameter calculations (dx/dy/width) could be:
+     * Reordered to minimize dependency chains
+     * Combined where possible
+   - The winding direction check could be simplified
+
+3. **Selected Optimization**:
+   - Optimize the bbox updates by using min/max operations and reducing conditional branches
+   - This is a high-impact change since bbox updates happen for every edge insertion
+   - The change maintains exact same behavior while being more efficient
+
+4. **Final Optimization Idea**:
+   - Replace the 6 separate bbox conditional updates with min/max operations
+   - Combine the x and y bbox updates into single operations
+   - This reduces branch mispredictions and allows better instruction pipelining
+
+Here's the optimized function:

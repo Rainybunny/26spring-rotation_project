@@ -1,0 +1,20 @@
+Let me analyze the `is_equal_node()` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs a deep comparison of two DOM nodes, including all attributes and child nodes
+- The most expensive parts are:
+  - Attribute comparison for Element nodes (O(n) where n is number of attributes)
+  - Child node comparison (O(n) where n is number of children)
+  - `child_at_index()` calls are O(n) per call due to linked list traversal
+
+2. **Optimization Opportunities**:
+- For Element nodes, we can optimize attribute comparison by:
+  - First comparing attribute count (already done)
+  - Then comparing attribute values only if names match
+- For child comparison, we can traverse both child lists simultaneously instead of using index lookup
+- Early exit when any comparison fails
+
+3. **High-Impact Change**:
+The biggest win would be optimizing the child node comparison by avoiding the O(n^2) `child_at_index()` calls and instead doing a single O(n) traversal of both child lists.
+
+Here's the optimized implementation:

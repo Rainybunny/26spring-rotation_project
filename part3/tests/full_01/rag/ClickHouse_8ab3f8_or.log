@@ -1,0 +1,21 @@
+Let me analyze the function and potential optimizations:
+
+1. **Bottleneck Analysis**:
+   - The main loop performs `Time2Date`, `TimeDayShift`, `localtime_r`, and `mktime` operations for each time value in a potentially large range.
+   - `localtime_r` and `mktime` are particularly expensive system calls that involve timezone calculations.
+   - The second loop scanning for year starts is O(n) but operates on already computed data.
+
+2. **Reference Example Insights**:
+   - Example 3/4 showed optimizations for date/time calculations by handling large time periods in bulk.
+   - The examples demonstrate that reducing system calls and optimizing date calculations can yield significant gains.
+
+3. **Potential Optimizations**:
+   - Precompute and cache timezone information to avoid repeated calculations.
+   - Batch process time values where possible.
+   - Optimize the year lookup table construction.
+
+4. **Selected Optimization**:
+   - The highest impact optimization would be to reduce the number of `localtime_r` and `mktime` calls by batching date calculations where possible.
+   - However, given the function's structure, the most straightforward optimization is to precompute and reuse the timezone information.
+
+Here's the optimized implementation:

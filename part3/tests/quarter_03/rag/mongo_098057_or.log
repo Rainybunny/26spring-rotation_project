@@ -1,0 +1,24 @@
+Let me analyze the function and potential optimizations:
+
+1. **Bottleneck Analysis**:
+   - The function performs multiple BSON object operations and validations
+   - The most expensive parts appear to be:
+     - Multiple calls to `manager->hasShardKey()` which likely involves BSON parsing
+     - The nested loops when checking update operators (`BSONObjIterator` loops)
+     - The `getShardsForQuery()` call for multi-updates
+
+2. **Reference Example Insights**:
+   - Example 1 shows optimization by replacing a complex merge base calculation with a simpler check
+   - Example 4 shows optimization by moving expensive operations (like hash calculations) outside loops
+   - Both examples focus on reducing expensive operations in hot paths
+
+3. **Potential Optimizations**:
+   - Cache the result of `manager->hasShardKey(query)` since it's used multiple times
+   - Early exit from the operator field check loop when shard key violation is found
+   - Combine some of the validation checks to reduce redundant operations
+
+4. **Selected Optimization**:
+   - Cache the `hasShardKey` results since they're called multiple times with the same arguments
+   - This is a simple, safe change that avoids redundant BSON parsing operations
+
+Here's the optimized function:

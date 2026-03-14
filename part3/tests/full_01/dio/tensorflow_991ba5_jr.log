@@ -1,0 +1,36 @@
+Looking at the provided code and the optimized function, I need to analyze whether the optimized version of `getIndexingMaps` for the `TransposeConverter` class is a valid optimization.
+
+**Original Code Analysis:**
+The original `getIndexingMaps` function for `TransposeConverter`:
+1. Takes a transpose operation and a builder
+2. Gets the result type and rank (nloops)
+3. Creates input expressions by iterating through the permutation array and mapping output dimensions to input dimensions
+4. Returns an affine map for the input and an identity map for the output
+
+**Optimized Code Analysis:**
+The optimized version:
+1. Same initial steps to get result type and rank
+2. Pre-allocates input expressions with identity mapping (d0, d1, d2, ...)
+3. Applies the permutation by swapping expressions based on the permutation values
+4. Returns the same structure
+
+**Correctness Analysis:**
+The optimized algorithm has a critical flaw. In the original code:
+- For each position `i` in the output, it finds which input dimension maps to it: `input_exprs[permutation.value().getZExtValue()] = b->getAffineDimExpr(i)`
+- This correctly creates the inverse permutation map needed for the transpose
+
+In the optimized code:
+- It starts with identity: input_exprs[i] = d_i
+- It then swaps expressions based on the permutation, but this doesn't correctly compute the inverse permutation needed for the affine map
+
+For example, with permutation [2, 0, 1]:
+- Original: Creates [d1, d2, d0] (correct inverse)
+- Optimized: Starts [d0, d1, d2], swaps d0↔d2 → [d2, d1, d0], swaps d1↔d0 → [d1, d2, d0] (incorrect)
+
+The swapping logic doesn't correctly compute the inverse permutation needed for the transpose operation's indexing maps.
+
+**Performance Analysis:**
+Even if the algorithm were correct, the optimization attempt to use swapping might not be more efficient than the original direct assignment, as both are O(n) operations.
+
+**Conclusion:**
+The optimized function is not a valid replacement because it computes the wrong affine map. The original algorithm correctly computes the inverse permutation needed for transpose operations, while the optimized version incorrectly attempts to permute through swapping.

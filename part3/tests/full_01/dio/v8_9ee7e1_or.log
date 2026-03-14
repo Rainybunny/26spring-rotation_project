@@ -1,0 +1,17 @@
+Let me analyze the `Runtime_Math_random` function for optimization opportunities:
+
+1. **Analysis**:
+- The function generates a random double between 0 and 1 by combining two random numbers
+- It uses `random()` twice and performs some arithmetic operations
+- The current implementation has some inefficiencies:
+  - Calls `random()` twice which is relatively expensive
+  - Does division operations which are slower than multiplication
+  - Uses `Heap::AllocateHeapNumber` which allocates memory
+
+2. **Optimization Idea**:
+The most impactful optimization would be to use a single call to `random()` and optimize the arithmetic operations. We can:
+- Call `random()` just once and use bit manipulation to get more randomness
+- Replace division with multiplication by reciprocal
+- Cache the reciprocal of (RAND_MAX + 1) to avoid repeated calculation
+
+3. **Optimized Implementation**:

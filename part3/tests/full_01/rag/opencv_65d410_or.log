@@ -1,0 +1,26 @@
+Let me analyze the `findNearestCore` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The main computational work happens in the nested loops calculating distances between samples (baseidx and testidx loops)
+   - The distance calculation is already vectorized (4 elements at a time)
+   - The insertion sort for maintaining top-k distances is done for every sample comparison
+   - Memory access patterns could be improved
+
+2. **Key Observations**:
+   - The distance calculation is the most expensive part (O(n_samples * n_test * n_features))
+   - The insertion sort is done for every test sample against every base sample
+   - The results processing at the end is relatively minor compared to the distance calculations
+
+3. **Potential Optimizations**:
+   - Precompute and cache some values (but memory constraints may limit this)
+   - Use SIMD more aggressively (but it's already partially done)
+   - Optimize the insertion sort logic
+   - Change memory access patterns for better cache utilization
+
+4. **Selected Optimization**:
+   - The most impactful change would be to optimize the insertion sort logic. Currently, it's doing a full shift for every insertion, which is inefficient. We can:
+     - First find the insertion point
+     - Then do a single memmove for the shift
+     - This reduces O(k) operations to O(1) for the shift
+
+Here's the optimized implementation:

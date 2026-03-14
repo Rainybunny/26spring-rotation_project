@@ -1,0 +1,27 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function is a large switch statement that converts R types to DuckDB logical types
+   - The most expensive cases are:
+     - FACTOR: Calls GetFactorLevels() and GetFactorLevelsCount()
+     - LIST: Recursively calls itself
+     - STRUCT: Iterates through child types and recursively calls itself
+   - The switch statement itself is efficient, but the function calls within cases could be optimized
+
+2. **Optimization Strategy**:
+   - Cache the rtype.id() call since it's used multiple times in the switch
+   - For STRUCT case, cache GetStructChildTypes() result to avoid repeated calls
+   - For LIST case, cache GetListChildType() result
+   - The FACTOR case already seems optimized with local caching
+
+3. **Selected Optimization**:
+   - Cache the rtype.id() call at the start since it's used in every case
+   - This avoids repeated virtual function calls through the rtype reference
+
+4. **Impact Assessment**:
+   - This is a simple change with minimal risk
+   - Provides consistent benefit across all cases
+   - Doesn't affect readability significantly
+   - Follows the caching strategy from reference examples
+
+Here's the optimized function:

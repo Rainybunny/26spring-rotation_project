@@ -1,0 +1,27 @@
+Let me analyze the xdl_recmatch function for optimization opportunities:
+
+1. Current Analysis:
+- The function compares two strings with optional whitespace handling
+- Main operations are character-by-character comparison and whitespace skipping
+- Three different whitespace handling modes (IGNORE_WHITESPACE, IGNORE_WHITESPACE_CHANGE, IGNORE_WHITESPACE_AT_EOL)
+- The function is called frequently during diff operations
+
+2. Bottlenecks:
+- Multiple while loops for whitespace skipping
+- Repeated isspace() calls (which is a function call and table lookup)
+- Branch-heavy code with multiple conditions
+
+3. Optimization Opportunities:
+- Precompute string lengths to avoid redundant checks
+- Use pointer arithmetic instead of array indexing
+- Inline isspace() checks using a faster implementation
+- Unroll small loops
+
+4. Selected Optimization:
+The most impactful optimization would be to replace array indexing with pointer arithmetic, as:
+- It eliminates repeated index calculations
+- Compilers can better optimize pointer operations
+- Reduces register pressure
+- Maintains the exact same logic flow
+
+Here's the optimized implementation:

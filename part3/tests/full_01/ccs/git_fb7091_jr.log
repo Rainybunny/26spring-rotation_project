@@ -1,0 +1,28 @@
+Let's analyze the optimization.
+
+**Original `rehash_objects` function:**
+```c
+memset(pdata->index, 0, sizeof(int) * pdata->index_size);
+```
+
+**Optimized version:**
+```c
+memset(pdata->index, 0, sizeof(uint32_t) * pdata->index_size);
+```
+
+**Key differences:**
+1. The original uses `sizeof(int)` while the optimized uses `sizeof(uint32_t)`.
+2. The comment in the optimized version says "Only clear the portion we'll actually use" – but both versions clear the same amount of memory (`pdata->index_size` elements).
+
+**Analysis:**
+1. **Type consistency**: The `pdata->index` is declared as `uint32_t*` (from `xrealloc(pdata->index, sizeof(uint32_t) * pdata->index_size)`). Using `sizeof(int)` is potentially incorrect if `int` and `uint32_t` have different sizes on the platform. The optimized version correctly uses `sizeof(uint32_t)` for type consistency.
+
+2. **Performance**: Both clear the same amount of memory, so there's no performance difference in terms of memory cleared. However, using the correct type size ensures proper clearing on all platforms.
+
+3. **Correctness**: The original has a bug if `sizeof(int) != sizeof(uint32_t)`. For example:
+   - On many 64-bit systems, `sizeof(int) = 4` and `sizeof(uint32_t) = 4`, so it works.
+   - But the C standard doesn't guarantee this. If a platform had `sizeof(int) = 2` (unlikely for modern systems but possible), the original would only clear half the needed memory per element, leaving parts uninitialized.
+
+4. **Comment misleading**: The comment "Only clear the portion we'll actually use" suggests they might be clearing less memory, but they're clearing the same full array. The real change is type correction.
+
+**Conclusion**: The optimized version fixes a potential bug by using the correct type size in `memset`. This maintains correctness and doesn't degrade performance. It's a valid optimization that improves portability/correctness.

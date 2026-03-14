@@ -1,0 +1,25 @@
+Let me analyze the function and propose optimizations:
+
+1. Analysis:
+- The function takes a vector of points and returns their Delaunay triangulation as a flat list of triangle indices
+- Current implementation:
+  - First gets triangulation as a vector of Triangle objects
+  - Then converts it to a flat vector by pushing each triangle's 3 points sequentially
+- Bottlenecks:
+  - The output vector `triangles` grows dynamically during the loop
+  - Each push_back() may cause reallocation as the vector grows
+  - We know the exact final size (3 * tr.size()) upfront
+
+2. Optimization Strategy:
+- Pre-allocate the output vector capacity to avoid repeated reallocations
+- This matches our selected strategy of "Pre-allocate container capacity when final size is known"
+
+3. Optimization Idea:
+- Calculate required size before the loop (3 * number of triangles)
+- Reserve capacity in the output vector upfront
+- This eliminates all reallocations during the loop
+
+4. Selected Optimization:
+- Pre-allocate the triangles vector capacity using reserve()
+
+Here's the optimized function:

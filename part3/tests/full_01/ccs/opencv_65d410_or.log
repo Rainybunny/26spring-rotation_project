@@ -1,0 +1,28 @@
+Let me analyze the `findNearestCore` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The main computational hotspot is the nested loop calculating Euclidean distances (lines 20-35)
+- This involves element-wise subtraction, squaring, and accumulation for each sample pair
+- The current implementation already uses manual loop unrolling (4 elements at a time)
+- Memory access patterns are sequential for both source and destination
+
+2. **SIMD Optimization Potential**:
+- The distance calculation is a perfect candidate for SIMD optimization
+- Current implementation uses scalar operations after manual unrolling
+- We can leverage SSE/AVX intrinsics for parallel computation
+- The distance calculation is mathematically simple (subtract, multiply, accumulate)
+
+3. **Optimization Strategy**:
+- Replace the manual unrolled loop with SSE/AVX intrinsics
+- Process 4 (SSE) or 8 (AVX) elements simultaneously
+- Maintain the same memory access pattern
+- Keep the rest of the logic unchanged
+
+4. **Selected Optimization**:
+- Use SSE intrinsics for the distance calculation since:
+  - Most CPUs support SSE2
+  - The data is 32-bit floats
+  - We're already processing 4 elements at a time
+- Replace the manual unrolled loop with `_mm_loadu_ps`, `_mm_sub_ps`, `_mm_mul_ps`, and `_mm_hadd_ps`
+
+Here's the optimized implementation:

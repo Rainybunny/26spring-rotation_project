@@ -1,0 +1,47 @@
+Looking at the provided code, the optimized function is `UnicharAmbigs::LoadUnicharAmbigs`. The optimization appears to be in the section where `ambigs_for_adaption_` is updated. Specifically, the original code used a manual loop to find the insertion position while maintaining sorted order (descending). The optimized version uses `std::lower_bound` with `std::greater<UNICHAR_ID>` to find the insertion point more efficiently.
+
+Let's analyze the changes:
+
+1. **Original insertion code**:
+   ```cpp
+   for (j = 0;
+        j < adaption_ambigs_entry->size() && (*adaption_ambigs_entry)[j] > id_to_insert;
+        ++j) {
+     ;
+   }
+   if (j < adaption_ambigs_entry->size()) {
+     if ((*adaption_ambigs_entry)[j] != id_to_insert) {
+       adaption_ambigs_entry->insert(adaption_ambigs_entry->begin() + j, id_to_insert);
+     }
+   } else {
+     adaption_ambigs_entry->push_back(id_to_insert);
+   }
+   ```
+
+2. **Optimized insertion code**:
+   ```cpp
+   auto it = std::lower_bound(adaption_ambigs_entry->begin(),
+                              adaption_ambigs_entry->end(),
+                              id_to_insert,
+                              std::greater<UNICHAR_ID>());
+   if (it == adaption_ambigs_entry->end() || *it != id_to_insert) {
+     adaption_ambigs_entry->insert(it, id_to_insert);
+   }
+   ```
+
+The optimization replaces the linear search with a binary search (via `std::lower_bound`), which is more efficient for sorted vectors. Since the vector is maintained in descending order, `std::greater` is used as the comparator.
+
+**Correctness check**:
+- The original code maintains the vector in descending order (checking `(*adaption_ambigs_entry)[j] > id_to_insert`).
+- The optimized code uses `std::lower_bound` with `std::greater`, which performs a binary search for the first position where the value is not less than `id_to_insert` in descending order. This matches the original behavior.
+- Both versions check for duplicates and insert only if the element doesn't already exist.
+- The rest of the function remains unchanged.
+
+**Performance improvement**:
+- The original linear search is O(n) per insertion, while the binary search is O(log n). Since multiple insertions are performed, this can lead to significant speedup when the vectors grow large.
+
+**Potential issues**:
+- The optimized code assumes that `adaption_ambigs_entry` is already sorted in descending order. The original code ensures this by always inserting in the correct position. Since the optimization is applied to the same insertion logic, the invariant holds.
+- The optimized code uses `std::lower_bound` and `std::greater`, which are standard C++ functions. The original code includes necessary headers (not shown in the snippet, but likely present in the full source). The function is within the `tesseract` namespace, and no conflicts are expected.
+
+**Conclusion**: The optimized code is a valid replacement. It maintains correctness while improving performance by using a more efficient algorithm for insertion into a sorted vector.

@@ -1,0 +1,22 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes nodes to preserve by splitting strings and reconstructing them, which could be expensive for large graphs
+- The string manipulation in the nodes_to_preserve loop involves multiple allocations and copies
+- The function makes several member variable accesses which could be cached
+- The ConversionParams struct initialization could potentially be optimized
+
+2. **Potential Optimizations**:
+- Optimize the nodes_to_preserve string processing loop
+- Cache member variables that are accessed multiple times
+- Pre-allocate vector for nodes_to_preserve
+- Use string_view where possible to avoid copies
+
+3. **Selected Optimization**:
+The most impactful optimization would be to optimize the nodes_to_preserve processing loop since:
+- It's in the main execution path
+- String operations are expensive
+- It's called for every node to preserve
+- The current implementation does unnecessary string copies and allocations
+
+Here's the optimized function with improved nodes_to_preserve processing:

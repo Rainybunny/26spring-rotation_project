@@ -1,0 +1,34 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function processes two vectors: `unbound_expressions` and `column_ids`
+   - Both loops iterate through the entire vectors without early termination
+   - The current implementation calls `unbound_expressions.size()` and `column_ids.size()` implicitly through range-based for loops
+   - The `unbound_expressions` loop performs multiple operations per element including:
+     * Two vector pushes (`types` and `logical_types`)
+     * Expression copying
+     * Binding expressions
+     * Moving expressions
+
+2. **Optimization Strategy Application**:
+   - The selected strategy is to cache container sizes before loops
+   - This applies well here since we have two loops that could benefit from cached sizes
+   - The `unbound_expressions` loop is more critical since it performs more operations per iteration
+   - We can optimize by:
+     * Caching the size before the loop
+     * Pre-allocating vector capacities where possible
+     * Using index-based iteration instead of range-based for better cache locality
+
+3. **Optimization Selection**:
+   - The highest impact optimization would be to:
+     * Cache the `unbound_expressions` size
+     * Pre-allocate the output vectors (`types`, `logical_types`, `bound_expressions`)
+     * Use index-based iteration for better performance
+
+4. **Final Optimization Idea**:
+   - Cache the size of `unbound_expressions` before the loop
+   - Pre-allocate the output vectors to avoid reallocations
+   - Use index-based iteration for better cache locality
+   - Keep the column_ids loop as is since it's simpler and less impactful
+
+Here's the optimized function implementation:

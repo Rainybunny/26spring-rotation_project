@@ -1,0 +1,80 @@
+Let's analyze the optimization.  
+
+The original function:  
+```c
+int strbuf_getwholeline(struct strbuf *sb, FILE *fp, int term)
+{
+	int ch;
+
+	if (feof(fp))
+		return EOF;
+
+	strbuf_reset(sb);
+	while ((ch = fgetc(fp)) != EOF) {
+		strbuf_grow(sb, 1);
+		sb->buf[sb->len++] = ch;
+		if (ch == term)
+			break;
+	}
+	if (ch == EOF && sb->len == 0)
+		return EOF;
+
+	sb->buf[sb->len] = '\0';
+	return 0;
+}
+```
+
+The optimized version:  
+```c
+int strbuf_getwholeline(struct strbuf *sb, FILE *fp, int term)
+{
+    if (feof(fp))
+        return EOF;
+
+    strbuf_reset(sb);
+    strbuf_grow(sb, 128);  // Pre-allocate initial buffer
+
+    while (1) {
+        int ch = fgetc(fp);
+        if (ch == EOF) {
+            if (sb->len == 0)
+                return EOF;
+            break;
+        }
+        
+        if (sb->len + 1 >= sb->alloc)
+            strbuf_grow(sb, 128);
+            
+        sb->buf[sb->len++] = ch;
+        if (ch == term)
+            break;
+    }
+
+    sb->buf[sb->len] = '\0';
+    return 0;
+}
+```
+
+**Changes made:**
+1. Pre-allocates 128 bytes at the start.
+2. Changes the loop condition to `while (1)` and moves EOF check inside.
+3. Grows by 128 bytes when needed instead of 1 byte at a time.
+
+**Correctness check:**
+- The EOF handling: In the original, if `ch == EOF` and `sb->len == 0`, it returns EOF. In the optimized version, if `ch == EOF` and `sb->len == 0`, it returns EOF — same.
+- The `feof(fp)` check at the start is redundant with the later `fgetc(fp)` check, but it existed in the original too, so it's fine.
+- The `strbuf_grow(sb, 128)` at the start ensures we don't call `strbuf_grow` for every character, which reduces reallocations.
+- The condition `if (sb->len + 1 >= sb->alloc)` is correct because we need space for the character plus the final `\0` (which is written later).
+- The final `sb->buf[sb->len] = '\0';` is the same.
+
+**Performance:**
+- The original grows by 1 byte each iteration, which is inefficient for long lines.
+- The optimized version grows in chunks of 128 bytes, reducing the number of reallocations and memcpy operations.
+- This is a typical optimization for dynamic string buffers.
+
+**Potential issues:**
+- The original `strbuf_grow(sb, 1)` ensures there's always space for at least one more char + null terminator. The optimized version's check `sb->len + 1 >= sb->alloc` does the same, but only triggers growth when actually needed, and grows by 128.
+- The initial `strbuf_grow(sb, 128)` could allocate more than necessary for very short lines, but that's a minor trade-off for speed.
+
+**Conclusion:**  
+The optimized version maintains the same semantics and improves performance by reducing reallocations. It is a valid optimization.

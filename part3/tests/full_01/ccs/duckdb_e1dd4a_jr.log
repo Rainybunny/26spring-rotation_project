@@ -1,0 +1,35 @@
+Looking at the provided code, the optimized function is the constructor for `SortedAggregateBindData`. The optimization appears to be a minor restructuring of the loop that checks whether the aggregate is sorted on its arguments.
+
+**Original logic:**
+```cpp
+sorted_on_args = (children.size() == order_bys.orders.size());
+for (size_t i = 0; sorted_on_args && i < children.size(); ++i) {
+    sorted_on_args = children[i]->Equals(*order_bys.orders[i].expression);
+}
+```
+
+**Optimized logic:**
+```cpp
+sorted_on_args = (children.size() == order_bys.orders.size());
+if (sorted_on_args) {
+    for (size_t i = 0; i < children.size(); ++i) {
+        if (!children[i]->Equals(*order_bys.orders[i].expression)) {
+            sorted_on_args = false;
+            break;
+        }
+    }
+}
+```
+
+**Analysis:**
+1. **Correctness:** Both versions compute the same boolean `sorted_on_args`. The original uses a loop that continues only while `sorted_on_args` is true, and updates it each iteration. The optimized version first checks the condition, then enters a loop only if true, and breaks early on mismatch. The logic is equivalent.
+2. **Performance:** The optimized version might have a slight advantage because it avoids evaluating the condition `sorted_on_args` in each loop iteration (though compilers might optimize this). More importantly, the optimized version is more readable and follows a common pattern: check a condition, then loop if true. This can be easier for branch prediction.
+3. **Context:** The rest of the constructor is unchanged. The optimization is isolated to this loop.
+
+The change is a valid micro-optimization that improves code clarity and potentially performance, without altering behavior.
+
+**Reasoning:**
+- The optimized code maintains the same functionality.
+- It is a direct replacement for the original function.
+- The optimization is safe and does not introduce any side effects.
+- The change is consistent with the rest of the codebase style.

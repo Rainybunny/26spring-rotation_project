@@ -1,0 +1,31 @@
+Let me analyze the `CheckCollisionCircles` function for optimization opportunities:
+
+1. **Current Implementation Analysis**:
+   - Calculates delta x and y between centers
+   - Computes Euclidean distance using sqrtf()
+   - Compares distance against sum of radii
+   - Uses 4 floating point operations (2 subtractions, 1 multiply-add, 1 sqrt)
+
+2. **Bottlenecks**:
+   - The sqrtf() operation is computationally expensive
+   - The function returns a boolean but does unnecessary distance calculation
+   - Floating point comparisons can be optimized
+
+3. **Optimization Strategy**:
+   - We can avoid the sqrtf() by comparing squared distances
+   - This eliminates the most expensive operation
+   - The comparison becomes: (dx² + dy²) <= (r1 + r2)²
+   - This is mathematically equivalent but faster
+
+4. **Why This Applies**:
+   - The sqrtf() is the performance bottleneck here
+   - We're only doing a comparison, not needing the actual distance value
+   - Squaring is much faster than square root
+   - The optimization maintains identical behavior
+
+5. **Optimization Idea**:
+   - Replace distance calculation with squared distance comparison
+   - Pre-calculate the sum of radii once
+   - Compare against squared sum of radii
+
+Here's the optimized implementation:

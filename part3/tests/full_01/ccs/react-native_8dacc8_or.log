@@ -1,0 +1,31 @@
+Let me analyze the `scheduleTask` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function uses a mutex lock which can be expensive
+   - The main operations are checking queue state and pushing a task
+   - The conditional check for scheduling the event loop is simple but happens under lock
+   - The `shared_ptr` copy could potentially be optimized
+
+2. **Optimization Strategies**:
+   - The mutex is necessary for thread safety, so we can't remove it
+   - We can potentially reduce the locked section duration
+   - We can move the `shared_ptr` parameter to avoid an extra copy
+   - The queue empty check is already minimal
+
+3. **Selected Optimization**:
+   - The highest impact change would be to take the `shared_ptr` by value (move semantics) to avoid an extra atomic reference count increment/decrement
+   - This is safe because we're passing ownership to the function anyway
+   - This reduces atomic operations which are expensive
+
+4. **Why This Optimization**:
+   - `shared_ptr` operations involve atomic reference counting
+   - Moving instead of copying avoids an extra increment/decrement pair
+   - The change maintains exact same behavior but with better performance
+   - No thread safety issues introduced
+
+5. **Implementation Choice**:
+   - Change the parameter type to take ownership directly
+   - Keep all other logic exactly the same
+   - This is a simple, safe change with measurable impact
+
+Here's the optimized function:

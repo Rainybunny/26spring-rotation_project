@@ -1,0 +1,29 @@
+Looking at the provided code, the original `push_command` function is:
+
+```c
+void push_command(PaintingCommand command)
+{
+    m_painting_commands.append({ state().scroll_frame_id, command });
+}
+```
+
+The optimized version uses `emplace_back` with `std::move`:
+
+```c
+void push_command(PaintingCommand command)
+{
+    m_painting_commands.emplace_back(state().scroll_frame_id, std::move(command));
+}
+```
+
+**Analysis:**
+
+1. **Correctness**: The `PaintingCommand` type is a `Variant` containing various command structures. It is a non-trivial type that likely has move semantics. Using `std::move` avoids a copy of the `PaintingCommand` object when constructing the `PaintingCommandWithScrollFrame` temporary. The `emplace_back` constructs the element in-place, which is more efficient than creating a temporary and then copying/moving it into the vector (as `append` would do with the initializer list). This change is semantically correct because `command` is passed by value and is not used after being moved.
+
+2. **Performance**: The optimization reduces unnecessary copies. The original code creates a temporary `PaintingCommandWithScrollFrame` object via the initializer list, which copies the `command` (since `command` is an lvalue in that context). The optimized version moves the `command` into the newly constructed element, which is more efficient for large or expensive-to-copy objects.
+
+3. **Compatibility**: The `emplace_back` method is standard C++ and should be available. The `std::move` is also standard. The code context uses `AK::Vector` (likely from the AK library), which should support `emplace_back` similarly to `std::vector`.
+
+4. **Potential issues**: There are no apparent issues. The move operation leaves `command` in a valid but unspecified state, but since `command` is not used afterward, it's safe.
+
+**Reasoning**: The optimization is valid because it maintains correctness while improving performance by eliminating a copy of the `PaintingCommand` object. The change is minimal and only affects the internal implementation of `push_command`.

@@ -1,0 +1,68 @@
+Let's analyze the optimization.
+
+**Original function:**
+```c
+template <typename AggregationKeyChecker>
+ColumnPtr executeImpl(const ColumnsWithTypeAndName & arguments, size_t input_rows_count, AggregationKeyChecker checker) const
+{
+    auto grouping_set_column = checkAndGetColumn<ColumnUInt64>(arguments[0].column.get());
+
+    auto result = std::make_shared<DataTypeUInt64>()->createColumn();
+    for (size_t i = 0; i < input_rows_count; ++i)
+    {
+        UInt64 set_index = grouping_set_column->get64(i);
+
+        UInt64 value = 0;
+        for (auto index : arguments_indexes)
+            value = (value << 1) + (checker(set_index, index) ? 1 : 0);
+
+        result->insert(Field(value));
+    }
+    return result;
+}
+```
+
+**Optimized function:**
+```c
+template <typename AggregationKeyChecker>
+ColumnPtr executeImpl(const ColumnsWithTypeAndName & arguments, size_t input_rows_count, AggregationKeyChecker checker) const
+{
+    auto grouping_set_column = checkAndGetColumn<ColumnUInt64>(arguments[0].column.get());
+    auto result_column = ColumnUInt64::create(input_rows_count);
+    auto & result_data = result_column->getData();
+
+    for (size_t i = 0; i < input_rows_count; ++i)
+    {
+        UInt64 set_index = grouping_set_column->get64(i);
+        UInt64 value = 0;
+        for (auto index : arguments_indexes)
+            value = (value << 1) + (checker(set_index, index) ? 1 : 0);
+        result_data[i] = value;
+    }
+    return result_column;
+}
+```
+
+**Key changes:**
+1. **Pre-allocation**: Instead of creating an empty column and inserting values one by one with `insert(Field(value))`, the optimized version creates a column with the exact size needed using `ColumnUInt64::create(input_rows_count)`.
+2. **Direct data access**: It accesses the underlying data vector directly via `getData()` and assigns values by index `result_data[i] = value`, avoiding the overhead of `insert()` which involves type conversion via `Field`.
+
+**Correctness analysis:**
+- The logic for computing `value` remains identical.
+- The type of the result column is still `ColumnUInt64` (created via `ColumnUInt64::create`).
+- The function signature and return type are unchanged.
+- The optimized version avoids the overhead of `Field` construction and `insert` method calls, which is a valid performance improvement.
+- The `checkAndGetColumn` call is the same.
+
+**Performance analysis:**
+- Pre-allocation eliminates repeated memory reallocations as the column grows.
+- Direct assignment to the data array is more efficient than `insert(Field(...))`.
+- The optimization maintains the same algorithmic complexity but reduces constant factors.
+
+**Potential issues:**
+- The original creates a column via `std::make_shared<DataTypeUInt64>()->createColumn()`, which could potentially create a different column type (though `DataTypeUInt64::createColumn()` returns `ColumnUInt64`).
+- The optimized version directly creates `ColumnUInt64`, which is correct since the return type is `DataTypeUInt64`.
+- The optimized version assumes `arguments[0].column` is of type `ColumnUInt64` (same as original).
+
+**Conclusion:**
+The optimization is valid—it improves performance while preserving correctness. The changes are typical optimizations for ClickHouse columnar processing: pre-allocate and fill directly.

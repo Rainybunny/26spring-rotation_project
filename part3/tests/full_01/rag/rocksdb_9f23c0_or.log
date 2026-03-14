@@ -1,0 +1,69 @@
+Let me analyze the function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function creates a JSONWriter object and logs file deletion events
+   - The most expensive operations are likely:
+     * String operations in JSONWriter (multiple << operators)
+     * status.ToString() call when status is not OK
+     * Iteration over listeners vector (shared_ptr overhead)
+   - The JSON writing is unconditional while listener notification is conditional (ROCKSDB_LITE)
+
+2. **Key Observations**:
+   - The JSONWriter operations are sequential and can't be parallelized
+   - status.ToString() is only needed when status is not OK
+   - listeners iteration only happens in non-LITE version
+   - The function is called for file deletion events which may be frequent
+
+3. **Potential Optimizations**:
+   - Move status.ToString() call inside the if(!status.ok()) block to avoid unnecessary string creation
+   - Reserve space in JSONWriter upfront if possible (but JSONWriter interface doesn't show this)
+   - Pass listeners by reference to avoid shared_ptr copy overhead (but they're already const&)
+   - Skip JSON writing if event_logger is null (but current code doesn't check)
+
+4. **Selected Optimization**:
+   The highest impact optimization would be to move the status.ToString() call inside the conditional block since:
+   - String creation is expensive
+   - Most statuses are likely OK (common case optimization)
+   - This change is simple and safe with no behavior change
+
+Here's the optimized function:
+
+```cpp
+void EventHelpers::LogAndNotifyTableFileDeletion(
+    EventLogger* event_logger, int job_id,
+    uint64_t file_number, const std::string& file_path,
+    const Status& status, const std::string& dbname,
+    const std::vector<std::shared_ptr<EventListener>>& listeners) {
+
+  JSONWriter jwriter;
+  AppendCurrentTime(&jwriter);
+
+  jwriter << "job" << job_id
+          << "event" << "table_file_deletion"
+          << "file_number" << file_number;
+  if (!status.ok()) {
+    jwriter << "status" << status.ToString();
+  }
+
+  jwriter.EndObject();
+
+  event_logger->Log(jwriter);
+
+#ifndef ROCKSDB_LITE
+  TableFileDeletionInfo info;
+  info.db_name = dbname;
+  info.job_id = job_id;
+  info.file_path = file_path;
+  info.status = status;
+  for (const auto& listener : listeners) {
+    listener->OnTableFileDeleted(info);
+  }
+#endif  // !ROCKSDB_LITE
+}
+```
+
+Wait, actually looking at the original code, the status.ToString() is already inside the if(!status.ok()) block. My mistake in reading the code. Let me re-evaluate.
+
+Looking again, the actual optimization opportunity is in the listener loop - we can change `auto listener` to `const auto& listener` to avoid shared_ptr copy overhead. This is a small but meaningful optimization for the listener notification path.
+
+Here's the corrected optimized version:

@@ -1,0 +1,22 @@
+Let me analyze the `rehash_objects` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function is called when the hash table needs resizing (load factor > 75%)
+   - Main operations: memory allocation, zeroing memory, and rehashing all objects
+   - The loop processes each object sequentially, calling `locate_object_entry_hash` for each
+   - Memory operations (realloc and memset) could be expensive for large tables
+
+2. **Optimization Opportunities**:
+   - The memset uses `sizeof(int)` instead of `sizeof(uint32_t)` - potential mismatch
+   - The loop could potentially benefit from pointer arithmetic optimization
+   - The memory zeroing could be combined with allocation if possible
+
+3. **Selected Optimization**:
+   - The most impactful and safe change is fixing the memset size mismatch and using pointer arithmetic in the loop. This avoids potential memory issues and may help the compiler optimize better.
+
+4. **Final Optimization Idea**:
+   - Change memset to use correct size (sizeof(uint32_t))
+   - Replace array indexing with pointer arithmetic in the loop
+   - This maintains exact same behavior while being more precise and potentially faster
+
+Here's the optimized function:

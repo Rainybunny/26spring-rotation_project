@@ -1,0 +1,16 @@
+Let me analyze the `CorruptFile` function for optimization opportunities:
+
+1. **Bottlenecks Analysis**:
+   - The function reads the entire file into memory (`ReadFileToString`), modifies it, then writes it back entirely (`WriteStringToFile`). This is inefficient for large files.
+   - The corruption loop is simple (XOR operation) but could benefit from vectorization.
+   - The file size check and offset calculations are necessary but could be streamlined.
+
+2. **Potential Optimizations**:
+   - Use memory-mapped files or partial file I/O instead of reading/writing the whole file.
+   - Optimize the corruption loop with SIMD instructions or larger data types.
+   - Combine the offset validation steps into fewer operations.
+
+3. **Selected Optimization**:
+   The most impactful change would be to modify only the affected portion of the file rather than reading/writing the entire file. This is particularly important for large files.
+
+Here's the optimized implementation:

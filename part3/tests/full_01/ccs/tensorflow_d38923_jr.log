@@ -1,0 +1,19 @@
+Looking at the provided code, the optimized function `MoveIntoAssumingOpMatchAndRewrite` is intended to be a more efficient version of the original. The key changes are:
+
+1. **Caching of values**: The optimized version caches `assuming_op->getResults()` and `yield_op.getOperands()` into local variables `assuming_op_results` and `yield_op_operands` respectively. This avoids repeated method calls in the loop that maps operands.
+
+2. **Use of cached values in mapping**: In the loop that builds `new_operands_unmapped`, it uses the cached `assuming_op_results` and `yield_op_operands` instead of calling `assuming_op->getResults()` and `yield_op.getOperands()` each iteration.
+
+3. **Same logic and correctness**: All other logic remains identical. The function still performs the same operations: finding a preceding `assuming` op, checking operand availability, mapping operands, cloning the assuming op body with the new operation, and replacing the original ops.
+
+**Performance analysis**:  
+The optimization reduces overhead by avoiding multiple calls to getter methods. In the original, `assuming_op->getResults()` and `yield_op.getOperands()` are called in each iteration of the `map_range` loop (for each operand of `op`). The optimized version calls them once and reuses the cached values. This is beneficial when `op` has many operands.
+
+**Correctness**:  
+The caching does not change semantics because the values are not modified between the cache point and their use. The `assuming_op` and `yield_op` are not altered in between. The mapping logic is identical.
+
+**Potential issues**:  
+None. The optimization is safe and preserves the original behavior.
+
+**Verdict**:  
+The optimized function is a valid replacement that improves performance without altering correctness.

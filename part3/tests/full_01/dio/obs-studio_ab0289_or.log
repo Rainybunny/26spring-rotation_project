@@ -1,0 +1,25 @@
+Let me analyze the `calc_volume_levels` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes audio samples to calculate volume levels (RMS, peak, etc.)
+- Main loop iterates through all audio samples (count = frames * channels)
+- Uses floating-point operations including square roots and logarithms
+- Contains branching logic for peak tracking
+
+2. **Key Observations**:
+- The loop is memory-bound as it processes a large array of samples
+- `fmaxf` and `sqrtf` operations are relatively expensive
+- The alpha blending operations could potentially be optimized
+- The volume parameter is unused but still passed in
+
+3. **Potential Optimizations**:
+- Vectorize the main loop using SIMD instructions (SSE/AVX)
+- Precompute constants outside the loop
+- Remove unused parameter to reduce stack usage
+- Use faster approximations for sqrt/log where precision isn't critical
+- Unroll the loop to reduce branching overhead
+
+4. **Selected Optimization**:
+The highest impact optimization would be to vectorize the main loop using SIMD instructions. This can process multiple samples simultaneously and significantly reduce the loop iterations.
+
+Here's the optimized implementation using SSE intrinsics:

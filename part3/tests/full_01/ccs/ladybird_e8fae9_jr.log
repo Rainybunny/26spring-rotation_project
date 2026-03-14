@@ -1,0 +1,18 @@
+Looking at the optimized version of `resolve_rope_if_needed`, I can see two main changes:
+
+1. Added `pieces.ensure_capacity(32);` to pre-allocate capacity for the pieces vector.
+2. Added `code_units.ensure_capacity(pieces.size() * 8);` to pre-allocate capacity for the UTF-16 data.
+
+Both changes are valid optimizations:
+
+1. `pieces.ensure_capacity(32)` helps avoid multiple reallocations when building the pieces vector, which is especially beneficial for ropes with many leaf nodes. The capacity of 32 is reasonable for typical rope depths.
+
+2. `code_units.ensure_capacity(pieces.size() * 8)` provides a reasonable estimate for UTF-16 capacity (assuming average string length of 8 code units per piece). This prevents multiple reallocations when extending the UTF-16 data.
+
+These optimizations don't change the algorithm's correctness - they only improve performance by reducing memory allocations and data copying. The logic for handling surrogate pairs and rope traversal remains identical.
+
+The optimizations are conservative and safe:
+- `ensure_capacity` doesn't change the final size, only pre-allocates memory
+- The capacity estimates are reasonable heuristics
+- No behavior changes in edge cases
+- All existing functionality is preserved

@@ -1,0 +1,17 @@
+Looking at the provided optimized function, I can see several issues that make it invalid as a replacement for the original function:
+
+1. **Incorrect data structure usage**: The original code processes each component separately in a loop, with `srcrow` and `dstrow` being updated for each component. The optimized version tries to process all components simultaneously, but it doesn't properly account for the fact that different components may have different `rgba_map` offsets.
+
+2. **Memory access pattern**: The original code accesses pixels sequentially within each component loop. The optimized version accesses all components for each pixel, which changes the memory access pattern and could affect cache performance.
+
+3. **Incorrect coefficient calculation**: The optimized version calculates coefficients for all components first, but if `imin` or `imax` are negative (indicating they should be computed from the image), the original code computes these values per component by scanning the entire image. The optimized version does this correctly for the first component, but for subsequent components, it reuses the same `srcrow` pointer which has been advanced to the end of the image from previous component processing.
+
+4. **Missing component loop for negative imin/imax**: In the original code, when `imin < 0` or `imax < 0`, the code scans the entire image for that specific component. In the optimized version, after processing the first component, the `srcrow` pointer is already at the end of the image, so subsequent components won't scan the image correctly.
+
+5. **Performance regression**: The optimized version has nested loops where the inner loop iterates over components (0-3), which means for each pixel, it's doing 4 separate calculations and memory accesses. This is actually worse than the original, which processes all pixels for one component before moving to the next, allowing better cache locality.
+
+6. **Incorrect pointer arithmetic**: The optimized version uses `in->data[0] + y * in->linesize[0]` which assumes planar format, but the original code works with packed formats where all components are interleaved.
+
+The most critical issue is that the optimized version doesn't correctly handle the case where `imin` or `imax` are negative for multiple components. After the first component scans the image, `srcrow` is at the end, so subsequent components won't scan from the beginning.
+
+Additionally, the optimization doesn't actually improve performance - it changes the access pattern in a way that's likely worse for cache performance since it's accessing all components for each pixel rather than processing one component at a time.

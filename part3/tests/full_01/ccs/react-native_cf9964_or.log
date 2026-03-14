@@ -1,0 +1,26 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. Current Analysis:
+- The function takes two std::string parameters by value, which means they are copied when passed
+- The strings are only read, not modified within the function
+- The strings are passed directly to bridge->executeApplicationScript()
+- The function is called from two places (loadScriptFromAssets and loadScriptFromFile)
+
+2. Bottlenecks:
+- The main performance issue is the unnecessary copying of potentially large script strings
+- Each string copy involves memory allocation and copying of all characters
+- For large JavaScript bundles, this could be significant overhead
+
+3. Optimization Strategy:
+- Apply pass-by-const-reference pattern as seen in reference examples
+- Change string parameters to const references to avoid copies
+- Maintain same functionality while improving performance
+- Safe change since strings are only read, not modified
+
+4. Selected Optimization:
+- Change both std::string parameters to const std::string&
+- This matches the strategy used in the reference examples
+- High impact for large scripts, zero impact for small ones
+- No behavior change, just more efficient parameter passing
+
+Here's the optimized function:

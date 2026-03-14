@@ -1,0 +1,24 @@
+Let me analyze the `fz_insert_gel_raw` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function is called for every edge insertion in the graphics path
+   - Main operations: bbox updates, edge initialization, and Bresenham setup
+   - The bbox updates (6 conditional checks) happen for every edge
+   - The edge initialization involves several arithmetic operations
+
+2. **Optimization Opportunities**:
+   - The bbox updates could be optimized by using min/max operations instead of conditionals
+   - The edge initialization could be streamlined by pre-calculating values
+   - The winding direction calculation could be simplified
+
+3. **Key Observations**:
+   - The function is called very frequently during path rendering
+   - The bbox updates are critical for clipping but use simple comparisons
+   - The edge setup involves some integer divisions which could be expensive
+
+4. **Selected Optimization**:
+   - Replace the 6 bbox conditional updates with min/max operations
+   - This reduces branch mispredictions and leverages CPU min/max instructions
+   - The rest of the function is already quite optimized
+
+Here's the optimized implementation:

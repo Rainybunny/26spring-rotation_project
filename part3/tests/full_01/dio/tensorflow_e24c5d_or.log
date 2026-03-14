@@ -1,0 +1,28 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The main loop processes each character of the equation string sequentially
+- String operations like `equation.substr()` and `contains()` are called repeatedly
+- `SmallDenseSet` operations (`contains()`, `insert()`) are called for each alpha character
+- Memory allocations occur for `lhs_tokens`, `rhs_tokens`, and `result_tokens`
+
+2. **Key Observations**:
+- The string parsing is performance-critical as it's done for every Einsum operation
+- `substr()` creates temporary strings which is inefficient for single-character checks
+- The `contains()` checks could be optimized since we're dealing with single characters
+- The enum switching could potentially be streamlined
+
+3. **Optimization Opportunities**:
+- Replace `substr().contains()` with direct character comparisons
+- Pre-allocate vectors if possible (but we don't know sizes upfront)
+- Optimize the set operations (but they're necessary for correctness)
+- Simplify the control flow
+
+4. **Selected Optimization**:
+The highest impact change would be replacing the expensive `substr().contains()` operations with direct character comparisons, as:
+- This eliminates temporary string creation
+- Character comparisons are much faster
+- The logic remains exactly the same
+- It's a simple, localized change
+
+Here's the optimized function:

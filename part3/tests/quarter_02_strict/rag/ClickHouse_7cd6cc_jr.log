@@ -1,0 +1,118 @@
+Let's analyze step by step.
+
+**1. Original Function:**
+```c
+template <typename AggregationKeyChecker>
+ColumnPtr executeImpl(const ColumnsWithTypeAndName & arguments, size_t input_rows_count, AggregationKeyChecker checker) const
+{
+    auto grouping_set_column = checkAndGetColumn<ColumnUInt64>(arguments[0].column.get());
+
+    auto result = std::make_shared<DataTypeUInt64>()->createColumn();
+    for (size_t i = 0; i < input_rows_count; ++i)
+    {
+        UInt64 set_index = grouping_set_column->get64(i);
+
+        UInt64 value = 0;
+        for (auto index : arguments_indexes)
+            value = (value << 1) + (checker(set_index, index) ? 1 : 0);
+
+        result->insert(Field(value));
+    }
+    return result;
+}
+```
+
+**2. Proposed Optimized Function:**
+```c
+template <typename AggregationKeyChecker>
+ColumnPtr executeImpl(const ColumnsWithTypeAndName & arguments, size_t input_rows_count, AggregationKeyChecker checker) const
+{
+    auto grouping_set_column = checkAndGetColumn<ColumnUInt64>(arguments[0].column.get());
+    auto result_column = ColumnUInt64::create(input_rows_count);
+    auto & result_data = result_column->getData();
+
+    for (size_t i = 0; i < input_rows_count; ++i)
+    {
+        UInt64 set_index = grouping_set_column->get64(i);
+        UInt64 value = 0;
+        
+        for (auto index : arguments_indexes)
+            value = (value << 1) + (checker(set_index, index) ? 1 : 0);
+            
+        result_data[i] = value;
+    }
+    return result_column;
+}
+```
+
+**3. Reference Optimized Function:**
+```c
+template <typename AggregationKeyChecker>
+ColumnPtr executeImpl(const ColumnsWithTypeAndName & arguments, size_t input_rows_count, AggregationKeyChecker checker) const
+{
+    const auto * grouping_set_column = checkAndGetColumn<ColumnUInt64>(arguments[0].column.get());
+
+    auto result = ColumnUInt64::create();
+    auto & result_data = result->getData();
+    result_data.reserve(input_rows_count);
+    for (size_t i = 0; i < input_rows_count; ++i)
+    {
+        UInt64 set_index = grouping_set_column->getElement(i);
+
+        UInt64 value = 0;
+        for (auto index : arguments_indexes)
+            value = (value << 1) + (checker(set_index, index) ? 1 : 0);
+
+        result_data.push_back(value);
+    }
+    return result;
+}
+```
+
+---
+
+### **Analysis of Proposed Optimization Correctness and Performance**
+
+**Original issues:**
+- Creates a column via `std::make_shared<DataTypeUInt64>()->createColumn()` (generic, slower).
+- Uses `result->insert(Field(value))` for each row, which involves extra overhead (Field construction, dynamic dispatch).
+
+**Proposed changes:**
+- Uses `ColumnUInt64::create(input_rows_count)` to allocate exact size upfront.
+- Accesses raw data array via `result_data[i] = value` instead of `insert(Field(...))`.
+- Keeps `grouping_set_column->get64(i)` same as original.
+
+**Performance improvement:**
+Yes, the proposal avoids `Field` overhead and pre-allocates memory. This is a valid optimization.
+
+---
+
+### **Comparison of Optimization Strategy vs Reference Strategy**
+
+**Reference optimization strategy:**
+1. Use `ColumnUInt64::create()` (default constructor).
+2. `reserve(input_rows_count)` to pre-allocate memory.
+3. Use `push_back(value)` to fill.
+4. Use `getElement(i)` instead of `get64(i)` (but both are similar in performance for `ColumnUInt64`).
+5. Use `const auto *` for the grouping column pointer.
+
+**Proposed optimization strategy:**
+1. Use `ColumnUInt64::create(input_rows_count)` to allocate and size the column in one step.
+2. Direct assignment `result_data[i] = value`.
+3. Keep `get64(i)`.
+4. No `const` on pointer.
+
+**Key difference:**
+- Reference uses `reserve` + `push_back`.
+- Proposal uses constructor with size + direct index assignment.
+
+Both avoid `Field` overhead and pre-allocate memory, but they differ in *how* they fill the result column:
+- `push_back` vs direct indexing.
+
+In terms of low-level performance, both are similar (contiguous memory, no reallocation). However, the **strategy** is not identical: one is `reserve/push_back`, the other is `create(size)/index assign`. The reference does not set size upfront, only capacity; the proposal sets size upfront.
+
+Given the instruction: "The optimization idea/strategy in the PROPOSED solution MUST match the detailed idea in the REFERENCE solution", the detailed mechanics differ. The reference's detailed idea is: "reserve, then push_back", while the proposal's is: "construct with size, then assign by index". This is a **significant difference in implementation strategy**, even if both are valid optimizations over the original.
+
+---
+
+**Final Verdict:**

@@ -1,0 +1,21 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function is called frequently during tensor list operations
+- It performs multiple XLA operations (Slice, Reshape, ConvertElementType) in a loop
+- It accesses ctx->Input() multiple times which involves pointer dereferencing
+- The element_shape.dimensions_size() is called in each loop iteration
+
+2. **Optimization Strategy**:
+- Cache frequently accessed values like ctx->Input(0) and ctx->Input(1)
+- Cache element_shape.dimensions_size() result to avoid repeated calls
+- Pre-compute the builder() since it's used multiple times
+- Move constant operations outside the loop where possible
+
+3. **Selected Optimization**:
+The highest impact optimization would be to cache the input values and builder, and move the dimension size calculation outside the loop. This reduces:
+- Multiple pointer dereferences
+- Repeated function calls
+- Redundant builder access
+
+Here's the optimized implementation:

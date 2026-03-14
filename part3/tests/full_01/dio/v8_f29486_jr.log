@@ -1,0 +1,17 @@
+Looking at the optimized function, I can see several changes compared to the original:
+
+1. **Added static caching** for the empty script name string
+2. **Simplified script lookup** by using iterator directly instead of const_cast
+3. **Removed unnecessary map lookup** when script_id is invalid
+
+However, there's a critical issue with the optimization:
+
+The `static Local<v8::String> empty_script_name` is problematic because:
+- `Local<v8::String>` is a handle type that should not be static across multiple isolates
+- The function uses `isolate_->factory()` which is specific to the current isolate instance
+- Static variables in this context could lead to using handles from one isolate in another, causing crashes or undefined behavior
+- The function is called recursively and may be used by multiple profiler instances
+
+Additionally, the optimization changes the behavior when `node->script_id_ != v8::UnboundScript::kNoScriptId` but the script is not found in the map. In the original code, it would fall through to use the empty script name, but in the optimized version, it skips the entire block.
+
+The performance improvements (caching and cleaner lookup) are valid in principle, but the static variable approach is fundamentally unsafe in V8's multi-isolate environment.

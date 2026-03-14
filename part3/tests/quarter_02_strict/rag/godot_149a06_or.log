@@ -1,0 +1,21 @@
+Let me analyze the `triangulate_delaunay` function for optimization:
+
+1. Current Analysis:
+- The function calls `Delaunay2D::triangulate()` which returns a Vector of Triangle structs
+- It then converts this into a flat Vector<int> by iterating through each triangle and pushing its 3 points
+- The current implementation does 3 push_back() operations per triangle
+- Memory allocations for the output vector may happen multiple times as it grows
+
+2. Potential Optimizations:
+- Pre-allocate the output vector to avoid reallocations (knowing we'll need 3*tr.size() elements)
+- Use direct assignment instead of push_back() for known indices
+- Consider batch operations if possible
+
+3. Selected Optimization:
+The highest impact change would be to pre-allocate the output vector since:
+- It eliminates multiple potential reallocations
+- It's a simple change with guaranteed improvement
+- Doesn't change the function's behavior
+- The size is known in advance (3 * number of triangles)
+
+Here's the optimized implementation:

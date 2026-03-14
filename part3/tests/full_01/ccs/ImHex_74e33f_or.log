@@ -1,0 +1,25 @@
+Let me analyze the `Task::update()` function for optimization:
+
+1. **Current Implementation Analysis**:
+   - The function performs a simple value assignment and a conditional check
+   - The `[[unlikely]]` attribute is already used for the interrupt case
+   - The function is called frequently during task execution to update progress
+   - The current implementation is already quite minimal
+
+2. **Potential Optimizations**:
+   - The function is very small and likely to be inlined already
+   - The interrupt check is already marked as unlikely
+   - We could consider making `m_shouldInterrupt` atomic since it's accessed from multiple threads
+   - We could potentially remove the `this->` prefix for slightly faster access (though compiler likely optimizes this)
+
+3. **Best Optimization Opportunity**:
+   - The most impactful change would be to make `m_shouldInterrupt` atomic since:
+     - It's accessed from multiple threads (main thread can call interrupt() while worker thread checks it)
+     - Currently there's potential for race conditions
+     - Atomic access would be more correct while maintaining good performance
+
+4. **Selected Optimization**:
+   - Change `m_shouldInterrupt` to `std::atomic<bool>` in the Task class
+   - Modify the update function to use atomic load for the check
+
+Here's the optimized implementation:

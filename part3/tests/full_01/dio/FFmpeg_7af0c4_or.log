@@ -1,0 +1,23 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes each color component separately, with nested loops over pixels
+- The main computational work happens in the pixel processing loops
+- For each component, it may scan the image twice (for imin/imax calculation) before the actual processing
+- Floating-point division (coeff calculation) happens per component but could be precomputed
+- The inner loops have memory access patterns that could be optimized
+
+2. **Potential Optimizations**:
+- Precompute all coefficients before the pixel loops to avoid repeated calculations
+- Use pointer arithmetic instead of array indexing in inner loops
+- Unroll loops for small fixed step sizes
+- Process multiple components simultaneously when possible
+- Use SIMD instructions (but would require significant rewrite)
+
+3. **Selected Optimization**:
+The most impactful yet simple optimization is to **precompute all coefficients before the pixel processing loops**. This avoids:
+- Repeated floating-point division in the hot loop
+- Redundant calculations when processing multiple components
+- Maintains the exact same logic while being more efficient
+
+Here's the optimized function:

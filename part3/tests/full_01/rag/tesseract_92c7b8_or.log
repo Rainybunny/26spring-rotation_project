@@ -1,0 +1,25 @@
+Let me analyze the code and identify potential optimization opportunities:
+
+Analysis:
+1. The main function `LoadUnicharAmbigs` reads ambiguity specifications from a file and processes them into various data structures.
+2. Key bottlenecks identified:
+   - Memory allocation/deallocation for buffer (done once per call, not a major issue)
+   - String processing and parsing
+   - Multiple nested loops when updating adaption ambigs
+   - Frequent vector operations (insertions, searches)
+
+Optimization Opportunities:
+From the reference examples, I see these relevant techniques:
+1. Example 1 shows optimized handling of string parsing and buffer management
+2. Example 2 demonstrates efficient vector operations and condition checking
+3. Example 4 shows optimized data structure usage for similar text processing
+
+The most impactful optimization would be to optimize the adaption ambigs insertion loop, which:
+- Has nested loops
+- Performs linear searches for insertion points
+- Does frequent vector insertions
+
+Optimization Idea:
+Replace the linear search and insert in the adaption ambigs loop with a binary search and insert for better performance when maintaining sorted order. This is similar to optimizations seen in Example 2.
+
+Here's the optimized function:

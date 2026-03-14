@@ -1,0 +1,55 @@
+Let me analyze the `createParameterTypes` function for optimization opportunities:
+
+Analysis:
+1. The function creates debug info for function parameters by:
+   - First handling the return type
+   - Then iterating through all parameters
+   - Creating debug type info for each
+
+2. Bottlenecks identified:
+   - The function creates a new SmallVector for every call
+   - It makes multiple calls to createParameterType which may have redundant operations
+   - The GenericContextScope construction/destruction may be expensive if done frequently
+
+3. Key observations:
+   - The function is called for every function type during debug info generation
+   - The parameter processing is straightforward with no complex logic
+   - The DBuilder.getOrCreateTypeArray call at the end is likely a lookup/insert operation
+
+Optimization Idea:
+The most impactful optimization would be to reuse the SmallVector storage between calls to avoid repeated allocations. Since this is a member function, we can make the SmallVector a member variable and reuse it.
+
+Here's the optimized implementation:
+
+```cpp
+llvm::DITypeRefArray createParameterTypes(CanSILFunctionType FnTy) {
+  ReusableParamTypesStorage.clear();
+
+  GenericContextScope scope(IGM, FnTy->getInvocationGenericSignature());
+
+  // The function return type is the first element in the list.
+  createParameterType(ReusableParamTypesStorage, getResultTypeForDebugInfo(IGM, FnTy));
+
+  for (auto Param : FnTy->getParameters())
+    createParameterType(
+        ReusableParamTypesStorage, IGM.silConv.getSILType(
+                        Param, FnTy, IGM.getMaximalTypeExpansionContext()));
+
+  return DBuilder.getOrCreateTypeArray(ReusableParamTypesStorage);
+}
+```
+
+Changes made:
+1. Added a member variable `ReusableParamTypesStorage` (SmallVector<llvm::Metadata*, 16>) to the class
+2. Replaced local SmallVector with the member vector
+3. Clear the vector at start of each call rather than constructing new
+
+This optimization:
+- Eliminates repeated allocations of the parameter storage vector
+- Maintains exact same functionality
+- Is simple and low-risk
+- Should provide measurable speedup when processing many functions
+
+The change is minimal but impactful since this function is called frequently during debug info generation. The vector reuse avoids both allocation and deallocation overhead.
+
+Note: The member variable should be declared in the class definition as:

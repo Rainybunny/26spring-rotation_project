@@ -1,0 +1,26 @@
+Let me analyze the `sdl_serialize_type` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs many conditional checks and hash table operations which can be expensive
+- It recursively calls itself for nested types, which can lead to deep call stacks
+- Memory allocations (emalloc) and hash table operations (zend_hash_*) are frequent
+- String serialization operations are done repeatedly
+
+2. **Key Observations**:
+- The function handles serialization of WSDL type definitions
+- It processes various type properties, restrictions, elements and attributes
+- Uses a smart_str buffer for output
+- Maintains temporary hash tables for tracking elements
+
+3. **Optimization Opportunities**:
+- The most impactful optimization would be to reduce the number of hash table operations
+- We can pre-calculate sizes where possible to avoid repeated checks
+- Memory allocations for temporary structures could be minimized
+
+4. **Selected Optimization**:
+The best optimization would be to reduce the number of hash table operations by:
+- Pre-calculating element/attribute counts before the loops
+- Using direct pointer access where possible instead of hash lookups
+- Combining some of the serialization steps
+
+Here's the optimized implementation:

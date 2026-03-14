@@ -1,0 +1,27 @@
+Let me analyze the `MergeUntil` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function processes merge operations by iterating through keys and accumulating merge operands
+   - Main operations are key parsing, comparisons, and merge operations
+   - Memory allocations (string operations) are frequent, especially for keys and merge results
+   - The function makes heavy use of std::string operations which can be expensive
+
+2. **Key Observations**:
+   - `original_key` is frequently copied/moved when processing merge operands
+   - `keys_` deque operations (push_front, emplace_front) could be optimized
+   - The function checks `iter->Valid()` in loop condition and again inside for shutdown check
+   - String operations dominate when processing keys and merge results
+
+3. **Potential Optimizations**:
+   - Reduce string copying by reusing buffers where possible
+   - Optimize the key processing loop structure
+   - Minimize deque operations by pre-allocating or using more efficient data structures
+   - Combine validity checks to reduce branching
+
+4. **Selected Optimization**:
+   The highest impact optimization would be to **reduce string copying** by:
+   - Avoiding unnecessary string moves/copies when processing keys
+   - Reusing the `original_key` buffer when possible
+   - Minimizing temporary string creations during merge operations
+
+Here's the optimized implementation focusing on string handling optimizations:

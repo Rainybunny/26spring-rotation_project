@@ -1,0 +1,27 @@
+Let me analyze the `GetRunningTransactionData()` function for optimization opportunities:
+
+Analysis:
+1. The function is called during checkpoints to get information about running transactions.
+2. It scans the entire procArray to collect transaction IDs and subtransaction IDs.
+3. The main operations are:
+   - Lock acquisition (ProcArrayLock and XidGenLock)
+   - Iterating through all processes
+   - Collecting xids and subxids into arrays
+   - Setting various transaction ID fields in the result struct
+
+Bottlenecks:
+1. The function does a full scan of procArray which could be expensive with many backends.
+2. Memory allocation happens on first call but could be optimized.
+3. The subxid collection involves a second scan when no overflow exists.
+
+Optimization Idea:
+The most impactful optimization would be to reduce the number of scans through procArray. Currently it does:
+1. First scan to collect xids and check for overflows
+2. Second scan to collect subxids if no overflow
+
+We can combine these into a single scan by:
+1. Tracking both xids and subxids in the same pass
+2. Only checking for overflow once per process
+3. Collecting subxids immediately when we see a valid xid
+
+Here's the optimized implementation:

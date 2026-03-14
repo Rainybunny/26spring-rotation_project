@@ -1,0 +1,28 @@
+Let me analyze the `replace_by` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs several operations that could be optimized:
+  - Group copying (potentially expensive if many groups exist)
+  - Child iteration and ownership transfer
+  - Parent-child relationship management
+  - Signal emission
+
+2. **Key Optimization Strategy**:
+The main optimization opportunity here is to minimize memory allocations and redundant operations. The function currently:
+- Creates temporary lists (owned, owned_by_owner, groups)
+- Performs multiple child iterations
+- Does multiple ownership transfers
+
+3. **Proposed Optimization**:
+The highest impact change would be to pre-allocate the lists and combine operations where possible. Specifically:
+- Pre-size the owned/owned_by_owner lists if we can estimate their size
+- Combine the child iteration loops
+- Minimize temporary list constructions
+
+4. **Selected Optimization**:
+I'll focus on optimizing the child ownership transfer part by:
+- Pre-allocating the owned_by_owner list
+- Combining child iteration where possible
+- Using more efficient container operations
+
+Here's the optimized implementation:

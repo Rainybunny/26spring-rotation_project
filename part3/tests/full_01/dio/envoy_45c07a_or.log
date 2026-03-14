@@ -1,0 +1,21 @@
+Let me analyze the `parseDropOverloadConfig` function for optimization opportunities:
+
+1. **Bottlenecks Analysis**:
+- The function is called during cluster configuration parsing
+- It performs multiple conditional checks and string formatting for error cases
+- The main computation is simple arithmetic (division) once validation passes
+- Error cases are not the hot path (should be rare in production)
+
+2. **Optimization Opportunities**:
+- The error string formatting can be expensive and is only needed for invalid configs
+- The denominator switch statement could be optimized as a lookup table
+- The function could be inlined since it's small and called once per config
+- The UnitFloat construction could be optimized
+
+3. **Selected Optimization**:
+The most impactful optimization would be to replace the switch statement with a lookup table since:
+- It's in the hot path (executed for valid configs)
+- Switch statements can have branch prediction overhead
+- The values are fixed and known at compile time
+
+Here's the optimized implementation:

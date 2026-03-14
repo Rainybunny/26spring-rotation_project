@@ -1,0 +1,21 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The main loop uses `find_first_symbols_or_null` which is efficient for searching
+- The biggest bottleneck is in the quoted character handling case where we use a manual loop with `push_back` for each character
+- Memory allocations through `push_back` can be expensive due to potential reallocations
+- The comment even suggests optimizing with resize and memcpy
+
+2. **Potential Optimizations**:
+- Pre-allocate space in `key` using `reserve()` based on expected size
+- Replace the character-by-character copy loop with a bulk insert using `insert()`
+- Use memcpy as suggested in the comment, but that would require careful handling of string internals
+
+3. **Selected Optimization**:
+The highest impact change with minimal risk is to replace the manual push_back loop with a bulk insert operation. This:
+- Eliminates repeated bounds checking in push_back
+- Reduces potential reallocations
+- Maintains the exact same behavior
+- Is simple to implement
+
+Here's the optimized function:

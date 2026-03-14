@@ -1,0 +1,21 @@
+Let me analyze the function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function processes multiplexed data streams with different bands (1, 2, 3)
+   - The most complex case is band 2 processing, which involves:
+     - String searching (strpbrk) for line breaks
+     - Multiple strbuf operations (addf) per line
+     - Frequent buffer resets and writes
+   - The strbuf_addf calls are particularly expensive due to format parsing
+   - The band 2 processing path is called for verbose messages (common case)
+
+2. **Potential Optimizations**:
+   - Replace strbuf_addf with direct strbuf_add when possible (avoids format parsing)
+   - Precompute prefix/suffix lengths to avoid repeated strlen calls
+   - Optimize the line processing loop in band 2 case
+   - Reduce memory allocations in the strbuf operations
+
+3. **Selected Optimization**:
+   - The highest impact change would be replacing strbuf_addf with direct strbuf_add operations in the band 2 processing path, where we know the exact string lengths and can avoid format parsing overhead.
+
+Here's the optimized function:

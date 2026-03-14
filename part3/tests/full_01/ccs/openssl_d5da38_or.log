@@ -1,0 +1,22 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs multiple string operations (sprintf, strncpy, strlen) which are relatively expensive
+- The while loop processes each byte of the object data individually
+- The function makes multiple calls to OBJ_obj2nid() and OBJ_nid2ln()/OBJ_nid2sn()
+- The temporary buffer tbuf is used repeatedly for small string formatting
+
+2. **Key Observations**:
+- The most common case (nid != NID_undef && !no_name) can be optimized by caching the nid lookup result
+- The string formatting operations can be optimized by using direct character writes instead of sprintf
+- The length calculations can be simplified by pre-computing where possible
+- The buffer operations can be made more efficient by reducing redundant checks
+
+3. **Selected Optimization**:
+Cache the nid lookup result and optimize the string formatting path by:
+- Moving the nid lookup outside the conditional
+- Using direct character writes for simple numeric formatting
+- Reducing redundant strlen calls
+- Simplifying buffer length checks
+
+Here's the optimized function:

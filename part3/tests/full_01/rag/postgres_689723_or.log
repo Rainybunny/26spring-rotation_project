@@ -1,0 +1,25 @@
+Let me analyze the `GetRunningTransactionData()` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function iterates through all active processes twice (once for main XIDs, once for subXIDs)
+- It performs memory copies for subtransaction XIDs
+- It holds two locks (ProcArrayLock and XidGenLock) during the entire operation
+- Memory allocation happens on first call but uses a static buffer
+
+2. **Key Observations**:
+- The function is called during checkpoints by the bgwriter process
+- It needs to be accurate but doesn't need to be ultra-fast
+- The main output is a snapshot of running transactions
+
+3. **Optimization Opportunities**:
+- The biggest win would be reducing lock hold time
+- We could potentially optimize the subXID collection
+- Memory allocation could be made more efficient
+
+4. **Selected Optimization**:
+The highest impact change would be to optimize the subXID collection by:
+- Combining the two loops into one to reduce cache misses
+- Only copying subXIDs when we know we'll need them
+- This reduces the number of iterations and memory operations
+
+Here's the optimized implementation:

@@ -1,0 +1,85 @@
+Let's analyze the proposed optimization step by step.
+
+---
+
+## 1. **Original Function**
+```c
+static inline void strbuf_addch(struct strbuf *sb, int c)
+{
+    strbuf_grow(sb, 1);
+    sb->buf[sb->len++] = c;
+    sb->buf[sb->len] = '\0';
+}
+```
+The original always calls `strbuf_grow(sb, 1)` before adding the character.  
+`strbuf_grow` ensures there is at least `1` byte available after `len` (i.e., `alloc - len - 1 >= 1`).  
+After growing, it writes the character and null-terminates.
+
+---
+
+## 2. **Proposed Optimized Function**
+```c
+static inline void strbuf_addch(struct strbuf *sb, int c)
+{
+    if (sb->len + 1 > (sb->alloc ? sb->alloc - 1 : 0))
+        strbuf_grow(sb, 1);
+    sb->buf[sb->len++] = c;
+    if (sb->len >= sb->alloc)
+        sb->buf[sb->len] = '\0';
+}
+```
+**Changes:**
+- Adds a condition to check if we need to grow.
+- The condition `sb->len + 1 > (sb->alloc ? sb->alloc - 1 : 0)` is equivalent to checking if `sb->len + 1 > alloc - 1` when `alloc > 0`, else `sb->len + 1 > 0` (which is always true for `len >= 0` when `alloc == 0`).  
+  This is essentially checking if there is **no space** for one more character plus the null terminator.
+- After writing, it only null-terminates if `sb->len >= sb->alloc` (which should never happen if `strbuf_grow` worked correctly, because `strbuf_grow` ensures `alloc > len` after growing).  
+  Actually, if `alloc == 0` initially, `strbuf_grow` will allocate, and after writing, `len == 1`, `alloc > len`, so the second `if` is false.  
+  But if we didn't need to grow, `len` was less than `alloc-1`, so after increment, `len < alloc`, null termination already there from previous operation? Wait — careful: after previous operations, `buf[len]` is `'\0'`. When we write at `buf[len]` and increment `len`, we must set new `buf[len]` to `'\0'`. The original always does it. The proposed only does it when `len >= alloc`? That’s wrong — because `len` is never `>= alloc` if invariants hold. So in the normal case (no grow needed), it **skips null termination** — that’s a bug.
+
+**Bug:** If no grow is needed, after `sb->buf[sb->len++] = c`, the new `sb->buf[sb->len]` is the old null terminator? No — the old null terminator was at old `len`, which we just overwrote with `c`. So we must put a null terminator at new `len`. The proposed code fails to do that when no grow occurs. This breaks the invariant that `buf` is always null-terminated.
+
+Thus the **proposed optimization is incorrect**.
+
+---
+
+## 3. **Reference Optimized Function**
+```c
+static inline void strbuf_addch(struct strbuf *sb, int c)
+{
+    if (!strbuf_avail(sb))
+        strbuf_grow(sb, 1);
+    sb->buf[sb->len++] = c;
+    sb->buf[sb->len] = '\0';
+}
+```
+**Strategy:**  
+- Use `strbuf_avail(sb)` to check if there’s at least 1 byte available (i.e., `alloc - len - 1 >= 1`). If not, grow.
+- Always null-terminate after writing.
+
+This avoids the unconditional `strbuf_grow` call, but maintains correctness.
+
+---
+
+## 4. **Comparison of Strategies**
+- **Reference:** Uses `strbuf_avail` helper for clarity and correctness, always null-terminates.
+- **Proposed:** Implements its own availability check (more complex, buggy) and conditionally null-terminates (incorrectly).
+
+The **optimization idea** in the reference is:  
+1. Check if space is available (using existing helper).  
+2. Grow only if needed.  
+3. Always null-terminate.
+
+The proposed tries to do step 1 and 2 similarly (though with manual check), but fails step 3 by making null termination conditional, breaking correctness.
+
+Thus the **strategies differ** in a critical way: the reference ensures null termination unconditionally; the proposed does not.
+
+---
+
+## 5. **Validity and Performance**
+- **Proposed:** Invalid (bug).
+- **Performance:** Even if bug were fixed, the manual check is less clear than using `strbuf_avail`, but performance similar. However, since it’s buggy, performance is irrelevant.
+
+---
+
+## 6. **Final Verdict**
+The proposed function is **not** a valid optimization (it’s buggy), and its strategy differs from the reference in a fundamental way (conditional vs unconditional null termination).

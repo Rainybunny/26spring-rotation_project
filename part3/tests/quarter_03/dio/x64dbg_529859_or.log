@@ -1,0 +1,22 @@
+Let me analyze the ThreadExit function for optimization opportunities:
+
+1. Current Implementation Analysis:
+- The function uses a linear search through the unordered_map to find the thread by ID
+- It acquires an exclusive lock for the entire operation
+- The erase operation is done once the thread is found
+- The current implementation is O(n) in worst case due to linear search
+
+2. Bottlenecks:
+- Linear search in unordered_map is inefficient when we can use direct key access
+- Lock is held longer than necessary (during both search and erase)
+- The comment suggests avoiding foreach due to iterator invalidation, but unordered_map::erase returns next iterator
+
+3. Potential Optimizations:
+- Use unordered_map::find() for O(1) lookup instead of linear search
+- Reduce lock scope to only cover the critical section (find + erase)
+- Use returned iterator from erase() to maintain validity
+
+4. Selected Optimization:
+The most impactful change is to use unordered_map::find() for direct key access, which reduces the operation from O(n) to average O(1) complexity. This is simple, safe, and provides significant performance improvement.
+
+Here's the optimized implementation:

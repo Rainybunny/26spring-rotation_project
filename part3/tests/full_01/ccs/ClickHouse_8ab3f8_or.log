@@ -1,0 +1,31 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. Analysis:
+- The function has two main loops:
+  a) First loop processes time values and populates `lut` vector
+  b) Second loop processes `lut` to populate `years_lut` array
+- The first loop is the most performance-critical as it:
+  - Calls multiple functions (Time2Date, TimeDayShift, localtime_r, mktime)
+  - Performs multiple struct member accesses (tm fields)
+  - Pushes back to a vector
+- The second loop is simpler but still has repeated struct member accesses
+
+2. Bottlenecks:
+- Repeated calls to Time2Date and TimeDayShift in loop condition
+- Multiple tm struct member accesses in first loop
+- Multiple lut vector element accesses in second loop
+- Potential cache misses from scattered memory accesses
+
+3. Optimization Strategy:
+- Cache frequently accessed values (like tm struct fields)
+- Pre-compute loop-invariant values
+- Reduce redundant memory accesses
+- The strategy from the reference examples fits perfectly here as we have:
+  - Multiple struct member accesses
+  - Repeated function calls
+  - Vector/array accesses in loops
+
+4. Selected Optimization:
+Cache the tm struct fields in local variables before using them multiple times, and pre-compute the loop condition values.
+
+Here's the optimized function:

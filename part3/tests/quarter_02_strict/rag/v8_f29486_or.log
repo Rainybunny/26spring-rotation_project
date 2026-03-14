@@ -1,0 +1,25 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function recursively processes allocation nodes to build a profile tree
+- Main operations: string conversions, script lookups, and vector operations
+- The most expensive parts appear to be:
+  - String conversions (ToApiHandle, InternalizeUtf8String)
+  - Script lookups in the map (scripts.find())
+  - Multiple vector operations (push_back, reserve)
+
+2. **Key Observations**:
+- The script lookup is done twice: first in find() then in non_const_scripts[]
+- String conversions are done unconditionally even when script_id is invalid
+- The allocations vector could potentially use move semantics
+
+3. **Potential Optimizations**:
+- Cache the script lookup result to avoid double lookup
+- Move string conversions after script validity check
+- Use emplace_back instead of push_back for allocations
+- Consider reserving space for children vector
+
+4. **Selected Optimization**:
+The highest impact change would be to optimize the script lookup by caching the result and moving expensive string operations after validity checks. This avoids unnecessary work when script_id is invalid.
+
+Here's the optimized implementation:

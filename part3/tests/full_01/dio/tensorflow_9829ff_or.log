@@ -1,0 +1,24 @@
+Let me analyze the `InsertDynamicMemrefCastOp` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs dynamic memory layout transformation for broadcasting operations
+- Main operations are:
+  - Creating constant values (zero, one)
+  - Calculating operand strides and sizes in reverse order
+  - Building output dimension mapping
+  - Creating comparison and select operations for each output dimension
+- The most expensive parts appear to be:
+  - Multiple dynamic memory allocations (SmallVector)
+  - Repeated constant creation inside loops
+  - Multiple conditional branches per dimension
+
+2. **Key Optimization Opportunities**:
+- Hoist constant creation out of loops (zero, one)
+- Pre-allocate memory for SmallVectors if possible
+- Reduce redundant operations in the stride calculation loop
+- Simplify the output dimension mapping construction
+
+3. **Selected Optimization**:
+The most impactful optimization would be to **hoist the constant creation (zero, one) outside the loops** since these values are repeatedly created but never change. This reduces redundant operations and memory allocations.
+
+Here's the optimized implementation:

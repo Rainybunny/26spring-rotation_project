@@ -1,0 +1,32 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The main performance bottleneck is in the FIND macro which calls checkline() repeatedly for each line/column
+- Each FIND operation scans the entire frame dimension (width or height)
+- The checkline() function is called for every pixel line/column being checked
+- The current implementation has high overhead from:
+  * Repeated pointer arithmetic in the loop
+  * Function call overhead for checkline()
+  * Branching in the outlier counting logic
+
+2. **Optimization Strategy**:
+- Apply loop unrolling to reduce loop overhead
+- Use pointer arithmetic instead of array indexing
+- Precompute values where possible
+- Reduce branching in the hot path
+- The FIND macro is used 4 times (for x1,x2,y1,y2) so optimizing it will have 4x impact
+
+3. **Selected Optimization**:
+- Unroll the FIND loop by 4 iterations to reduce loop overhead
+- Replace array indexing with pointer arithmetic
+- Move the outlier check outside the main loop when possible
+- Precompute the step values
+
+4. **Final Optimization Idea**:
+Optimize the FIND macro by:
+- Unrolling the loop 4x to reduce branch overhead
+- Using pointer arithmetic for faster access
+- Precomputing the step increment
+- Moving the outlier check to happen every 4 iterations
+
+Here's the optimized function:

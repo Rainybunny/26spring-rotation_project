@@ -1,0 +1,54 @@
+Let's analyze step by step.
+
+---
+
+**1. Original function**  
+The original `copy` handles:
+- `count == 0` early return.
+- If `T` is trivial, uses `__builtin_memmove` for all `count`.
+- If not trivial, loops from `i = 0` to `count-1` but chooses forward or reverse copy based on `destination <= source` to handle overlapping ranges correctly (destructive copy for non-trivial types with placement new).
+
+---
+
+**2. Proposed optimized function**  
+Changes from original:
+- For trivial case: unchanged (still `__builtin_memmove` for all `count`).
+- For non-trivial case: instead of checking `destination <= source` inside the loop each iteration, it checks once outside and runs either a forward loop or a reverse loop. This removes the per-iteration branch.
+
+This is a valid optimization:  
+- Correctness preserved: still copies forward if `dest <= src`, else reverse.  
+- Performance improved: removes `count` branch mispredictions for non-trivial types.
+
+---
+
+**3. Reference optimized function**  
+Changes from original:
+- For trivial case: adds a special case for `count == 1` (`*destination = *source` instead of `memmove`).  
+- For non-trivial case: identical to original (still per-iteration branch).
+
+So reference optimization focuses on trivial types with `count == 1` to avoid `memmove` overhead for a single element.  
+The non-trivial case is unchanged.
+
+---
+
+**4. Strategy comparison**  
+- **Proposed strategy**: Remove per-iteration branch in non-trivial case by hoisting the overlap check outside the loop.  
+- **Reference strategy**: Optimize trivial case for `count == 1` to avoid `memmove` call, but leaves non-trivial loop unchanged.
+
+These are **different optimization strategies**:
+- One optimizes non-trivial path.
+- One optimizes trivial path for small count.
+
+The reference does not hoist the branch in non-trivial case; proposed does.  
+Therefore, the proposed solution does **not** match the reference’s detailed idea.
+
+---
+
+**5. Validity and performance**  
+Proposed change is valid and improves performance (removes branch inside loop).  
+But the task says: "The optimization idea/strategy in the PROPOSED solution MUST match the detailed idea in the REFERENCE solution."  
+They don’t match.
+
+---
+
+**Final Verdict**

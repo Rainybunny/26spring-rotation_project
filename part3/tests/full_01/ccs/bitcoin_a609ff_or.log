@@ -1,0 +1,22 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function iterates through all transaction outputs (vout) and checks if each is spent
+- The main loop calls vout.size() repeatedly in the condition check
+- The loop also calls pwallet->IsSpent() and pwallet->GetCredit() for each unspent output
+- The MoneyRange check happens inside the loop
+
+2. **Optimization Strategy**:
+- Cache the vout.size() before the loop to avoid repeated calls
+- This follows the selected strategy of caching container sizes before loops
+- The optimization is safe as vout.size() won't change during the function execution
+
+3. **Impact Assessment**:
+- For transactions with many outputs, this reduces multiple size() calls to one
+- The optimization is simple and maintains the exact same behavior
+- No risk of introducing bugs since we're just caching a value
+
+4. **Selected Optimization**:
+- Cache vout.size() in a local variable before the loop
+
+Here's the optimized function:

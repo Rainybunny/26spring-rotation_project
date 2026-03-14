@@ -1,0 +1,15 @@
+Let me analyze the `getIndexingMaps` function and propose an optimization:
+
+Analysis:
+1. The function creates affine maps for a transpose operation by permuting dimensions.
+2. It takes an operation `op` and a builder `b` as inputs.
+3. It first gets the result type and rank of the operation.
+4. It then creates input expressions by mapping each dimension based on the permutation attribute.
+5. Finally returns two affine maps - one for the input with permuted dimensions and an identity map for output.
+
+Optimization Opportunities:
+1. The function creates and resizes a SmallVector for input_exprs but then overwrites all elements - we can avoid the resize.
+2. The permutation enumeration could be done more efficiently by directly iterating the permutation values.
+3. The affine map creation could be simplified since we know the exact permutation pattern.
+
+Optimized Implementation:

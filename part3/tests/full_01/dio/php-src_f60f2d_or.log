@@ -1,0 +1,18 @@
+Let me analyze the `compare_function` for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function handles many different type combinations with multiple branches
+- The most common cases are likely string/string and numeric comparisons
+- The current implementation makes copies of operands (op1_copy, op2_copy) even when not needed
+- The numeric comparison path does floating-point arithmetic even for integer cases
+
+2. **Optimization Opportunities**:
+- Early exit for common cases (string/string, long/long)
+- Avoid unnecessary copying when types already match
+- Optimize numeric comparison path to avoid FP ops when possible
+- Reorder checks to test most common cases first
+
+3. **Selected Optimization**:
+The most impactful change would be to optimize the numeric comparison path to avoid floating-point operations when both operands are integers. This is a common case and FP ops are relatively expensive.
+
+Here's the optimized implementation:

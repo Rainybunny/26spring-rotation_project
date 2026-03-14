@@ -1,0 +1,29 @@
+Let me analyze the `OptimizeConsumeItem` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes a graph and its function library in two main phases: optimizing the main graph and then optimizing functions.
+- Key operations include:
+  - Function library minimization (removing unreachable functions)
+  - Finding differentiable functions (symbolic gradients)
+  - Finding XLA-compiled functions
+  - Optimizing individual functions in a loop
+- The function makes heavy use of hash sets (absl::flat_hash_set) for tracking functions
+
+2. **Optimization Strategy**:
+- The most expensive parts appear to be:
+  - The function minimization step (constructing reachable definitions)
+  - The nested loops over functions and nodes to find differentiable/XLA functions
+  - The function optimization loop itself
+- We can apply caching/hoisting optimizations for frequently accessed data
+
+3. **High-Impact Optimization**:
+- The `find_differentiable_functions` and `find_xla_compiled_functions` lambdas are called multiple times and scan through all nodes repeatedly
+- We can optimize by:
+  - Caching the node scanning results
+  - Combining the scans for both differentiable and XLA functions into a single pass
+  - Using the cached results rather than rescanning
+
+4. **Selected Optimization**:
+Combine the scans for differentiable and XLA functions into a single pass and cache the results.
+
+Here's the optimized implementation:

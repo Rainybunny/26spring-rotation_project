@@ -1,0 +1,31 @@
+Let me analyze the `find_regions_intersecting` function:
+
+1. **Current Behavior Analysis**:
+   - The function finds all regions that intersect with a given range
+   - It uses a sorted data structure (likely a tree) to efficiently find regions
+   - It maintains a running total of collected sizes to potentially exit early
+   - It checks intersection conditions for each candidate region
+
+2. **Bottlenecks**:
+   - The intersection check is done via two comparisons (base < end AND end > base)
+   - The size calculation involves an additional intersect() call
+   - Vector growth may cause reallocations (though small vectors are common)
+
+3. **Optimization Opportunities**:
+   - The intersection check can be simplified to a single comparison
+   - We can pre-calculate range.end() to avoid repeated calls
+   - We could reserve vector space if we have size hints (but we don't here)
+   - The size tracking could be optimized since we don't use it after the early exit
+
+4. **Selected Optimization**:
+   The most impactful change would be to simplify the intersection check. The current check:
+   ```cpp
+   if ((*iter)->range().base() < range.end() && (*iter)->range().end() > range.base())
+   ```
+   can be replaced with:
+   ```cpp
+   if ((*iter)->range().intersects(range))
+   ```
+   assuming `VirtualRange` has an efficient `intersects()` method. If not, we can implement the simplified check directly.
+
+Here's the optimized function:

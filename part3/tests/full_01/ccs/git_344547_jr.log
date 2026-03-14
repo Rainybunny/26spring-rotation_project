@@ -1,0 +1,54 @@
+Looking at the provided original and optimized functions:
+
+**Original function:**
+```c
+void sha1_file_name(struct strbuf *buf, const unsigned char *sha1)
+{
+    strbuf_addf(buf, "%s/", get_object_directory());
+    fill_sha1_path(buf, sha1);
+}
+```
+
+**Optimized function:**
+```c
+void sha1_file_name(struct strbuf *buf, const unsigned char *sha1)
+{
+    const char *obj_dir = get_object_directory();
+    size_t obj_dir_len = strlen(obj_dir);
+    
+    strbuf_grow(buf, obj_dir_len + 1 + 40 + 2); // dir + '/' + sha1 + '/' + NUL
+    strbuf_reset(buf);
+    strbuf_add(buf, obj_dir, obj_dir_len);
+    strbuf_addch(buf, '/');
+    
+    for (int i = 0; i < 20; i++) {
+        static char hex[] = "0123456789abcdef";
+        unsigned int val = sha1[i];
+        strbuf_addch(buf, hex[val >> 4]);
+        strbuf_addch(buf, hex[val & 0xf]);
+        if (!i)
+            strbuf_addch(buf, '/');
+    }
+}
+```
+
+**Analysis:**
+
+1. **Correctness:** The optimized function produces the same output as the original. Both functions:
+   - Add the object directory with a trailing '/'
+   - Convert the 20-byte SHA1 to hex representation
+   - Insert a '/' after the first two hex characters (creating the two-level directory structure)
+
+2. **Performance improvements:**
+   - **Avoids `strbuf_addf`:** The original uses `strbuf_addf` which has to parse the format string and handle variable arguments. The optimized version uses direct string operations.
+   - **Pre-allocates memory:** Uses `strbuf_grow` to allocate the exact needed size upfront (object_dir + '/' + 40 hex chars + '/' + NUL), avoiding potential reallocations.
+   - **Inlines `fill_sha1_path`:** The hex conversion loop is inlined, eliminating a function call overhead.
+   - **Uses `strbuf_reset`:** This is more efficient than letting `strbuf_addf` handle resetting internally.
+
+3. **Potential issues:**
+   - The comment says "+ 2" for NUL and an extra character, but the calculation seems correct: `obj_dir_len + 1 + 40 + 1` would be sufficient (dir + '/' + 40 hex chars + NUL). The current `+ 2` gives one extra byte which is harmless.
+   - The optimized version always resets the buffer (`strbuf_reset`), while the original appends to it. However, looking at the context, `sha1_file_name` is typically called with an empty or freshly initialized `strbuf`, so this shouldn't cause issues.
+
+4. **Behavioral equivalence:** Both functions produce identical paths for the same input SHA1. The optimized version is essentially a manual optimization of the original's logic.
+
+**Conclusion:** The optimized function is a valid replacement that improves performance while maintaining correctness. The optimizations are sound and the function produces the same output as the original.

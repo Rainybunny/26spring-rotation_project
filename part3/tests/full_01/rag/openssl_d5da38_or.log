@@ -1,0 +1,24 @@
+Let me analyze the function `OBJ_obj2txt` for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function performs multiple string operations (sprintf, strncpy, strlen) which are relatively expensive
+   - The main loop processes ASN.1 object data byte by byte
+   - There are multiple conditional checks in the hot path
+   - The function uses a temporary buffer (tbuf) for intermediate string formatting
+
+2. **Key Observations**:
+   - The string formatting could be optimized by avoiding sprintf and using direct character writes
+   - The length calculations can be simplified by pre-calculating maximum possible sizes
+   - The buffer overflow checks could be consolidated
+   - The temporary buffer usage could be eliminated in some cases
+
+3. **Potential Optimizations**:
+   - Replace sprintf with direct character writes for known formats
+   - Pre-calculate maximum possible output size to minimize checks
+   - Combine some of the conditional checks
+   - Optimize the string copying operations
+
+4. **Selected Optimization**:
+   - Replace sprintf calls with direct character writes for the numeric formatting cases, as these are predictable and fixed format
+
+Here's the optimized implementation:

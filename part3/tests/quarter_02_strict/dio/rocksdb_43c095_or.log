@@ -1,0 +1,24 @@
+Let me analyze the `SpatialIndexCursor` constructor for optimization opportunities:
+
+1. **Bottlenecks Analysis**:
+- The nested loops for generating quad keys (x and y) are straightforward but could benefit from loop unrolling
+- The quad_keys vector is being sorted, but we could potentially avoid this by generating keys in order initially
+- The primary_key_ids_ insertion using std::unordered_set has overhead from:
+  * Hash computation for each insert
+  * Potential rehashing as the set grows
+  * Memory allocations for nodes
+
+2. **Optimization Opportunities**:
+- The most impactful change would be optimizing the primary key storage and insertion
+- Using a std::vector with manual duplicate checking would be faster for small-medium numbers of keys
+- For larger numbers, a vector with post-sort+unique would be better than unordered_set
+- Since we don't know the expected size, a hybrid approach would be complex
+
+3. **Selected Optimization**:
+Replace std::unordered_set with std::vector for primary_key_ids_ storage, since:
+- Insertion is just push_back (faster than unordered_set insert)
+- We can sort+unique at the end (more efficient than checking duplicates during insert)
+- For typical spatial queries, the number of duplicates is likely low
+- The memory overhead is lower (no hash table overhead)
+
+Here's the optimized implementation:

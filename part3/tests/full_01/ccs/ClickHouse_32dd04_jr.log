@@ -1,0 +1,46 @@
+Looking at the provided code, the optimized function `DatabaseOrdinary::loadStoredObjects` is intended to replace the original version. The main changes are:
+
+1. **Reordering of operations**: The original code first attaches all tables (using a thread pool) and then attaches dictionaries sequentially. The optimized version processes both tables and dictionaries in a single loop, but still uses the thread pool only for tables, while dictionaries are attached in the main thread.
+
+2. **Use of `emplace`**: The optimized version uses `file_names.emplace(file_name, std::move(ast))` instead of `file_names[file_name] = ast`, which is more efficient because it constructs the element in-place.
+
+3. **Removal of separate dictionary loop**: The optimized version attaches dictionaries in the same loop as tables, eliminating a second loop over `file_names`.
+
+**Analysis for correctness**:
+- The optimized version still processes tables concurrently (via thread pool) and dictionaries sequentially (in the main thread), which matches the original behavior.
+- The `startupTables` call is still after the thread pool waits for table attachments, so tables are fully attached before startup.
+- The `attachToExternalDictionariesLoader` call is moved after the loop, but that's fine because dictionaries are already attached in the loop.
+- The logging of progress for dictionaries is now inside the main loop instead of a separate loop, but the counting logic remains correct.
+
+**Performance considerations**:
+- Using `emplace` with `std::move` is more efficient than assignment, as it avoids a copy.
+- The single loop reduces the number of iterations over `file_names` from two to one, which could improve cache locality and reduce overhead.
+- However, note that the original code had two separate loops: one for tables (with thread pool) and one for dictionaries (sequential). The optimized version interleaves them, but since dictionaries are processed in the main thread and tables are scheduled to the thread pool, the order of operations might change slightly. This should not affect correctness because tables and dictionaries are independent.
+
+**Potential issue**:
+The optimized version attaches dictionaries before the thread pool for tables has completed. This is a change in order: originally, all tables were attached first, then dictionaries. However, since dictionaries are independent of tables, this should not cause problems. But note that the original code attached dictionaries only after `startupTables` was called, while the optimized version attaches dictionaries before `startupTables`. This is a more significant change.
+
+Looking at the original code:
+1. Attach tables (concurrently)
+2. Wait for tables
+3. Startup tables
+4. Attach dictionaries (sequentially)
+
+The optimized version:
+1. Attach tables (concurrently) and dictionaries (sequentially) in a single loop
+2. Wait for tables
+3. Startup tables
+
+This means dictionaries are attached earlier. This could be a problem if dictionary attachment depends on tables being started up? But the original code attached dictionaries after table startup, so there might be a dependency. However, the function `attachToExternalDictionariesLoader` is called after the loop in the optimized version, which is the same as in the original (it was called before the dictionary loop in the original). So the order of dictionary attachment relative to table startup is changed.
+
+But note: in the original code, `attachToExternalDictionariesLoader` is called before the dictionary loop, and then dictionaries are attached. In the optimized version, dictionaries are attached before `attachToExternalDictionariesLoader`? Actually, no: the optimized version attaches dictionaries in the loop, then calls `attachToExternalDictionariesLoader` after the loop. So the order is:
+- Original: attachToExternalDictionariesLoader -> then attach dictionaries
+- Optimized: attach dictionaries -> then attachToExternalDictionariesLoader
+
+This reverses the order. This might be incorrect because `attachToExternalDictionariesLoader` might need to be called before attaching dictionaries? Looking at the original code, it seems that `attachToExternalDictionariesLoader` is called to attach to an external loader, and then dictionaries are attached to the database. Changing this order could lead to issues.
+
+Therefore, the optimized version changes the order of operations in a way that might break correctness. The original code ensures that the external dictionaries loader is attached before any dictionaries are added to the database. The optimized version adds dictionaries first, then attaches to the loader. This could cause dictionaries to be missed or not properly registered.
+
+Given this, the optimization is not valid because it changes the order of operations in a way that could affect correctness.
+
+**Verdict**: FALSE

@@ -1,0 +1,42 @@
+Let's analyze the optimized function step by step.
+
+**1. Changes in the optimized version:**
+
+The optimized `keyboard_task` introduces two main changes:
+
+- **Caching `timer_read()` at the start**:  
+  In the original, `timer_read() | 1` was called inside the inner loop when a key event was found.  
+  In the optimized version, `uint16_t current_time = timer_read() | 1;` is computed once at the beginning of the function and reused for all key events processed in this call.
+
+- **Caching `matrix_prev[r]` locally**:  
+  In the original, `matrix_prev[r]` was accessed directly in the update step (`matrix_prev[r] ^= ((matrix_row_t)1 << c);`).  
+  In the optimized version, `matrix_row_t prev_row = matrix_prev[r];` is cached before the inner loop, and the update is done as `matrix_prev[r] = prev_row ^ ((matrix_row_t)1 << c);`.
+
+**2. Correctness analysis:**
+
+- The time value for a key event should represent the time when the matrix was scanned, not necessarily the exact moment the key was processed in the loop. Since `matrix_scan()` is called at the top of the function, caching `timer_read()` immediately after is acceptable and ensures all key events in this scan have the same timestamp, which is consistent with the original intent (the original also used `timer_read()` inside the loop, but it could vary slightly if processing took time). This change is safe and may even be more consistent.
+
+- The cached `prev_row` is only used to compute `matrix_change` and to update `matrix_prev[r]`. The update logic is equivalent:  
+  Original: `matrix_prev[r] ^= ((matrix_row_t)1 << c);`  
+  Optimized: `matrix_prev[r] = prev_row ^ ((matrix_row_t)1 << c);`  
+  Since `prev_row` is the value before any changes in this iteration, and only one bit can be updated per key event (due to the `goto` break), the two are equivalent.
+
+- The `goto MATRIX_LOOP_END;` logic remains unchanged, so the per-scan key limit (`QMK_KEYS_PER_SCAN`) is still respected.
+
+- All other parts of the function are identical.
+
+**3. Performance analysis:**
+
+- **Time caching**: Reduces repeated calls to `timer_read()` inside the inner loop. On AVR, `timer_read()` may involve reading hardware registers, so caching improves speed.
+- **Previous row caching**: Reduces repeated array access to `matrix_prev[r]` in the inner loop. This is a small improvement but may help on architectures where memory access is slower.
+
+Both changes are micro-optimizations that reduce overhead in the key event handling path without altering behavior.
+
+**4. Potential issues:**
+
+- If `matrix_scan()` takes a noticeable time, the cached time might be slightly later than in the original where `timer_read()` was called just before `action_exec`. However, the original also called `timer_read()` after the key detection, so the timestamp was already slightly delayed. The difference is negligible for keyboard scanning purposes.
+- The timestamp is ORed with 1 (`| 1`) to ensure it's never zero (as required). This is preserved.
+
+**5. Verdict:**
+
+The optimized function maintains correctness and improves performance by reducing function calls and memory accesses. It is a valid optimization.

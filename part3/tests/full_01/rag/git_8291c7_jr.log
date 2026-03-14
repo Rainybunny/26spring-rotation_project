@@ -1,0 +1,18 @@
+Let's analyze the optimization.  
+
+The original `strbuf_getwholeline` function grows the buffer by 1 byte at a time in the loop (`strbuf_grow(sb, 1)`). This can be inefficient for long lines because it may cause many reallocations.  
+
+The optimized version attempts to reduce reallocations by:  
+1. Preallocating an initial capacity (128 bytes).  
+2. Doubling capacity when more space is needed.  
+
+However, there are correctness issues:  
+
+- The `capacity` variable tracks a desired size, but `strbuf_grow(sb, capacity)` does not guarantee `sb->alloc` becomes exactly `capacity + 1`. `strbuf_grow` ensures at least `capacity` extra bytes, but `sb->alloc` is the total allocated size (including the NUL byte). The check `sb->len >= sb->alloc - 1` compares against the actual allocated size, which is fine, but the `capacity` variable is not synchronized with `sb->alloc`.  
+- Worse, `strbuf_grow(sb, capacity)` is called with `capacity` as `extra` (extra bytes beyond current length), not total capacity. The optimized version incorrectly uses `capacity` as the total desired size. On the first call, `sb->len = 0`, `sb->alloc` might be small, `strbuf_grow(sb, 128)` ensures `sb->alloc >= sb->len + 128 + 1`. That’s fine initially, but after some appends, when `sb->len >= sb->alloc - 1`, it doubles `capacity` and calls `strbuf_grow(sb, capacity)`. But now `capacity` is unrelated to `sb->len`, so `strbuf_grow(sb, capacity)` ensures `sb->alloc >= sb->len + capacity + 1`, which is far more than doubling, and grows excessively.  
+
+This means memory usage could explode unnecessarily.  
+
+Also, the original function’s `strbuf_grow(sb, 1)` inside the loop is safe and simple; the optimized version adds complexity and introduces a logic error in growth strategy.  
+
+Thus, while the intent is good (reduce allocations), the implementation is flawed and not a correct replacement.

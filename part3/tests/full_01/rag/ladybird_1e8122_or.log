@@ -1,0 +1,31 @@
+Let me analyze this function for optimization opportunities:
+
+1. Current Behavior Analysis:
+- The function creates a StringBuilder
+- Iterates through each UTF-8 code point in the input view
+- Appends each code point to the builder
+- Converts builder to string without validation
+
+2. Bottlenecks:
+- The main overhead comes from:
+  * Creating and managing the StringBuilder object
+  * Multiple allocations as the builder grows
+  * Per-character append operations
+  * Final string construction
+
+3. Optimization Opportunities:
+- Since we're just copying UTF-8 data with possible replacement characters, we could:
+  * Directly copy the input bytes if they're valid UTF-8
+  * Only process invalid sequences when needed
+  * Pre-allocate the output buffer to avoid reallocations
+  * Use memcpy for valid portions
+
+4. Key Insight:
+- The current implementation processes each character individually, but we could optimize for the common case where the input is already valid UTF-8 by doing a direct copy.
+
+5. Chosen Optimization:
+- First check if the input is valid UTF-8
+- If valid, do a direct copy of the bytes (fast path)
+- If invalid, fall back to the current character-by-character processing (slow path)
+
+Here's the optimized implementation:

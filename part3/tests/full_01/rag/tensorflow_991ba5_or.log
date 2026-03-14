@@ -1,0 +1,18 @@
+Let me analyze this function and propose an optimization:
+
+Analysis:
+1. This function generates indexing maps for a transpose operation in Linalg.
+2. It creates two AffineMaps:
+   - One that describes how input dimensions are permuted
+   - One identity map for the output
+3. The current implementation:
+   - Creates a vector of AffineExprs sized to the result rank
+   - Iterates through the permutation and assigns dim exprs
+   - Constructs the maps from these exprs
+
+Optimization Opportunities:
+1. The input_exprs vector is initialized with default-constructed AffineExprs then overwritten - we can construct it with the right values directly
+2. We can avoid the intermediate vector by constructing the AffineMap directly
+3. The identity map construction can be hoisted out if it's commonly reused
+
+Optimized Implementation:

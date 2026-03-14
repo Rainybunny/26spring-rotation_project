@@ -1,0 +1,21 @@
+Let's analyze the optimization.
+
+The original `contains` function performs an exact string match by iterating over each possible offset and using `memcmp` for the full needle length at each position. The optimized version adds a check of the first character before calling `memcmp`. This is a common optimization because comparing a single byte is cheaper than a full `memcmp` for longer strings, especially when the first byte often doesn't match.
+
+**Correctness:**
+- The optimization only changes the exact string match branch (when `regexp` is NULL).
+- The condition `data[offset] == first && !memcmp(needle, data + offset, len)` is logically equivalent to `!memcmp(needle, data + offset, len)` because if the `memcmp` passes, the first byte must be equal. However, the order of evaluation matters: if the first byte doesn't match, `memcmp` is skipped, which is safe and correct.
+- The rest of the function (regex branch, early returns, etc.) is unchanged.
+- The optimization does not affect the counting logic or the non-overlapping occurrence behavior (the `offset += len - 1` still happens only when a full match is found).
+
+**Performance:**
+- The optimization reduces the number of expensive `memcmp` calls by first checking a single byte. This is beneficial when the first byte of `needle` is not common in `data`.
+- In the worst case (first byte matches everywhere), we add an extra comparison per offset, which is cheap compared to `memcmp`.
+- This is a valid micro-optimization that should improve performance in typical cases without harming worst-case behavior significantly.
+
+**Potential issues:**
+- If `len` is zero, the function returns early, so `needle[0]` is never accessed in that case (safe).
+- If `len` is 1, the optimization still works: we check `data[offset] == first` and then `memcmp` for length 1, which is slightly redundant but not incorrect.
+- The optimization assumes `needle` is a valid string (which it is, as `len` is derived from `strlen(needle)` in the caller).
+
+**Conclusion:** The optimized function is a valid replacement that improves performance while maintaining correctness.

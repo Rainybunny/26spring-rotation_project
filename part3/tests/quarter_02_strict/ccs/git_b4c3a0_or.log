@@ -1,0 +1,28 @@
+Let me analyze the `xdl_recmatch` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function performs many character-by-character comparisons and whitespace checks
+   - The `isspace()` calls are repeated frequently in loops
+   - Pointer dereferencing (`l1[i1]`, `l2[i2]`) happens in tight loops
+   - The function has multiple branches for different whitespace handling modes
+
+2. **Optimization Strategy Application**:
+   - The selected strategy of caching frequently accessed values applies well here because:
+     * `isspace()` calls can be cached by storing the character first
+     * Array indexing can be replaced with pointer arithmetic
+     * Common subexpressions can be eliminated
+
+3. **Potential Optimizations**:
+   - Replace array indexing with pointer arithmetic
+   - Cache `isspace()` results by storing characters in local variables
+   - Hoist common conditions out of loops
+   - Unroll small loops
+
+4. **Selected Optimization**:
+   - The highest impact change would be to replace array indexing with pointer arithmetic and cache `isspace()` results. This:
+     * Eliminates repeated index calculations
+     * Reduces memory accesses
+     * Makes better use of CPU registers
+     * Maintains the exact same behavior
+
+Here's the optimized implementation:

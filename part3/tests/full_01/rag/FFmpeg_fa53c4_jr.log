@@ -1,0 +1,17 @@
+Looking at the provided code, the original `idct` function uses floating-point arithmetic with cosine coefficients and double precision. The optimized version attempts to use fixed-point integer arithmetic to improve performance by avoiding floating-point operations.
+
+However, there are several critical issues with the optimized implementation:
+
+1. **Incorrect fixed-point scaling**: The optimized version uses `>> 10` for scaling, but the original uses `sqrt(0.125)` and `0.5` factors. The fixed-point coefficients don't appear to correctly match the original floating-point values.
+
+2. **Missing DC term handling**: The original function adds `0.5` before flooring, while the optimized version adds `(1 << 9)` (which equals 512) before right-shifting by 10, which is equivalent to adding 0.5 in fixed-point. However, the final scaling is different.
+
+3. **Incorrect final scaling**: The original scales the result to 0-255 range with `av_clip_uint8((int)floor(sum+0.5))`. The optimized version does `(sum + 128*8) >> 10` which adds 1024 (128*8) before shifting, but this doesn't match the original's scaling.
+
+4. **Different algorithm**: The original performs proper 2D IDCT with proper normalization. The optimized version seems to be trying a different approach that doesn't produce mathematically equivalent results.
+
+5. **The `src` array contains DCT coefficients**, not pixel values. The original algorithm transforms these to pixel values. The optimized version's handling of the DC term (adding 128*8) suggests it's assuming the input is in a different format.
+
+The most serious issue is that the optimized function will produce completely different output values than the original. In the context of a test pattern generator, this would mean the test patterns would be incorrect, making the optimization invalid.
+
+**Performance consideration**: While fixed-point arithmetic could be faster than floating-point, correctness must come first. This implementation doesn't preserve the mathematical correctness of the IDCT transform.

@@ -1,0 +1,31 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Analysis of the Original Code**:
+- The function performs graph optimization in two main phases: optimizing the main graph and optimizing functions.
+- It uses several nested loops and recursive function traversals (find_all_functions).
+- The function makes heavy use of string operations and hash set lookups.
+- There are multiple passes over the function library and graph nodes.
+
+2. **Key Bottlenecks**:
+- The recursive function traversal (find_all_functions) could be expensive for large graphs.
+- Multiple passes over the function library and nodes (find_differentiable_functions, find_xla_compiled_functions).
+- String operations and hash set lookups in hot paths.
+- Potential redundant work when processing functions.
+
+3. **Reference Example Insights**:
+- Example 2 shows optimization by early skipping of simple/unaffected plans.
+- Example 3 shows optimization by moving dead function elimination earlier.
+- Both examples demonstrate reducing unnecessary work by early filtering.
+
+4. **Proposed Optimization**:
+The most impactful optimization would be to **combine the function traversals** to reduce passes over the nodes. Currently, there are separate traversals for:
+- Finding differentiable functions
+- Finding XLA compiled functions
+- Propagating TF data attributes
+
+We can combine these into a single traversal that identifies all these properties at once.
+
+5. **Final Optimization Idea**:
+Combine the multiple node traversals into a single unified traversal that identifies all required function properties (differentiable, XLA compiled, TF data) in one pass. This reduces the number of times we scan through the nodes and functions.
+
+Here's the optimized implementation:

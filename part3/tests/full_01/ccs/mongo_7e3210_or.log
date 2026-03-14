@@ -1,0 +1,27 @@
+Let me analyze the `updateCollectionMetadataInTransaction` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs a series of CRUD operations in a transaction to update collection metadata
+- Main operations are: delete existing chunks, insert new chunks, update collection entry, insert placement history
+- The chunk insertion part processes each chunk individually in a loop, which could be optimized
+
+2. **Optimization Strategy**:
+- The selected strategy is to pre-allocate container capacity and use move semantics
+- This applies well here because:
+  - We know the exact number of chunks upfront (chunks.size())
+  - The chunk entries are being copied into a vector before insertion
+  - We can reserve vector capacity upfront and use move semantics to avoid copies
+
+3. **Optimization Ideas**:
+- Pre-allocate entries vector capacity to avoid reallocations
+- Use emplace_back with std::move to avoid copying chunk BSON objects
+- Pre-allocate statement IDs vector
+- These are simple, high-impact changes that don't alter behavior
+
+4. **Selected Optimization**:
+- Focus on optimizing the chunk entries insertion part by:
+  - Reserving vector capacity upfront
+  - Using emplace_back with std::move
+  - Pre-allocating statement IDs
+
+5. **Final Optimized Implementation**:

@@ -1,0 +1,27 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Initial Analysis**:
+- The function compares two strings with optional whitespace handling
+- Main operations are character comparisons and whitespace skipping
+- Three different whitespace handling modes (IGNORE_WHITESPACE, IGNORE_WHITESPACE_CHANGE, IGNORE_WHITESPACE_AT_EOL)
+- Current implementation uses multiple nested loops and branches
+
+2. **Bottlenecks**:
+- Multiple while loops for whitespace skipping
+- Branch-heavy code for different whitespace handling modes
+- Potential redundant checks in the whitespace skipping logic
+- The `goto skip_ws` construct might inhibit compiler optimizations
+
+3. **Optimization Opportunities**:
+- Combine whitespace skipping loops where possible
+- Reduce branch mispredictions by simplifying control flow
+- Pre-check for common simple cases (empty strings, identical strings)
+- Optimize the most common path (no whitespace flags)
+
+4. **Selected Optimization**:
+The highest impact change would be to optimize the common case (no whitespace flags) by:
+- Moving the simple memcmp case to the start
+- Adding early return for empty strings
+- Using pointer arithmetic instead of array indexing where possible
+
+Here's the optimized implementation:

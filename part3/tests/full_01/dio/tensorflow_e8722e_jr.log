@@ -1,0 +1,10 @@
+Looking at the optimized function, the only change is in the `ELU` case. The original implementation used four separate lines for each component (x, y, z, w) with a ternary conditional. The optimized version uses the `select` function, which is a common OpenCL built-in that performs a component-wise selection based on a condition.
+
+The `select` function is typically more efficient on GPUs because it can be executed as a single instruction per component (or vectorized) rather than branching. The semantics are equivalent: `select(a, b, c)` returns `b` if `c` is true, else `a`. In the optimized code, `select(exp($0) - (FLT4)(1.0f), $0, $0 >= (FLT4)(0.0f))` means: if `$0 >= 0`, choose `$0`, else choose `exp($0) - 1.0f`. This matches the original ELU definition: `f(x) = x if x >= 0 else exp(x) - 1`.
+
+The optimization is valid because:
+1. It produces identical results for all inputs (assuming the same floating-point behavior, which `select` should guarantee).
+2. It is likely more efficient due to avoiding branching and using a vectorized selection.
+3. The rest of the function remains unchanged, so other operations are unaffected.
+
+Therefore, the optimized function is a valid replacement.

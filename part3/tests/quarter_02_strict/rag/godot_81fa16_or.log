@@ -1,0 +1,24 @@
+Let me analyze the `replace_by` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs several operations that could be expensive:
+  - Group copying (get_groups/add_to_group)
+  - Connection target replacement (_replace_connections_target)
+  - Child node traversal (find_owned_by)
+  - Parent-child relationship changes (remove_child/add_child/move_child)
+  - Owner management (set_owner calls)
+
+2. **Key Observations**:
+- The group copying happens even if p_keep_groups is false (the check is after the copy)
+- The owned_by_owner list is built even when data.owner is null
+- Multiple child operations could potentially be batched
+
+3. **Potential Optimizations**:
+- Move the p_keep_groups check before group operations
+- Only build owned_by_owner list if data.owner exists
+- Consider batching child operations
+
+4. **Selected Optimization**:
+The highest impact change would be to reorder operations to avoid unnecessary work when p_keep_groups is false. This is a simple change with clear benefits and no behavior changes.
+
+Here's the optimized function:

@@ -1,0 +1,24 @@
+Let me analyze the function and identify potential optimizations:
+
+1. Analysis:
+- The function performs several operations: operand checking, interface casting, type inference, and attribute setting
+- The main bottlenecks appear in the loop where attributes are set:
+  - String concatenation is performed twice per iteration using Twine/StringRef
+  - Attribute setting involves dynamic string creation
+- The type inference call is unavoidable as it's the core functionality
+- The OperationState creation and operation creation are necessary
+
+2. Key Observations:
+- String operations in the loop are expensive due to temporary creations
+- The attribute names follow predictable patterns ("dimsN" and "element_typeN")
+- We can precompute the attribute name patterns outside the loop
+
+3. Optimization Opportunity:
+- Precompute the attribute name prefixes before the loop to avoid repeated string operations
+- This reduces the overhead in the hot loop while maintaining identical functionality
+
+4. Selected Optimization:
+- Move the attribute name prefix construction outside the loop
+- Use a single Twine construction for each attribute type
+
+Here's the optimized function implementation:

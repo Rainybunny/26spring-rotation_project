@@ -1,0 +1,22 @@
+Let me analyze the `loadStoredObjects` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes metadata files sequentially in `iterateMetadataFiles`
+- It then processes tables and dictionaries in parallel using a thread pool
+- The main overhead appears to be in the metadata parsing and AST creation
+- The current implementation uses a `std::map` for sorting filenames, which has O(n log n) insertion time
+
+2. **Potential Optimizations**:
+- Replace `std::map` with `std::vector` + `std::sort` for better performance (vector has better cache locality)
+- Parallelize the metadata file parsing stage (but this would require significant restructuring)
+- Pre-allocate memory for the file_names container
+- Use move semantics when inserting ASTPtr into the container
+
+3. **Selected Optimization**:
+The most impactful yet simple change is to replace `std::map` with `std::vector` + `std::sort`. This provides:
+- Better cache locality during insertion
+- Faster sorting due to contiguous memory
+- Similar or better performance for the subsequent iteration
+- Minimal code changes required
+
+Here's the optimized implementation:

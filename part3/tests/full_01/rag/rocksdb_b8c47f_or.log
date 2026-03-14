@@ -1,0 +1,29 @@
+Let me analyze the `Apply` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function processes two main operations: deleting files and adding new files
+   - For deletions, it performs:
+     - Insertion into `deleted_files` set
+     - Consistency check (which is debug-only)
+     - Lookup in `added_files` map
+     - Potential file unreferencing and removal
+   - For additions, it performs:
+     - New FileMetaData allocation
+     - Insertion into `added_files` map
+     - Erasure from `deleted_files` set
+
+2. **Key Observations**:
+   - The consistency checks are debug-only (wrapped in NDEBUG) and can be optimized out in release builds
+   - The `find()` + `erase()` pattern for `added_files` could potentially be optimized
+   - The `insert()` operations could be optimized by using hint-based insertion where possible
+
+3. **Potential Optimizations**:
+   - Remove debug checks in release builds (already done via NDEBUG)
+   - Use `unordered_map::erase()` with return value to avoid double lookup
+   - Use hint-based insertion for `added_files` since we know the key doesn't exist (from the assert)
+   - Pre-reserve space in containers if we know approximate sizes
+
+4. **Selected Optimization**:
+   - The highest impact change would be to eliminate the double lookup in the deletion path by using the return value from `unordered_map::erase()` which returns the number of elements removed.
+
+Here's the optimized implementation:

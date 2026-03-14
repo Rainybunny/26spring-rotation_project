@@ -1,0 +1,14 @@
+Thought process/analysis:
+1. The function implements a naive substring search algorithm using memcmp() for each possible position in the haystack.
+2. The main bottleneck is the O(n*m) time complexity where n is haystack_len and m is needle_len.
+3. The current implementation doesn't take advantage of:
+   - Early rejection when first bytes don't match
+   - Potential SIMD optimizations available in modern CPUs
+   - More efficient string search algorithms like Boyer-Moore or KMP
+4. However, introducing complex algorithms might not be worth it for small needles or haystacks.
+5. The simplest high-impact optimization would be to add an explicit check for the first byte before calling memcmp(), as this can quickly reject many positions without the overhead of a full memcmp().
+
+Final optimization idea:
+Add a first-byte check before calling memcmp(). This reduces the number of expensive memcmp() calls when the first byte doesn't match, which is statistically likely for most data patterns. This is a simple change that maintains the same behavior while potentially significantly improving performance for many cases.
+
+Optimized function implementation:

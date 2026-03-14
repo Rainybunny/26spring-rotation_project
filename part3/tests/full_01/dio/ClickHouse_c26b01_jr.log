@@ -1,0 +1,65 @@
+Looking at the provided code, the optimized function is `PipelineExecutor::finalizeExecution()`. Let's compare it with the original implementation.
+
+Original implementation (from the full source code):
+```cpp
+void PipelineExecutor::finalizeExecution()
+{
+    if (process_list_element && process_list_element->isKilled())
+        throw Exception("Query was cancelled", ErrorCodes::QUERY_WAS_CANCELLED);
+
+    if (cancelled)
+        return;
+
+    bool all_processors_finished = true;
+    for (auto & node : graph)
+        if (node.status != ExecStatus::Finished)  /// Single thread, do not hold mutex
+            all_processors_finished = false;
+
+    if (!all_processors_finished)
+        throw Exception("Pipeline stuck. Current state:\n" + dumpPipeline(), ErrorCodes::LOGICAL_ERROR);
+}
+```
+
+Optimized implementation:
+```cpp
+void PipelineExecutor::finalizeExecution()
+{
+    if (process_list_element && process_list_element->isKilled())
+        throw Exception("Query was cancelled", ErrorCodes::QUERY_WAS_CANCELLED);
+
+    if (cancelled)
+        return;
+
+    for (auto & node : graph)
+    {
+        if (node.status != ExecStatus::Finished)  /// Single thread, do not hold mutex
+        {
+            throw Exception("Pipeline stuck. Current state:\n" + dumpPipeline(), ErrorCodes::LOGICAL_ERROR);
+        }
+    }
+}
+```
+
+Analysis:
+1. **Correctness**: Both implementations perform the same logical checks in the same order:
+   - Check if the query was killed via `process_list_element`
+   - Check if execution was cancelled
+   - Verify that all processors have finished (status == ExecStatus::Finished)
+   - Throw an exception with the pipeline dump if any processor is not finished
+
+2. **Performance**: The optimized version eliminates the intermediate boolean variable `all_processors_finished` and the second loop through the results. Instead, it throws the exception immediately when it finds the first non-finished processor. This provides:
+   - Early exit when a non-finished processor is found
+   - Elimination of the second conditional check (`if (!all_processors_finished)`)
+   - Reduced memory usage (no boolean variable)
+
+3. **Semantic equivalence**: The optimized version maintains exactly the same behavior:
+   - The exception message is identical
+   - The conditions for throwing are identical
+   - The early returns are identical
+
+4. **Potential issues**: None. The optimization is safe because:
+   - Once a non-finished processor is found, we always want to throw an exception
+   - There's no need to continue checking other processors after finding one that's not finished
+   - The exception message generation (`dumpPipeline()`) happens in the same context in both versions
+
+The optimization is valid as it improves performance by enabling early exit and reducing unnecessary iterations, while maintaining identical behavior and correctness.

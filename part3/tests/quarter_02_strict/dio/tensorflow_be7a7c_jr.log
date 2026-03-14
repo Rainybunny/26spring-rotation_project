@@ -1,0 +1,45 @@
+Looking at the provided code and the proposed optimized function, I'll analyze it against the reference solution.
+
+## Analysis
+
+**Original Function:** The original `Preprocess` function:
+1. Checks if an instruction name already exists in `instructions_by_name_` map
+2. If found, returns an error about duplicate names
+3. Otherwise inserts the instruction
+4. Validates sharding if present
+
+**Proposed Optimization:** The proposed solution adds a capacity reservation upfront:
+```cpp
+// Reserve space upfront to avoid rehashing
+if (instructions_by_name_.empty() && instruction->parent() != nullptr) {
+  instructions_by_name_.reserve(instruction->parent()->instruction_count());
+}
+```
+Then continues with the same find/check/insert pattern as the original.
+
+**Reference Optimization:** The reference solution uses `insert` with a return value to check for duplicates in one operation:
+```cpp
+auto [it, inserted] = 
+    instructions_by_name_.insert({instruction->name(), instruction});
+TF_RET_CHECK(inserted) << "HLO has name that is not unique...";
+```
+
+## Strategy Comparison
+
+1. **Proposed Strategy**: Pre-allocates capacity to avoid rehashing, but keeps the same two-step lookup (find then insert) approach.
+
+2. **Reference Strategy**: Uses a single `insert` operation that returns both an iterator and a boolean indicating whether insertion occurred. This eliminates the duplicate lookup while achieving the same validation.
+
+These are fundamentally different optimization strategies:
+- The proposed solution focuses on **memory allocation optimization** (reserving capacity)
+- The reference solution focuses on **algorithmic optimization** (eliminating redundant lookups)
+
+## Validity and Performance
+
+The proposed optimization is **valid** - it maintains correctness by preserving the same checks. The capacity reservation could provide **some performance benefit** by reducing rehashing, especially for large computations.
+
+However, the reference solution provides **better algorithmic efficiency** by avoiding the duplicate hash lookup entirely (find + insert vs. insert with return value).
+
+## Verdict
+
+The optimization strategies differ significantly. The reference uses an algorithmic improvement (single insert operation), while the proposal uses a memory allocation optimization. Since the criteria require the strategies to match, and they don't:

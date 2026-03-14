@@ -1,0 +1,40 @@
+Looking at the provided code, I can see that the optimized function is the constructor for `SortedAggregateBindData`. The optimization appears to be in the loop that checks if the aggregate is sorted on its arguments (`sorted_on_args`).
+
+**Original logic** (from the full source code):
+```cpp
+sorted_on_args = (children.size() == order_bys.orders.size());
+for (size_t i = 0; sorted_on_args && i < children.size(); ++i) {
+    sorted_on_args = children[i]->Equals(*order_bys.orders[i].expression);
+}
+```
+
+**Optimized logic**:
+```cpp
+sorted_on_args = (children.size() == order_bys.orders.size());
+if (sorted_on_args) {
+    for (size_t i = 0; i < children.size(); ++i) {
+        if (!children[i]->Equals(*order_bys.orders[i].expression)) {
+            sorted_on_args = false;
+            break;
+        }
+    }
+}
+```
+
+**Analysis**:
+
+1. **Correctness**: Both versions compute the same boolean value. The optimized version moves the condition check outside the loop header, which is functionally equivalent. The loop only executes if `sorted_on_args` is initially true (when children count equals orders count), and breaks early when a mismatch is found.
+
+2. **Performance**: The optimized version is slightly more efficient because:
+   - It avoids checking `sorted_on_args` in every iteration of the loop
+   - The loop condition is simpler (just `i < children.size()`)
+   - The early break behavior is preserved
+
+3. **Readability**: The optimized version might be slightly clearer because it separates the initial condition check from the loop logic.
+
+4. **Edge cases**: Both handle the same edge cases correctly:
+   - When `children.size() != order_bys.orders.size()`, `sorted_on_args` is false and the loop doesn't execute
+   - When all children match their corresponding order expressions, `sorted_on_args` remains true
+   - When any child doesn't match, `sorted_on_args` becomes false and the loop breaks early
+
+The optimization is valid because it maintains the same behavior while potentially improving performance by simplifying the loop control logic.

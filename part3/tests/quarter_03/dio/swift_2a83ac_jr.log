@@ -1,0 +1,15 @@
+Looking at the provided code, the optimized function is `IRGenFunction::emitCondition`. The original version first conditionally inverts the value `V` using `Builder.CreateXor` if `invertValue` is true, then creates a conditional branch with `trueBB` and `falseDestBB` as targets. The optimized version eliminates the explicit XOR operation and instead swaps the branch targets in the `CreateCondBr` call based on `invertValue`.
+
+Let's analyze:
+
+1. **Correctness**: The optimized version directly uses the condition value `V` and chooses the branch order based on `invertValue`. This is semantically equivalent because:
+   - When `invertValue` is false, it branches to `trueBB` if `V` is true (same as original).
+   - When `invertValue` is true, it branches to `falseDestBB` if `V` is true, which is equivalent to branching to `trueBB` if `!V` is true (since `!V` is the inverted condition). This matches the original behavior where `V` was inverted via XOR before branching.
+
+   The logic for constant conditions remains unchanged. The creation of basic blocks and the handling of `hasFalseCode` is identical.
+
+2. **Performance**: The optimized version avoids creating an extra XOR instruction, which is a small but clear improvement. It directly uses the condition value and swaps the branch targets, which should be at least as efficient and possibly more so because it reduces instruction count.
+
+3. **Compatibility**: The function signature and the returned `Condition` object are unchanged. The behavior for all code paths (constant vs. non-constant conditions, with or without false code) is preserved.
+
+Therefore, the optimized function is a valid replacement that maintains correctness while improving performance by eliminating an unnecessary instruction.

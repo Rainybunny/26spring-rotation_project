@@ -1,0 +1,25 @@
+Let me analyze the function and propose optimizations:
+
+1. Analysis:
+- The function `GetOneInputCode` generates OpenCL kernel code strings for various elementwise operations
+- Current implementation uses string concatenation and substitution which can be inefficient
+- The main bottlenecks are:
+  * Multiple string concatenations for operations like ELU and SIGMOID
+  * Final string substitution with absl::Substitute
+- The function is called frequently during kernel generation, so optimization is important
+
+2. Strategy Application:
+- Similar to the reference examples, we can optimize by constructing the final string directly in a pre-allocated buffer
+- For this case, we'll use string appending to a single string buffer to avoid intermediate allocations
+- We'll also eliminate the final substitution by directly incorporating the input0 parameter
+
+3. Optimization Idea:
+- Replace string concatenations with direct appends to a result string
+- Eliminate the final substitution by directly using input0 in the string construction
+- Pre-reserve string capacity where possible to avoid reallocations
+
+4. Selected Optimization:
+- Direct string construction with input0 incorporated during building rather than substitution
+- This avoids the substitution overhead and multiple string allocations
+
+Here's the optimized implementation:

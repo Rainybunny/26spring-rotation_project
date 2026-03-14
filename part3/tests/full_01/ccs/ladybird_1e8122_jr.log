@@ -1,0 +1,27 @@
+Looking at the provided code, the original `String::from_utf8_with_replacement_character` function is:
+
+```cpp
+String String::from_utf8_with_replacement_character(StringView view)
+{
+    StringBuilder builder;
+
+    for (auto c : Utf8View { view })
+        builder.append_code_point(c);
+
+    return builder.to_string_without_validation();
+}
+```
+
+The optimized version adds a call to `builder.ensure_capacity(view.length())` before the loop.
+
+**Analysis:**
+
+1. **Correctness:** The optimization is correct. The `ensure_capacity` call pre-allocates memory in the `StringBuilder` to hold at least `view.length()` bytes. Since UTF-8 characters can be 1-4 bytes, and the function iterates over code points (which may be multi-byte), `view.length()` is the number of bytes in the input. This is a safe upper bound for the required capacity because each code point is at least 1 byte in UTF-8 representation. The function then appends each code point, which will not cause reallocations if the capacity is sufficient. The behavior remains identical.
+
+2. **Performance:** The optimization improves performance by reducing potential reallocations. Without `ensure_capacity`, the `StringBuilder` might need to reallocate multiple times as it grows, especially for large strings. With `ensure_capacity`, it allocates once (if needed), reducing memory operations and copying.
+
+3. **Context:** The function is part of a larger codebase, but the change is localized to this function. It does not affect any other functions or dependencies. The `StringBuilder::ensure_capacity` method is assumed to exist (it's a common method for such builders) and is safe to call.
+
+4. **Potential issues:** There are no correctness issues. The capacity is set to `view.length()`, which might be more than necessary if there are multi-byte characters (since code points may be multiple bytes, but `view.length()` is in bytes). However, `ensure_capacity` ensures at least that much capacity; it's okay to allocate more. The function `to_string_without_validation` does not validate UTF-8, which is consistent with the original.
+
+**Conclusion:** The optimized function is a valid replacement that maintains correctness and improves performance.

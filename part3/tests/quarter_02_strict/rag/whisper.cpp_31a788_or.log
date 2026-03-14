@@ -1,0 +1,28 @@
+Let me analyze the `log_mel_spectrogram` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes audio samples into mel spectrogram features
+- Main operations: padding, windowing, FFT, mel filtering
+- Most compute-intensive part is the threaded processing in `log_mel_spectrogram_worker_thread`
+- Memory operations (vector resizing/copying) could be optimized
+
+2. **Key Observations**:
+- The function uses a global cache for Hann window coefficients
+- Input samples are padded and copied into a new vector
+- Multi-threading is already implemented for the core processing
+- Final normalization/clamping is done sequentially
+
+3. **Potential Optimizations**:
+- The padding operations could be optimized to avoid extra copies
+- The final normalization could be parallelized
+- Memory allocations could be reused between calls
+- SIMD instructions could be utilized for the clamping/normalization
+
+4. **Selected Optimization**:
+The highest impact change would be to parallelize the final normalization/clamping step since:
+- It's currently sequential
+- Operates on large arrays (mel.n_mel * mel.n_len elements)
+- Simple operations that parallelize well
+- Doesn't require major structural changes
+
+Here's the optimized implementation:

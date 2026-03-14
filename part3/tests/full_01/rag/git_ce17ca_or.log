@@ -1,0 +1,25 @@
+Let me analyze the `contains()` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function has two main paths: regex matching and exact string matching
+   - For exact string matching (non-regex case), it uses a naive O(n*m) algorithm with memcmp
+   - The regex path seems reasonably optimized with REG_NOTBOL flag
+   - The main optimization opportunity is in the exact string matching case
+
+2. **Current Implementation Issues**:
+   - The exact match uses a simple byte-by-byte scan with memcmp
+   - Each memcmp call compares the entire needle length even if first bytes don't match
+   - The offset increment is inefficient (always +1 then sometimes adjusted)
+
+3. **Optimization Opportunities**:
+   - Implement a faster string search algorithm (Boyer-Moore, etc)
+   - But that would require significant changes and memory usage
+   - Simpler optimization: check first byte before full memcmp
+   - This gives good bang-for-buck with minimal changes
+
+4. **Selected Optimization**:
+   - Add a first-byte check before memcmp to quickly skip non-matching positions
+   - This reduces memcmp calls when first byte doesn't match
+   - Preserves exact same behavior, just faster
+
+Here's the optimized implementation:

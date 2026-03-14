@@ -1,0 +1,24 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes equivalence classes of dot operations and attempts to merge them
+- Main operations are building equivalence classes, constructing a dependency graph, and merging dot operations
+- The most expensive parts appear to be:
+  - Building the equivalence_classes map (O(n) for n instructions)
+  - Constructing the dependency graph (O(n) for nodes + O(e) for edges)
+  - The nested loops for merging dot pairs (O(k^2) where k is number of dots per equivalence class)
+
+2. **Key Observations**:
+- The `equivalence_classes` map stores sets of instructions for each operand
+- The `dead_instrs` set grows as we merge instructions
+- The `dots` vector is created for each equivalence class and sorted
+
+3. **Optimization Strategy**:
+- Pre-allocate memory for collections where possible
+- Use move semantics when inserting into sets/maps
+- Avoid unnecessary copies of instruction pointers
+
+4. **Selected Optimization**:
+The highest impact optimization would be to pre-allocate the `dead_instrs` set since we know the maximum possible size (number of dot instructions). We can estimate this from the equivalence_classes size.
+
+Here's the optimized function:

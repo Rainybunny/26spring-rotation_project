@@ -1,0 +1,21 @@
+Thought Process/Analysis:
+
+1. The function to optimize is a constructor that takes a std::string parameter by value. This means a copy of the string is made when the constructor is called, even if the original string is no longer needed by the caller.
+
+2. The string parameter is only read and not modified within the constructor (it's used to initialize the rep_ member). This makes it a perfect candidate for pass-by-const-reference optimization.
+
+3. The selected strategy of "Use pass-by-const-reference instead of pass-by-value" applies perfectly here because:
+   - std::string is a non-trivial object with potential heap allocations
+   - The string is only read, not modified
+   - Avoiding the copy can provide significant performance benefits, especially for large strings
+   - This matches exactly with the reference examples provided
+
+4. The optimization is simple but high-impact:
+   - Change the parameter type from std::string to const std::string&
+   - This avoids the unnecessary copy while maintaining exactly the same behavior
+   - No other changes to the function are needed
+
+Final Optimization Idea:
+Change the constructor parameter from pass-by-value (std::string) to pass-by-const-reference (const std::string&) to avoid unnecessary string copying while maintaining identical functionality.
+
+Optimized Function Implementation:

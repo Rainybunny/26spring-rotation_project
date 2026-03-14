@@ -1,0 +1,36 @@
+Looking at the optimized function `_update`, I can see several changes compared to the original:
+
+1. **Parameter types changed**: `query` and `toupdate` are now declared as `const BSONObj&` instead of `BSONObj` (copy).
+2. **chunkFinder type changed**: Now a pointer `const BSONObj*` instead of a `BSONObj` object.
+3. **Assignment to chunkFinder**: When `save = true`, it now assigns `&toupdate` instead of `toupdate`.
+4. **Usage of chunkFinder**: Changed from using `chunkFinder` directly to dereferencing `*chunkFinder`.
+
+**Analysis for correctness:**
+
+1. **Performance improvement**: The change from `BSONObj` to `const BSONObj&` avoids copying the BSON objects, which is a valid optimization since these objects are only read, not modified.
+
+2. **Pointer usage for chunkFinder**: This is also correct because:
+   - When `save = false`, `chunkFinder` points to `query` (which is a reference to the original object)
+   - When `save = true`, `chunkFinder` points to `toupdate` (which is a reference to the original object)
+   - Both objects remain valid throughout the function scope
+
+3. **Logic preservation**: All the original logic is preserved:
+   - The same error checks and conditions
+   - The same update operations
+   - The same multi/single update handling
+
+4. **Memory safety**: The referenced objects (`query` and `toupdate`) come from the `DbMessage` object and remain valid for the duration of the function.
+
+5. **Compatibility**: The function signature remains the same, so it's a drop-in replacement.
+
+**Potential issues:**
+- The original code had `BSONObj chunkFinder = query;` which created a copy. The optimized version uses a pointer to avoid this copy, but only when `save = false`. When `save = true`, the original code would copy `toupdate` into `chunkFinder`, while the optimized version just points to `toupdate`. This is actually correct because `chunkFinder` is only used for querying/finding chunks, not modified.
+
+**Performance benefit:**
+- Avoids unnecessary BSON object copies, which can be expensive for large documents
+- Reduces memory allocations and copying overhead
+
+The optimization is valid because:
+1. It maintains the same behavior and correctness
+2. It improves performance by avoiding unnecessary copies
+3. It doesn't introduce any new side effects or memory safety issues

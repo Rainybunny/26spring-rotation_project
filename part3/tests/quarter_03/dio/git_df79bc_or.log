@@ -1,0 +1,21 @@
+Let me analyze the `get_strategy()` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function does string comparisons in multiple places which can be expensive
+- The `load_command_list()` and cmdlist operations are relatively heavy and only needed for custom strategies
+- The static `loaded` flag prevents repeated work but the initialization could be optimized
+- Memory allocation happens even for built-in strategies
+
+2. **Key Observations**:
+- Most common case is looking up built-in strategies (first loop)
+- Custom strategies are less common and can be handled separately
+- The function exits early for NULL input
+- String comparisons dominate the hot path
+
+3. **Optimization Idea**:
+The most impactful optimization would be to optimize the built-in strategy lookup by:
+- Using a hash table for O(1) lookups of built-in strategies
+- Moving the custom strategy handling to a separate function
+- Avoiding memory allocation for built-in strategies
+
+Here's the optimized implementation:

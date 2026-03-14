@@ -68,40 +68,73 @@ def init_knowledge_base():
 
 knowledge_base = init_knowledge_base()
 wanted_example_num = 4
-distance_threshold = 0.7
+# Chroma returns distance (smaller is more similar). Keep a relaxed cap so we still
+# provide some context on hard cases while filtering obvious outliers.
+distance_threshold = 1.2
 
 def query_context(mission: utils.Mission) -> str:
     try:
         similar = knowledge_base.query(
             query_texts=[mission.origin_func],
-            n_results=5
+            n_results=20
         )
     except Exception as e:
         print(f"RAG Query failed: {e}")
-        similar = None
+        return ""
 
-    similar = zip(similar["distances"][0], similar['metadatas'][0])
-    similar = filter(lambda x: x[0] >= distance_threshold
-                     and x[1]['repo_name'] != mission.repo_name, similar)
-    similar = list(similar)[:wanted_example_num]
-    similar.reverse()
-    similar = map(lambda x: utils.CommitInfo(utils.knowledge_base_root,
-                                             x[1]['repo_name'], x[1]['commit_hash']),
-                  similar)
-    similar = list(similar)
-    # at most 3 similar examples from different repos,
-    # reverse to have most similar last for better CoT reasoning
-
-    if len(similar) < wanted_example_num:
-        print(f"[Warning] Only {len(similar)} similar examples found in knowledge base for mission\n"
+    distances = similar.get("distances", [[]])[0]
+    metadatas = similar.get("metadatas", [[]])[0]
+    if not distances or not metadatas:
+        print(f"[Warning] No retrieval candidates for mission\n"
               f"> {mission.repo_name}/{mission.commit_hash}.")
         return ""
 
-    context = f"Below are {len(similar)} reference examples\n\n"
-    for num, example in enumerate(similar):
+    # Keep nearest neighbors first and diversify by repository to avoid nearly
+    # duplicate examples from a single codebase.
+    pairs = sorted(zip(distances, metadatas), key=lambda x: x[0])
+    selected_meta = []
+    used_repos = set()
+    for distance, metadata in pairs:
+        repo_name = metadata.get("repo_name")
+        commit_hash = metadata.get("commit_hash")
+        if not repo_name or not commit_hash:
+            continue
+        if repo_name == mission.repo_name:
+            continue
+        if distance > distance_threshold:
+            continue
+        if repo_name in used_repos:
+            continue
+        selected_meta.append((distance, repo_name, commit_hash))
+        used_repos.add(repo_name)
+        if len(selected_meta) >= wanted_example_num:
+            break
+
+    if not selected_meta:
+        print(f"[Warning] No similar examples found in knowledge base for mission\n"
+              f"> {mission.repo_name}/{mission.commit_hash}.")
+        return ""
+
+    examples = []
+    for distance, repo_name, commit_hash in selected_meta:
+        try:
+            examples.append((distance, utils.CommitInfo(utils.knowledge_base_root, repo_name, commit_hash)))
+        except Exception as e:
+            print(f"[Warning] Skip broken example {repo_name}/{commit_hash}: {e}")
+
+    if not examples:
+        return ""
+
+    context = f"Below are {len(examples)} reference examples\n\n"
+    for num, (distance, example) in enumerate(examples):
         context += f"Example {num+1} (Repo: {example.repo_name}, Commit: {example.commit_hash}):\n"
+        context += f"Similarity distance: {distance:.4f}\n"
         context += f"Original Function:\n```{example.lang}\n{example.origin_func}\n```\n"
         context += f"Optimized Function:\n```{example.lang}\n{example.target_func}\n```\n\n"
+
+    if len(examples) < wanted_example_num:
+        print(f"[Info] Using {len(examples)} retrieved examples for mission\n"
+              f"> {mission.repo_name}/{mission.commit_hash}.")
     return context
 
 def optimize(mission: utils.Mission) -> tuple[str, str]:

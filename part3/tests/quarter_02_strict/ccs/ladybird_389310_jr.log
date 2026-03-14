@@ -1,0 +1,64 @@
+Let’s break this down step by step.
+
+---
+
+**1. Original function behavior**
+
+The original `copy` function:
+
+- Handles `count == 0` early.
+- For trivial types, uses `__builtin_memmove` for any `count > 0`.
+- For non-trivial types, it loops from `i = 0` to `count-1` but chooses the direction based on whether `destination <= source` to avoid overlap corruption:
+  - If `destination <= source`, copy forward.
+  - If `destination > source`, copy backward (starting from the end).
+- This ensures correct copy semantics even with overlapping ranges.
+
+---
+
+**2. Proposed optimized function**
+
+The proposed function changes the **non-trivial** case’s loop structure:
+
+- Instead of checking `destination <= source` **inside** the loop each iteration, it checks **once** outside and runs one of two separate loops.
+- This removes the per-iteration branch, which could improve performance for large `count` when `T` is non-trivial.
+- The trivial case is unchanged from the original (still just `__builtin_memmove` for any `count > 0`).
+
+---
+
+**3. Reference optimized function**
+
+The reference optimized function:
+
+- Keeps the **non-trivial** loop exactly as the original (branch inside loop).
+- Changes the **trivial** case: adds a special case for `count == 1` (`*destination = *source`) instead of calling `__builtin_memmove` for a single element.
+- The idea is that for trivial types, a single assignment might be cheaper than a function call to `memmove` (though compilers might inline `memmove` for small sizes anyway).
+
+---
+
+**4. Strategy comparison**
+
+- **Proposed strategy**: Optimize non-trivial case by hoisting the overlap check outside the loop.
+- **Reference strategy**: Optimize trivial case by handling `count == 1` separately to avoid `memmove` overhead for a single element.
+
+These are **completely different optimization strategies** targeting different parts of the function.
+
+- The reference does **not** change the non-trivial loop structure.
+- The proposal does **not** change the trivial case’s handling of `count == 1`.
+
+Thus, the proposed optimization does **not** follow the same strategy as the reference.
+
+---
+
+**5. Validity & Performance**
+
+- The proposed change is **valid**: moving the overlap check outside the loop preserves correctness because the direction is fixed for the whole copy operation.
+- It may improve performance for non-trivial types by removing a per-iteration branch.
+- However, it does **not** match the reference’s strategy.
+
+---
+
+**Final Verdict**
+
+Since the optimization strategy differs significantly (proposal optimizes non-trivial loop branch; reference optimizes trivial case single-element copy), the proposal does **not** match the required strategy.
+
+---

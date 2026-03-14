@@ -1,0 +1,24 @@
+Let me analyze the `spi_printtup` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function is called for every tuple processed by the executor, so it's performance critical
+- Current implementation uses a simple reallocation strategy: when free slots run out, it adds 256 more slots
+- This leads to multiple reallocations as the result set grows
+- The realloc() call can be expensive for large result sets as it may need to copy memory
+
+2. **Optimization Strategy**:
+- Pre-allocation strategy would be ideal here since we know the typical access pattern
+- We can use exponential growth for the array to minimize reallocations
+- The current fixed growth of 256 is not optimal for either small or large result sets
+
+3. **Selected Optimization**:
+- Change the fixed 256 growth to exponential growth (double the size each time)
+- This reduces the number of reallocations from O(n) to O(log n)
+- Maintains the same memory usage characteristics (still linear total allocation)
+- Simple change with high impact for large result sets
+
+4. **Implementation**:
+- When free slots run out, double the current allocation size instead of adding 256
+- Keep the same basic structure but with smarter growth
+
+Here's the optimized implementation:

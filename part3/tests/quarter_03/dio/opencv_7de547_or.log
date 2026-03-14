@@ -1,0 +1,23 @@
+Let me analyze the function and identify potential optimizations:
+
+1. **Bottleneck Analysis**:
+- The main computational hotspots are:
+  - The sorting operation `std::sort(errf.ptr<int>(), errf.ptr<int>() + count)` inside the inner loop
+  - The error computation `cb->computeError()` which is called for each model
+  - The model evaluation loop that runs for `niters` iterations
+
+2. **Key Observations**:
+- The sorting operation is performed on floating-point data but using integer pointers (errf.ptr<int>()), which is incorrect and potentially unsafe
+- The median computation could be optimized by using a partial sort or selection algorithm since we only need the middle element(s)
+- The error computation is called multiple times but we can't optimize the callback directly
+
+3. **Optimization Opportunity**:
+The most impactful optimization would be to replace the full sort with a more efficient median calculation method. We can:
+- Use `std::nth_element` for odd counts (single median value)
+- Use two `std::nth_element` calls for even counts (two middle values)
+- This reduces the O(n log n) sorting to O(n) complexity
+
+4. **Selected Optimization**:
+Replace the full sort with partial sorting using `std::nth_element` for median calculation.
+
+Here's the optimized function:

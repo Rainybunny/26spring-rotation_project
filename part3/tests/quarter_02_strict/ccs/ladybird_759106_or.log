@@ -1,0 +1,28 @@
+Let me analyze the `rasterize_triangle` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes triangles by iterating over 2x2 pixel blocks (quads)
+- Main operations per quad: edge testing, barycentric calculations, depth/stencil tests, shading, blending
+- Heavy use of SIMD operations (f32x4/i32x4) which is good
+- Memory access patterns could be improved (scattered writes)
+
+2. **Key Optimization Opportunities**:
+- The inner loop has many conditional branches (enable_stencil_test, enable_depth_test etc.)
+- Memory access to color/depth/stencil buffers is scattered
+- Barycentric calculations are recomputed per quad
+- Texture coordinate interpolation is done for all samplers even if unused
+
+3. **Selected Optimization Strategy**:
+Focus on optimizing the memory access patterns and reducing redundant calculations by:
+- Precomputing more values outside the inner loop
+- Using pointer arithmetic for buffer access
+- Minimizing conditional branches in hot paths
+- Optimizing the barycentric coordinate calculations
+
+4. **Chosen Optimization**:
+Optimize the barycentric coordinate calculations by:
+- Precomputing edge function denominators
+- Using SIMD more effectively for interpolation
+- Moving calculations out of the inner loop where possible
+
+Here's the optimized function:

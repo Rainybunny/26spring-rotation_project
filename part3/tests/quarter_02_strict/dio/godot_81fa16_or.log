@@ -1,0 +1,18 @@
+Let me analyze the `replace_by` function for optimization opportunities:
+
+1. **Bottlenecks Analysis**:
+- The function makes multiple calls to `get_child_count()` and `get_child()` which can be expensive due to cache validation
+- The owned nodes list is copied unnecessarily
+- Multiple signal emissions and group operations could be batched
+- The function does a lot of parent/child relationship manipulation which could be optimized
+
+2. **Optimization Ideas**:
+- Cache the child count and children list to avoid repeated calls
+- Use move semantics for the owned nodes list instead of copying
+- Batch group operations
+- Optimize the parent-child relationship updates
+
+3. **Selected Optimization**:
+The most impactful optimization would be to cache the child count and children list, since this is accessed multiple times and involves hash map lookups. This is a simple change with high impact.
+
+Here's the optimized function:

@@ -1,0 +1,15 @@
+Looking at the provided code, the function to optimize is `triangulate_delaunay`. The original version uses `push_back` in a loop, which can cause multiple reallocations. The proposed optimization pre-allocates the exact size needed and then writes to the pre-allocated array using `write[]`. The reference optimization also pre-allocates but uses a write pointer (`ptrw()`) and pointer arithmetic for assignment.
+
+**Analysis of Proposed Optimization:**
+1. **Correctness:** The proposed function correctly pre-allocates the exact size (`tr.size() * 3`), which matches the number of triangle vertices. The loop correctly fills the array with the three vertex indices per triangle. The logic is identical to the original, so it maintains correctness.
+2. **Performance:** Pre-allocating eliminates repeated reallocations and copies that `push_back` might cause, improving performance. The use of `write[]` is efficient for direct indexed writes.
+3. **Strategy Match:** Both the proposed and reference optimizations aim to avoid reallocations by pre-allocating the exact required size. However, the reference uses a write pointer (`ptrw()`) and increments it, which is a more low-level, pointer-based approach that may be slightly faster due to reduced index calculations and bounds checking. The proposed uses indexed writes with `write[]`, which is still an improvement over `push_back` but not identical to the pointer arithmetic strategy. The core idea (pre-allocation) is the same, but the implementation details differ.
+
+**Comparison of Strategies:**
+- **Reference Strategy:** Pre-allocate with `resize`, obtain a write pointer via `ptrw()`, and use pointer arithmetic to fill the array.
+- **Proposed Strategy:** Pre-allocate with `resize`, then use indexed writes with `write[]` in a loop.
+
+While both are valid optimizations over the original, the reference uses a more aggressive low-level pointer approach. The proposed uses a safer indexed method but does not match the exact same low-level pointer arithmetic.
+
+**Final Verdict:**  
+The proposed optimization is valid and improves performance, but it does not follow the exact same optimization strategy as the reference (pointer arithmetic vs. indexed writes). Therefore, it fails the strict strategy match requirement.

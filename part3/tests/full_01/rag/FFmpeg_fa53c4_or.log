@@ -1,0 +1,25 @@
+Let me analyze the `idct` function for optimization:
+
+1. **Bottleneck Analysis**:
+   - The function performs a 2D IDCT (Inverse Discrete Cosine Transform) using a naive implementation with three nested loops.
+   - The main operations are floating-point multiplications and additions.
+   - The function is called frequently (for each 8x8 block) in test pattern generation.
+   - The current implementation has O(n³) complexity for an 8x8 block.
+
+2. **Optimization Opportunities**:
+   - The IDCT is separable - we can optimize it by doing 1D transforms on rows then columns.
+   - Precompute and store intermediate results where possible.
+   - Use fixed-point arithmetic instead of floating-point for faster computation.
+   - Unroll loops to reduce loop overhead.
+   - Use SIMD instructions if available (though this would be platform-specific).
+
+3. **Selected Optimization**:
+   - The highest impact change would be to implement a fixed-point IDCT using integer arithmetic instead of floating-point. This eliminates expensive floating-point operations and conversions.
+   - We'll use 16-bit fixed-point arithmetic with sufficient precision for 8-bit pixel output.
+
+4. **Optimized Implementation**:
+   - Convert the cosine coefficients to fixed-point integers.
+   - Perform all calculations using integer arithmetic.
+   - Add proper rounding and scaling to maintain precision.
+
+Here's the optimized implementation:

@@ -1,0 +1,20 @@
+Let me analyze the `fz_insert_gel_raw` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function is called frequently during path rendering to insert edges into the global edge list
+   - Main operations: edge sorting, bbox updates, and edge parameter calculations
+   - The bbox updates (6 conditional checks) are straightforward but could be optimized
+   - The edge parameter calculations involve some branching and arithmetic
+
+2. **Optimization Opportunities**:
+   - The bbox updates could be made branchless using min/max operations
+   - The edge parameter calculations could be simplified by precomputing values
+   - The array growth check could be moved earlier to avoid work if we're going to realloc
+
+3. **Selected Optimization**:
+   - Implement branchless bbox updates using min/max macros/operations
+   - This is a simple change that eliminates 6 conditional branches
+   - The bbox updates are performed unconditionally for every edge insertion
+   - Modern CPUs handle min/max operations very efficiently
+
+Here's the optimized implementation:

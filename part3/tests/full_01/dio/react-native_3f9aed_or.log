@@ -1,0 +1,30 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs multiple string lookups in maps (modulesByName_, unknownModules_)
+- There are several dynamic array constructions and manipulations
+- The most expensive parts appear to be:
+  - The map lookups (find() operations)
+  - The dynamic array operations (push_back, move operations)
+  - The method descriptor processing loop
+
+2. **Potential Optimizations**:
+- Cache the module name string to avoid repeated lookups
+- Pre-allocate dynamic arrays if we know approximate sizes
+- Optimize the method descriptor processing loop
+- Reduce string operations where possible
+
+3. **Selected Optimization**:
+The most impactful optimization would be to optimize the method descriptor processing loop since:
+- It's called for every module config request
+- It involves multiple dynamic array operations
+- It processes potentially many method descriptors
+- The current implementation does unnecessary moves and size checks
+
+4. **Optimization Approach**:
+- Pre-allocate methodNames array with known size
+- Eliminate redundant size() calls in the loop
+- Use emplace_back instead of push_back for better performance
+- Reduce temporary objects in the descriptor processing
+
+Here's the optimized function:

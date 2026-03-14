@@ -1,0 +1,37 @@
+Looking at the provided code, the optimized function is `fz_insert_gel_raw`. The original version had separate comparisons for updating the bounding box (`gel->bbox`), while the optimized version uses `fz_mini` and `fz_maxi` functions to update the bounding box more concisely.
+
+Let's analyze the changes:
+
+1. **Original bbox updates**:
+   ```c
+   if (x0 < gel->bbox.x0) gel->bbox.x0 = x0;
+   if (x0 > gel->bbox.x1) gel->bbox.x1 = x0;
+   if (x1 < gel->bbox.x0) gel->bbox.x0 = x1;
+   if (x1 > gel->bbox.x1) gel->bbox.x1 = x1;
+   if (y0 < gel->bbox.y0) gel->bbox.y0 = y0;
+   if (y1 > gel->bbox.y1) gel->bbox.y1 = y1;
+   ```
+
+2. **Optimized bbox updates**:
+   ```c
+   gel->bbox.x0 = fz_mini(gel->bbox.x0, fz_mini(x0, x1));
+   gel->bbox.x1 = fz_maxi(gel->bbox.x1, fz_maxi(x0, x1));
+   gel->bbox.y0 = fz_mini(gel->bbox.y0, y0);
+   gel->bbox.y1 = fz_maxi(gel->bbox.y1, y1);
+   ```
+
+The optimization replaces 6 conditional statements with 4 function calls to `fz_mini`/`fz_maxi`. However, there's a critical issue: the `fz_mini` and `fz_maxi` functions are not defined in the provided code. Looking at the original source code, these functions are not declared or defined anywhere. The original code uses direct comparisons.
+
+In the MuPDF codebase, `fz_mini` and `fz_maxi` are typically defined as macros or inline functions that compute the minimum/maximum of two integers. But since they're not defined in the provided code snippet, this optimized version would fail to compile.
+
+Additionally, even if these functions were available, the optimization changes the behavior slightly:
+- Original: Only updates bbox when the new coordinate extends beyond current bounds
+- Optimized: Always updates bbox with the minimum/maximum calculation
+
+While mathematically equivalent, the optimized version always performs the calculations and assignments, whereas the original only does so when needed. This could potentially be slower in cases where the bbox doesn't need updating.
+
+More importantly, the optimized code is missing the necessary function definitions, making it invalid as a direct replacement.
+
+**Correctness**: The logic is mathematically correct but relies on undefined functions.
+**Performance**: The optimization might not actually improve performance due to always calculating min/max instead of conditional updates.
+**Compilation**: Would fail to compile due to missing `fz_mini`/`fz_maxi` functions.

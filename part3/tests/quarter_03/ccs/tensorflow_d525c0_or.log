@@ -1,0 +1,24 @@
+Let me analyze the function and propose optimizations:
+
+1. Analysis:
+- The function generates OpenCL code strings for various elementwise operations
+- It uses string substitution with absl::Substitute for the input variable
+- Most operations are simple mathematical functions with straightforward string outputs
+- The main overhead comes from string construction and substitution
+
+2. Key Observations:
+- The string literals are constant and known at compile time
+- The substitution pattern is always the same (just replacing $0)
+- For many operations, we could return the string literal directly without substitution when input0 is "in_out_value" (common case)
+
+3. Optimization Strategy:
+- Treat string literals as zero-cost operations by avoiding substitution when possible
+- Special case the common pattern where input0 is "in_out_value" to return literals directly
+- This matches the strategy used in the reference examples where string literals are treated as free operations
+
+4. Selected Optimization:
+- For the common case where input0 is "in_out_value", return the string literal directly
+- Only use absl::Substitute when input0 differs from the common case
+- This avoids string construction and substitution overhead in the common path
+
+5. Final Optimized Function:

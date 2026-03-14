@@ -1,0 +1,25 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function processes rope strings by traversing a tree structure and collecting string pieces
+   - It uses two Vector objects (`pieces` and `stack`) that grow dynamically
+   - For UTF-16 case, it builds a Utf16Data by repeatedly extending it
+   - For UTF-8 case, it uses a StringBuilder which already handles capacity efficiently
+
+2. **Key Optimization Opportunities**:
+   - The `stack` and `pieces` vectors grow dynamically - we can pre-allocate capacity
+   - The UTF-16 case does repeated allocations when extending `code_units`
+   - The function is called frequently (string operations are common)
+
+3. **Selected Optimization**:
+   - Pre-allocate capacity for the `pieces` vector since we know the maximum possible size (2^depth)
+   - This avoids multiple reallocations during the tree traversal
+   - The stack can remain dynamically sized since its maximum depth is harder to predict
+
+4. **Why This Optimization**:
+   - String operations are performance-critical in JS engines
+   - Rope strings can be deep, leading to many reallocations
+   - Pre-allocation is a simple, safe optimization with clear benefits
+   - Matches our strategy of pre-allocating when final size is known
+
+Here's the optimized function:

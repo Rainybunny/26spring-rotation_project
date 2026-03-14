@@ -1,0 +1,23 @@
+Looking at the optimized `fill_from_cache` function compared to the original, I can see several changes:
+
+1. **Precomputation**: The optimized version precomputes `inv_scale = 1.0 / scale` and `x_offset = s->w/2 - s->start_x * inv_scale` outside the loop.
+
+2. **Simplified x calculation**: The original calculates `x = round((p->p[0] - s->start_x) / scale + s->w/2)`, while the optimized version uses `x = round(p->p[0] * inv_scale + x_offset)`.
+
+3. **Bound check optimization**: The original uses `if(x<0 || x >= s->w)`, while the optimized uses `if((unsigned)x >= (unsigned)s->w)` which performs a single unsigned comparison instead of two signed comparisons.
+
+**Correctness analysis**:
+- The precomputation is mathematically equivalent: `(p->p[0] - s->start_x)/scale + s->w/2 = p->p[0]/scale - s->start_x/scale + s->w/2 = p->p[0]*inv_scale + (s->w/2 - s->start_x*inv_scale)`.
+- The unsigned bound check works because casting negative values to unsigned results in large values that will be ≥ s->w for typical image dimensions.
+- All other logic remains identical.
+
+**Performance analysis**:
+- The precomputation moves a division and subtraction outside the loop, replacing them with a multiplication inside the loop.
+- The bound check optimization reduces two comparisons to one.
+- These changes should provide a measurable performance improvement, especially since this function is called multiple times per frame.
+
+**Potential issues**:
+- The division `1.0 / scale` could cause issues if `scale` is 0, but in the Mandelbrot context, `scale` should never be 0 (it's derived from positive values via `pow`).
+- The unsigned comparison trick assumes `s->w` is positive, which it should be for valid image dimensions.
+
+The optimization appears to be valid - it maintains the same functionality while improving performance through loop-invariant code motion and optimized bounds checking.

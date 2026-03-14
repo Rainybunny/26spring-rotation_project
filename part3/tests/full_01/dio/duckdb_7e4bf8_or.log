@@ -1,0 +1,18 @@
+Let me analyze the SortedAggregateBindData constructor for optimization opportunities:
+
+1. Bottleneck Analysis:
+- The constructor performs multiple loops over children and order_bys vectors
+- Each iteration calls GetSegmentDataFunctions() which may be expensive
+- The sorted_on_args check does a full comparison loop even when sizes don't match
+- Multiple emplace_back operations could potentially be optimized
+
+2. Optimization Opportunities:
+- Pre-check vector sizes before doing expensive comparisons
+- Reserve vectors upfront to avoid reallocations (already done)
+- Move the sorted_on_args size check outside the loop
+- Combine some operations where possible
+
+3. Selected Optimization:
+The most impactful change would be to move the sorted_on_args size check before the expensive comparison loop. This avoids doing any comparisons when we already know the answer from the size mismatch.
+
+Here's the optimized implementation:

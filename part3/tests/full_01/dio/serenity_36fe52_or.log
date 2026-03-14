@@ -1,0 +1,16 @@
+Let me analyze the `is_equal_node()` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs multiple type checks and comparisons for different node types
+- The child comparison loop uses `child_at_index()` which is O(n) per call, making the overall complexity O(n²) for the child comparison part
+- The element attribute comparison does a full scan of all attributes for each node
+
+2. **Key Optimization Opportunities**:
+- The most expensive part is the child comparison due to O(n²) complexity from `child_at_index()`
+- We can optimize by traversing children directly using next_sibling pointers instead of index-based access
+- The attribute comparison could be optimized by early-exiting when a mismatch is found
+
+3. **Selected Optimization**:
+The highest impact change would be optimizing the child comparison by avoiding `child_at_index()` and using direct sibling traversal instead. This changes the child comparison from O(n²) to O(n).
+
+Here's the optimized implementation:

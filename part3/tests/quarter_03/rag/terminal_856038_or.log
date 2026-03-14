@@ -1,0 +1,24 @@
+Let me analyze the function `_summonWindowRoutineBody` for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function makes several system calls (`GetForegroundWindow`, `SystemParametersInfoW`, `_getMonitorForCursor`, `_getMonitorForWindow`)
+   - There's conditional branching based on input parameters and system state
+   - The main operations are checking window/monitor states and dispatching to appropriate handlers
+
+2. **Reference Example Insights**:
+   - Example 1 shows optimization by avoiding redundant window rect calculations
+   - Example 2 demonstrates caching expensive operations (like getting window properties)
+   - Example 4 shows early returns for common cases
+
+3. **Optimization Ideas**:
+   - Cache the foreground window check result since it's used multiple times
+   - Move the animation check into a separate early-return block
+   - Simplify the monitor comparison logic
+
+4. **Selected Optimization**:
+   - The most impactful change would be to cache the foreground window check result since:
+     - It's called twice in the function
+     - It's a relatively expensive system call
+     - The value won't change during the function execution
+
+Here's the optimized implementation:

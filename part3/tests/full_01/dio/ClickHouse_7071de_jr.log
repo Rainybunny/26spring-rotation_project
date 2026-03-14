@@ -1,0 +1,28 @@
+Let's analyze the optimization step by step.
+
+**Original code:**
+- Creates an empty `permutation` vector.
+- Uses `emplace_back` in a loop to fill it with reversed indices.
+
+**Optimized code:**
+- Pre-allocates the `permutation` vector with `num_rows` size.
+- Uses direct assignment `permutation[i] = ...` in the loop.
+
+**Reasoning:**
+
+1. **Correctness:**  
+   Both versions produce the same permutation: `[num_rows-1, num_rows-2, ..., 0]`.  
+   The rest of the code (detaching columns, permuting, setting columns) is unchanged.  
+   The behavior is identical.
+
+2. **Performance:**  
+   Pre-allocation avoids repeated reallocations as the vector grows.  
+   `emplace_back` in the original code may cause multiple reallocations (log₂(num_rows) times in typical vector growth).  
+   Direct assignment is also slightly faster than `emplace_back` for pre-allocated memory because it avoids bounds-checking for capacity (though modern compilers may optimize similarly).  
+   The optimized version is therefore more efficient for large `num_rows`.
+
+3. **Safety:**  
+   Both are safe; the optimized version ensures the vector is exactly the right size from the start.
+
+**Conclusion:**  
+The optimized version is a valid replacement that improves performance without changing functionality.

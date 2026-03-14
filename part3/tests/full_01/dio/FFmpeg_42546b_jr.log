@@ -1,0 +1,21 @@
+Looking at the provided optimized function, I can identify several issues that make it an invalid optimization:
+
+1. **Incorrect checkline() parameters**: In the original code, the `checkline` function is called with different parameters for vertical and horizontal scanning:
+   - For vertical edges (x1/x2): `checkline(ctx, frame->data[0] + bpp * y, frame->linesize[0], frame->height, bpp)`
+   - For horizontal edges (y1/y2): `checkline(ctx, frame->data[0] + frame->linesize[0] * y, bpp, frame->width, bpp)`
+   
+   The optimized version incorrectly uses `bpp` for both stride and length parameters in some cases.
+
+2. **Parallelization issues**: The OpenMP parallel sections introduce race conditions when accessing shared variables `s->x1`, `s->x2`, `s->y1`, `s->y2`. These variables are read and written by different threads without synchronization, which can lead to incorrect results.
+
+3. **Dependency violations**: The boundary detection for different sides has dependencies:
+   - The y2 detection depends on the current value of s->y1 (in the condition `y > FFMAX(s->y2, s->y1)`)
+   - The x2 detection depends on the current value of s->x1 (in the condition `y > FFMAX(s->x2, s->x1)`)
+   
+   Running these in parallel while they're reading/writing these shared variables can cause incorrect behavior.
+
+4. **Missing variable declarations**: The optimized code declares `last_y` and `y` inside each section, but the original code used `y` as a loop variable that was also used in the loop conditions that depend on shared state.
+
+5. **Performance consideration**: While parallelization could theoretically improve performance, the implementation is flawed and the overhead of OpenMP might not be justified for the relatively small amount of work (scanning image boundaries).
+
+The optimized function changes the algorithm's behavior in ways that could produce incorrect crop detection results due to the race conditions and parameter errors. The original code correctly handles the sequential dependencies between boundary detections.

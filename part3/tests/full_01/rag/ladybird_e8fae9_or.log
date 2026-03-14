@@ -1,0 +1,27 @@
+Let me analyze the `resolve_rope_if_needed` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function handles rope strings (concatenated strings) by flattening them into either UTF-16 or UTF-8 format
+   - The UTF-16 path is relatively straightforward with a simple concatenation
+   - The UTF-8 path has complex surrogate pair handling which involves:
+     * Multiple UTF-8 view creations
+     * Byte-by-byte checks for surrogate markers
+     * Temporary string operations
+   - The most expensive part is the UTF-8 surrogate pair handling which does many small allocations and checks
+
+2. **Key Observations**:
+   - Surrogate pairs spanning rope pieces should be rare in practice
+   - The current implementation checks every piece boundary even when unlikely to contain surrogates
+   - We can optimize by first checking if any boundary might contain surrogates before doing expensive operations
+
+3. **Optimization Idea**:
+   - Add a fast path that first scans all pieces for potential surrogate boundaries
+   - Only if we find potential surrogate boundaries, do the expensive UTF-8 processing
+   - Otherwise, use simple concatenation (much faster)
+   - This maintains correctness while optimizing the common case
+
+4. **Selected Optimization**:
+   - Implement a pre-scan phase that quickly checks if we need full surrogate handling
+   - Only do the expensive UTF-8 processing if we find potential surrogate boundaries
+
+Here's the optimized implementation:

@@ -1,0 +1,28 @@
+Let me analyze the `triangulate_delaunay` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function first calls `Delaunay2D::triangulate()` which returns a Vector of Triangle structs
+   - It then creates a new Vector<int> and pushes 3 points for each triangle
+   - The main performance issue is the multiple push_back() calls which may cause reallocations
+
+2. **Optimization Strategy**:
+   - Since we know the output size will be exactly 3 * tr.size(), we can pre-allocate the vector capacity
+   - This avoids multiple reallocations as the vector grows
+   - The strategy matches our selected optimization principle of pre-allocating container capacity
+
+3. **Potential Optimizations**:
+   - Pre-allocate triangles vector capacity before the loop
+   - Use resize() instead of push_back() if possible (but push_back is needed here due to scattered access)
+   - The highest impact change would be reserving capacity upfront
+
+4. **Selected Optimization**:
+   - Pre-allocate the triangles vector capacity using reserve() before the loop
+   - This is a simple, safe change that prevents multiple reallocations
+   - No behavior change, just more efficient memory management
+
+5. **Final Optimization Idea**:
+   - Calculate required capacity (3 * tr.size()) upfront
+   - Reserve that capacity in the triangles vector before the loop
+   - Continue using push_back() as before but now without reallocations
+
+Here's the optimized function implementation:

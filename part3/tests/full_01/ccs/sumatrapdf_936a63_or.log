@@ -1,0 +1,30 @@
+Let me analyze the `fz_insert_gel_raw` function for optimization opportunities:
+
+1. **Analysis**:
+- The function handles edge insertion into a graphics edge list (gel)
+- It processes horizontal edges (y0 == y1) as a quick early exit
+- It handles edge direction by swapping points if needed
+- It updates the bounding box (bbox) of the gel
+- It manages dynamic array growth for edges
+- It calculates edge properties like direction, error terms, and stepping
+
+2. **Bottlenecks**:
+- The bounding box updates (6 conditional checks) are likely hot code
+- The edge array growth check and potential reallocation is a rare but expensive path
+- The direction swapping and edge property calculations are straightforward arithmetic
+
+3. **Optimization Strategy**:
+- The bounding box updates are performance critical as they happen for every edge
+- The array growth path is rare (happens only when capacity is exceeded) but expensive
+- Using branch prediction hints (`[[unlikely]]`) for the array growth case would help
+
+4. **Selected Optimization**:
+- Add `[[unlikely]]` attribute to the array growth condition check since it's a rare path
+- This helps CPU branch prediction prioritize the common case (no growth needed)
+
+5. **Impact**:
+- Improves performance of the common case (no array growth)
+- No impact on correctness or behavior
+- Minimal code change
+
+Here's the optimized function:

@@ -1,0 +1,27 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. Current Bottlenecks:
+- The function processes metadata files to load tables and dictionaries
+- Uses a std::map to store file names and ASTs, which involves dynamic allocations
+- Processes tables and dictionaries in two separate passes
+- Uses atomic counters for progress tracking which can be expensive
+
+2. Strategy Application:
+The selected strategy focuses on pre-allocating container capacity and using move semantics. Here's how it applies:
+- We know the total number of files upfront from iterateMetadataFiles
+- The AST objects are large and would benefit from move semantics
+- The file_names map could be pre-sized if we knew the count
+
+3. Optimization Ideas:
+- Pre-size the file_names map if possible (but iterateMetadataFiles doesn't provide count)
+- Use emplace with std::move for AST insertion
+- Combine table and dictionary processing into a single loop
+- Replace atomic counters with thread-local counters
+
+4. Selected Optimization:
+The highest impact change would be to use emplace with std::move when inserting ASTs into the file_names map, since:
+- AST objects are large and expensive to copy
+- We're already storing them by pointer, so move is safe
+- This eliminates unnecessary copying during map insertion
+
+Here's the optimized function:

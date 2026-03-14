@@ -65,6 +65,67 @@ def llm_judge(mission: utils.Mission) -> tuple[bool, str]:
         print(f"Error during LLM judging: {e}")
         return False, f"Error: {str(e)}"
 
+def llm_judge_strict(mission: utils.Mission) -> tuple[bool, str]:
+    system_prompt = (
+        "You are an expert code judge. Your task is to determine if the provided C/C++ optimized function is a valid optimization "
+        "of the original function within the context of the full source code, AND if it follows the same optimization strategy "
+        "as the reference solution.\n\n"
+        "You will be provided with:\n"
+        "1. Full original source code.\n"
+        "2. The PROPOSED optimized function implementation.\n"
+        "3. The REFERENCE optimized function implementation (Ground Truth).\n\n"
+        "Evaluation Criteria:\n"
+        "1. VALIDITY: The proposed code must be a valid replacement for the original function, maintaining correctness.\n"
+        "2. PERFORMANCE: It should improve runtime efficiency or reduce resource consumption.\n"
+        "3. STRATEGY MATCH: The optimization idea/strategy in the PROPOSED solution MUST match the detailed idea in the REFERENCE solution. "
+        "If the reference uses a specific algorithmic change, data structure, or low-level trick, the proposal must use the same. "
+        "Reject if the strategies differ significantly, even if the proposal is valid on its own.\n\n"
+        "Output Format:\n"
+        "1. Analysis of the proposed optimization correctness and performance.\n"
+        "2. Comparison of the optimization strategy vs the reference strategy.\n"
+        "3. Final Verdict line: 'VERDICT: TRUE' or 'VERDICT: FALSE'.\n"
+    )
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_prompt),
+        ("user", "{result_content}")
+    ])
+
+    chain = prompt | utils.judge_llm
+    # chain = prompt | utils.llm 
+    try:
+        # Add a timeout to prevent hanging indefinitely
+        result_content = mission.show_result()
+        result_content += f"\n\nReference Optimized Function (Ground Truth):\n```{mission.lang}\n{mission.target_func}\n```\n"
+        response = chain.invoke({"result_content": result_content})
+        content = response.content
+        
+        reason = content
+        verdict = False
+        
+        # Check for the verdict line
+        content_lines = content.strip().split('\n')
+        last_line = content_lines[-1].strip()
+        
+        if "VERDICT: TRUE" in last_line.upper():
+            verdict = True
+            reason = "\n".join(content_lines[:-1]).strip()
+        elif "VERDICT: FALSE" in last_line.upper():
+            verdict = False
+            reason = "\n".join(content_lines[:-1]).strip()
+        else:
+            # Fallback if format is not strictly followed but contains keywords
+            if "VERDICT: TRUE" in content.upper():
+                verdict = True
+            elif "VERDICT: FALSE" in content.upper():
+                verdict = False
+            # reason is the whole content in this fallback case
+            
+        return verdict, reason
+
+    except Exception as e:
+        print(f"Error during LLM judging: {e}")
+        return False, f"Error: {str(e)}"
 
 def run_optimizer(mission_list: list[utils.Mission], optimizer):
     # Determine max workers, default to 10 if not specified (or use user token limit)
@@ -91,9 +152,10 @@ def run_optimizer(mission_list: list[utils.Mission], optimizer):
                 print(f'{mission.output_file} generated an exception: {exc}', flush=True)
 
 judge_fn = llm_judge
+# judge_fn = llm_judge_strict
 
 def judge(mission_list: list[utils.Mission]):
-    MAX_WORKERS = 4 # Reduced from 10 to avoid rate limits/timeouts with heavy judge model
+    MAX_WORKERS = 10
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         future_to_mission = {
@@ -156,7 +218,7 @@ if __name__ == "__main__":
         # flush stdout and redirect to log file
         os.makedirs(os.path.join(test_folder, opt_id), exist_ok=True)
         sys.stdout.flush()
-        log_file = os.path.join(test_folder, opt_id, "results.log")
+        log_file = os.path.join(test_folder, opt_id, "_results.log")
         sys.stdout = open(log_file, "w")
 
         opt_py = os.path.join(os.path.dirname(os.path.abspath(__file__)), opt_name)

@@ -1,0 +1,25 @@
+Let me analyze the `emitCondition` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function handles both constant and non-constant boolean conditions
+- For non-constant conditions, it creates basic blocks and conditional branches
+- The main operations are:
+  - Value emission (via emitAsPrimitiveScalar)
+  - Constant checking
+  - Basic block creation
+  - Conditional branch creation
+  - Potential XOR operation for inversion
+
+2. **Optimization Opportunities**:
+- The constant condition check could be moved earlier to avoid unnecessary work
+- The XOR inversion could be optimized when the value is already a constant
+- Basic block creation could be delayed until we know we need them
+- The condition handling could be streamlined for common cases
+
+3. **Key Insight**:
+The highest impact optimization would be to reorder operations to handle the constant case first and avoid unnecessary work in that path. Currently, we always emit the value before checking if it's constant.
+
+4. **Selected Optimization**:
+Move the constant condition check before value emission when possible, and optimize the inversion operation for constant values.
+
+Here's the optimized implementation:

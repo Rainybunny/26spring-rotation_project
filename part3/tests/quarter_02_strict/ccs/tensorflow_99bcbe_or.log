@@ -1,0 +1,26 @@
+Let me analyze the `OptimizeConsumeItem` function for potential optimizations:
+
+1. **Bottleneck Analysis**:
+- The function processes a graph and its function library, optimizing both
+- Main operations: optimizing main graph, then optimizing reachable functions
+- Key data structures: `GraphDef`, `FunctionLibraryDefinition`, hash sets for tracking functions
+- The function iterates through all functions in the library multiple times (while loop)
+
+2. **Optimization Opportunities**:
+- The function creates multiple temporary `FunctionLibraryDefinition` objects
+- The `minimized_flib` lambda creates a new function library definition each time
+- The `find_differentiable_functions` and `find_xla_compiled_functions` scan nodes repeatedly
+- Function optimization loop could benefit from pre-allocation
+
+3. **Selected Strategy Application**:
+- The strategy suggests pre-allocating container capacity when final size is known
+- We can apply this to the function optimization loop by:
+  - Pre-allocating the `optimized_funcs` set based on library size
+  - Reusing function library definitions where possible
+  - Pre-sizing containers for function processing
+
+4. **Chosen Optimization**:
+- Pre-allocate the `optimized_funcs` hash set to avoid rehashing during the optimization loop
+- This is a simple, high-impact change that doesn't affect functionality
+
+Here's the optimized function implementation:

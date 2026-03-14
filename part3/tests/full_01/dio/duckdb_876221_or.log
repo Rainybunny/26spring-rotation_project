@@ -1,0 +1,28 @@
+Let me analyze the Index constructor function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function processes two main loops: one for unbound_expressions and one for column_ids
+- The unbound_expressions loop performs multiple operations per expression: copying, binding, and storing
+- The column_ids loop simply inserts into a set
+- The most expensive part appears to be the unbound_expressions processing due to:
+  - Multiple copies of expressions (expr->Copy() called twice)
+  - Potential dynamic allocations in vector push_backs and emplace_back
+  - Binding operation which involves recursive expression traversal
+
+2. **Potential Optimizations**:
+- Pre-reserve vector capacities to avoid reallocations
+- Eliminate redundant expression copying
+- Use move semantics more aggressively
+- Optimize the column_id_set insertion (though this is less critical)
+
+3. **Selected Optimization**:
+The most impactful change would be to eliminate the redundant expression copying while maintaining the same behavior. Currently, each expression is copied twice:
+- Once for unbound_expression
+- Once again in BindExpression
+
+We can modify this to:
+1. Take ownership of the original expression immediately
+2. Make one copy for the unbound_expressions vector
+3. Use that same copy for binding
+
+Here's the optimized implementation:

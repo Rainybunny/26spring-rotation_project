@@ -1,0 +1,26 @@
+Looking at the original `get_strategy` function and the optimized version, I can see the key changes:
+
+1. **Added a hash table** (`strategy_hash[256]`) to quickly look up built-in strategies by their first character
+2. **Added a `hash_initialized` flag** to initialize the hash table once
+3. **The fast path**: For built-in strategies, it now uses a hash lookup instead of linearly scanning `all_strategy[]`
+
+**Analysis:**
+
+**Correctness:**
+- The hash table is initialized with all built-in strategies from `all_strategy[]`
+- The hash function uses the first character modulo 256, which could cause collisions but the code handles this by verifying the full name with `strcmp`
+- The logic for custom strategies (loaded via `load_command_list`) remains unchanged
+- The fallback behavior when a strategy isn't found is identical
+- The `default_strategy` handling for "ort" vs "recursive" is preserved
+
+**Performance improvement:**
+- Original: O(n) linear search through `all_strategy[]` (6 elements)
+- Optimized: O(1) hash lookup for built-in strategies, with fallback to linear search only for collisions
+- This is a meaningful optimization since `get_strategy` may be called multiple times during a merge operation
+
+**Potential issues:**
+1. The hash table size is fixed at 256, which is fine for the small number of strategies
+2. Hash collisions are properly handled with the `strcmp` check
+3. The hash table only stores one strategy per bucket, so collisions would cause the later strategy to overwrite the earlier one. However, since all built-in strategies have different first characters, this shouldn't be an issue in practice.
+
+**Verdict:** The optimization is valid. It maintains correctness while improving performance for the common case of looking up built-in strategies.

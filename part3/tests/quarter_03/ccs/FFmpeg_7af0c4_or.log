@@ -1,0 +1,26 @@
+Let me analyze the function and propose optimizations:
+
+1. Analysis:
+- The function processes video frames to adjust color levels
+- Main bottlenecks are the nested loops processing each pixel component
+- Two main cases: 8-bit (bpp=1) and 16-bit (bpp=2) components
+- Current implementation uses scalar operations for min/max and color adjustment
+- No SIMD or parallel processing is utilized
+
+2. Optimization Strategy:
+- Focus on the 8-bit case first (most common)
+- Use SSE2 intrinsics to process 16 pixels at once for:
+  - Finding min/max values
+  - Applying color level adjustments
+- Keep the 16-bit case as-is since SSE2 would only process 8 pixels at once (less benefit)
+
+3. Key Optimizations:
+- Replace min/max finding loops with SSE2 parallel comparisons
+- Process 16 pixels simultaneously in the color adjustment loop
+- Use aligned loads/stores where possible
+- Precompute coefficients in vector registers
+
+4. Selected Optimization:
+- Optimize the 8-bit case with SSE2 intrinsics for both min/max finding and color adjustment
+
+Here's the optimized function:

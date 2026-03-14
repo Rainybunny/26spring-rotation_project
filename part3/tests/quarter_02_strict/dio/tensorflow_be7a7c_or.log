@@ -1,0 +1,17 @@
+Let me analyze the `Preprocess` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs two main operations: checking for duplicate instruction names and validating sharding.
+- The name uniqueness check involves a map lookup and insertion for every instruction, which could be expensive for large models.
+- The sharding validation is only performed conditionally when sharding exists.
+
+2. **Optimization Ideas**:
+- The most impactful optimization would be to reduce the overhead of the name uniqueness check. We could:
+  a) Skip the check if we're certain names are unique (but this may not be safe)
+  b) Optimize the map operations by reserving space upfront
+  c) Use a more efficient data structure than std::map
+
+3. **Selected Optimization**:
+- The safest high-impact optimization is to pre-reserve space in the `instructions_by_name_` map to avoid rehashing. We can estimate the number of instructions based on the computation size.
+
+Here's the optimized implementation:

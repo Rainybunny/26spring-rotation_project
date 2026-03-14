@@ -1,0 +1,27 @@
+Let me analyze the `Scatter` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function performs three main operations: setting validity masks, storing heap sizes (if needed), and scattering column data.
+   - The validity mask setting loop is simple but runs for every row.
+   - The heap size storage loop is conditional and also runs per row.
+   - The column scattering is done through another function call per column.
+
+2. **Optimization Opportunities**:
+   - The validity mask setting could potentially be optimized since it's setting all bits to valid (1) for each row.
+   - The heap size storage could be optimized if we can batch the stores or ensure alignment.
+   - The column scattering is already delegated to specialized functions, so likely optimized there.
+
+3. **Key Insight**:
+   - The validity mask setting is a prime candidate since it's a simple operation repeated for every row.
+   - We can use memset for setting all validity bytes at once if the layout allows it (all columns valid).
+
+4. **Selected Optimization**:
+   - Replace the per-row validity mask setting with a single memset when possible (all columns valid).
+   - Keep the original loop as fallback when not all columns are valid (though current code always sets all valid).
+
+5. **Impact Assessment**:
+   - For large append counts, this reduces O(n) operations to O(1) for validity setting.
+   - No behavior change since we're still setting all validity bits.
+   - Minimal code complexity increase.
+
+Here's the optimized implementation:

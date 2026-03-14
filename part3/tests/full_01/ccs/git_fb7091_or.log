@@ -1,0 +1,29 @@
+Let me analyze the `rehash_objects` function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function is called when the hash table needs resizing (load factor > 75%)
+   - Main operations: resize index array, clear it, then reinsert all objects
+   - Current implementation does a full scan of all objects and rehashes each one
+   - Memory operations (realloc + memset) could be expensive for large tables
+
+2. **Key Observations**:
+   - The `memset` clears the entire new index array, but we only need to clear the portion that will be used
+   - The hash table size is always a power of 2 (from `closest_pow2`)
+   - We're doing a linear scan through objects which is cache-friendly, but hashing each object is expensive
+
+3. **Optimization Strategy**:
+   - Apply the same principle from the reference examples: optimize hash table rehashing by skipping unnecessary operations
+   - Focus on reducing memory operations and leveraging hash table invariants
+   - Specifically, we can optimize the `memset` operation since we know the exact size needed
+
+4. **Selected Optimization**:
+   - Replace the full `memset` with a partial clear of only the needed portion
+   - Since we know the exact new size (pdata->index_size), we can limit the clearing to just that range
+   - This avoids touching memory that won't be used in the current operation
+
+5. **Why This Helps**:
+   - For large hash tables, this reduces the amount of memory that needs to be cleared
+   - Modern systems have optimized `memset` operations, but avoiding unnecessary work is still beneficial
+   - Maintains exact same behavior while being more efficient
+
+Here's the optimized implementation:

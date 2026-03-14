@@ -1,0 +1,14 @@
+Let me analyze the `ConvertInfeedDequeueTupleOp` function and propose an optimization:
+
+Analysis:
+1. The function converts a TF `InfeedDequeueTupleOp` to a sequence of MHLO operations involving token creation, infeed, and tuple element extraction.
+2. The current implementation uses `llvm::enumerate` to iterate through outputs and result types, creating unnecessary temporary objects.
+3. The function also creates intermediate vectors (`results`, `_result_types`) that could be optimized.
+
+Optimization Idea:
+Replace the use of `llvm::enumerate` with direct indexing and pre-allocate the results vector to avoid reallocations. This will:
+1. Eliminate temporary objects created by `enumerate`
+2. Reduce memory allocations by pre-sizing the results vector
+3. Improve cache locality by using direct indexing
+
+Here's the optimized implementation:

@@ -1,0 +1,34 @@
+Let's compare the optimized `bitopCommand` with the original. The original is in the full source code; the optimized version is the one provided separately.
+
+**Key changes in the optimized version:**
+
+1. **Fast path condition changed**:  
+   Original: `if (minlen >= sizeof(unsigned long)*4 && numkeys <= 16)`  
+   Optimized: `if (minlen >= sizeof(unsigned long)*8 && numkeys <= 16)`
+
+2. **Loop unrolling factor increased**:  
+   Original processes 4 `unsigned long` words per iteration (4 * sizeof(unsigned long) bytes).  
+   Optimized processes 8 `unsigned long` words per iteration (8 * sizeof(unsigned long) bytes).
+
+3. **Corresponding adjustments in loop body**:  
+   The optimized version has 8 assignments per operation (lres[0] through lres[7]) instead of 4.
+
+4. **The rest of the function remains identical** (setup, fallback byte-by-byte loop, cleanup).
+
+**Analysis:**
+
+- **Correctness**: The optimized version still correctly computes bitwise operations. The fast path is only taken when `minlen >= sizeof(unsigned long)*8`, which is a stricter condition than the original (`>= sizeof(unsigned long)*4`). This means for strings between 4 and 7 words long (on typical 64-bit systems, 32–56 bytes), the optimized version will skip the fast path and use the byte-by-byte loop, while the original would use the fast path. This could be a performance regression for medium-sized strings, but it does not affect correctness.
+
+- **Performance**: For large strings (≥ 8 words), the optimized version processes twice as many words per inner loop iteration, which may improve instruction-level parallelism and reduce loop overhead. However, the stricter condition might reduce the applicability of the fast path. Whether this is a net win depends on typical data sizes.
+
+- **Potential issue**: The optimized version uses `memcpy(lp,src,sizeof(unsigned long*)*numkeys)`. This is safe because `src` is an array of `unsigned char*`, but `lp` is an array of `unsigned long*`. This is the same as in the original, so no new issue.
+
+- **Portability**: The code is under `#ifndef USE_ALIGNED_ACCESS`, same as original. The change in unrolling factor doesn't affect portability.
+
+**Verdict**:  
+The optimized version is a valid replacement because:
+1. It produces identical results for all inputs (the logic is unchanged except for the fast path threshold and unrolling factor).
+2. It may improve performance for very large strings due to increased unrolling, though it might be slower for medium-sized strings. This is still an optimization attempt (trading off fast path coverage for faster processing when applicable).
+3. No bugs are introduced.
+
+However, note that the optimization is not strictly better for all inputs (due to the stricter condition), but it is still a valid optimization in the sense that it aims to improve performance for certain cases while maintaining correctness.

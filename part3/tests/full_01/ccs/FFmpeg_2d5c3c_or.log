@@ -1,0 +1,26 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The main performance-critical sections are the nested loops for copying pixel data (both in the unscaled and scaled cases)
+- The current implementation uses array indexing with multiple calculations per pixel
+- The palette handling loop (256 iterations) is also a candidate for optimization
+
+2. **Key Observations**:
+- The pixel copy loops have predictable access patterns that can be optimized
+- The palette processing can be unrolled and optimized
+- The scaling operations can benefit from pointer arithmetic
+
+3. **Optimization Strategy**:
+Focus on the pixel copy loops since they are the most performance-critical:
+- Replace array indexing with pointer arithmetic
+- Unroll loops where possible
+- Precompute loop bounds
+- Use memcpy more aggressively where applicable
+
+4. **Selected Optimization**:
+Optimize the main pixel copy loop (unscaled case) by:
+- Using pointer arithmetic instead of array indexing
+- Precomputing loop bounds
+- Reducing address calculations
+
+Here's the optimized function:

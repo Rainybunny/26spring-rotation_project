@@ -1,0 +1,21 @@
+Let me analyze the `_update` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs multiple BSON object validations and checks
+- The most expensive parts appear to be:
+  - The nested loops checking shard key fields in update operations (lines 40-50)
+  - Multiple calls to `hasShardKey()` and `getShardKey()`
+  - The `getShardsForQuery()` call for multi-updates
+
+2. **Key Observations**:
+- The shard key check loop is particularly expensive as it does nested iteration
+- We can cache the shard key object to avoid repeated calls to `getShardKey()`
+- The field name checks could be optimized by pre-computing shard key fields
+
+3. **Optimization Selection**:
+The most impactful optimization would be to **cache the shard key object** and **pre-compute shard key fields** to avoid repeated lookups and nested iterations. This provides:
+- Elimination of repeated method calls
+- Faster field name comparisons
+- Maintains exact same behavior
+
+Here's the optimized implementation:

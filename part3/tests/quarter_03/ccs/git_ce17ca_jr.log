@@ -1,0 +1,54 @@
+Let's analyze the optimization.
+
+**Original `contains` function (exact string match part):**
+```c
+for (offset = 0; offset + len <= sz; offset++) {
+    /* we count non-overlapping occurrences of needle */
+    if (!memcmp(needle, data + offset, len)) {
+        offset += len - 1;
+        cnt++;
+    }
+}
+```
+This loops through each byte position from 0 to `sz - len`, and when a match is found, it skips ahead by `len - 1` (since offset++ in the loop will add another 1, making total skip = `len`). This ensures non-overlapping matches.
+
+**Optimized version (exact string match part):**
+```c
+const char *end = data + sz - len + 1;
+const char *p = data;
+while (p < end) {
+    if (!memcmp(needle, p, len)) {
+        p += len;
+        cnt++;
+    } else {
+        p++;
+    }
+}
+```
+This uses pointer arithmetic instead of array indexing. When a match is found, `p` is incremented by `len` (non-overlapping), otherwise incremented by 1. The loop condition `p < end` ensures we don't read past `sz - len`. The `end` is set to `data + sz - len + 1`, which means the last valid start position for `memcmp` is `data + sz - len`, so `p` can be at most `data + sz - len` (since `p < end` means `p <= data + sz - len`). This matches the original's `offset + len <= sz`.
+
+**Correctness check:**
+- Both count non-overlapping matches.
+- Both handle empty `len` early (return 0).
+- Both handle regex case identically (no changes there).
+- Both call `diff_populate_filespec` and `diff_free_filespec_data`.
+- The pointer version avoids the `offset += len - 1` trick, which is less intuitive, and uses direct pointer movement.
+
+**Performance:**
+- The optimized version avoids repeated `offset` index calculation and addition (`data + offset`).
+- It uses local pointers which may be slightly faster.
+- The loop structure is cleaner, but the actual work (`memcmp`) is the same.
+
+**Potential issue:**
+The original loop condition is `offset + len <= sz`, which ensures `offset` goes up to `sz - len`. The optimized version's `end` is `data + sz - len + 1`, so `p` goes up to `data + sz - len` (since `p < end`). That's correct. However, if `len == 0`, the function returns early, so `sz - len + 1` won't cause underflow. If `len > sz`, then `sz - len + 1` could be negative when cast to pointer arithmetic? Actually, `sz` and `len` are `unsigned long`. If `len > sz`, then `sz - len + 1` wraps around to a large positive number (unsigned overflow). But the function returns early if `!len` (len == 0), but not if `len > sz`. Wait, the original loop condition `offset + len <= sz` would fail on first iteration if `len > sz` because `0 + len > sz`, so loop never runs. In the optimized version, if `len > sz`, then `sz - len + 1` is a large positive number (wraparound), so `end` is far beyond `data`, and `p < end` will be true for a very long time, leading to out-of-bounds reads. That's a bug.
+
+Let's verify: `sz` and `len` are `unsigned long`. If `len > sz`, then `sz - len` is a large positive number (underflow), so `sz - len + 1` is also large. Then `end = data + huge_number`, so `p` starts at `data` and will increment until it reaches `end`, reading out of bounds. This is a serious flaw.
+
+But does this happen in practice? The `len` is `strlen(needle)` from `diffcore_pickaxe`. `sz` is the file size. If a file is smaller than the needle length, there can't be a match. The original correctly handles this by not entering the loop. The optimized version would cause undefined behavior.
+
+Therefore, the optimized version is **not** a valid replacement.
+
+**Reasoning:**
+The optimized version fails to handle the case where `len > sz` (needle longer than file data). The original loop condition `offset + len <= sz` prevents any iteration when `len > sz`. The optimized version's `end` calculation wraps around due to unsigned arithmetic, leading to an infinite loop (or until a segfault). This is a critical correctness issue.
+
+**Verdict:**

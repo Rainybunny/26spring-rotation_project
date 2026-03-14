@@ -1,0 +1,29 @@
+Let me analyze the `update` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs two main operations: filling buffer arrays and calling helper functions
+- The buffer filling loops (for buffer1 and buffer2) access glob->output and glob->history arrays with modulo operations
+- The modulo operations (%) are expensive and can be avoided
+- The function calls co() twice, which internally calls prodsum() and performs other computations
+
+2. **Optimization Strategy**:
+- Cache frequently accessed glob members (phasep, phase) in local variables
+- Replace modulo operations with conditional checks (faster on most architectures)
+- Unroll small loops where beneficial
+- The co() and pred() functions are complex and called only once each, so optimizing them wouldn't help much
+
+3. **Key Observations**:
+- The buffer1 loop runs exactly 40 times (fixed size)
+- The buffer2 loop runs exactly 8 times (fixed size)
+- The modulo operations can be converted to simple conditionals
+- The glob->phase and glob->phasep values are accessed multiple times
+
+4. **Selected Optimization**:
+- Cache glob->phase and glob->phasep in local variables
+- Replace modulo operations with conditional checks
+- The buffer filling loops are small enough that unrolling may not help significantly
+
+5. **Final Optimization Idea**:
+Cache the frequently accessed glob members and replace modulo operations with conditional checks in the buffer filling loops. This reduces memory accesses and expensive modulo operations.
+
+Here's the optimized function:

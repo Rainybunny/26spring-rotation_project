@@ -1,0 +1,35 @@
+Let me analyze the function and potential optimizations:
+
+1. **Analysis of the Original Function**:
+   - The function is a large switch statement that maps R types to DuckDB logical types
+   - Most cases are simple direct mappings (e.g., RType::LOGICAL -> LogicalType::BOOLEAN)
+   - Some cases have additional logic (FACTOR, STRING, LIST, STRUCT)
+   - The function is called recursively for nested types (LIST and STRUCT)
+   - Error handling is done via cpp11::stop()
+
+2. **Bottlenecks**:
+   - The switch statement is large but likely efficient due to compiler optimizations
+   - The recursive calls for nested types could be a performance concern if deeply nested
+   - The FACTOR case creates a temporary Vector which could be expensive
+   - The STRUCT case involves creating and populating a child_list_t
+
+3. **Potential Optimizations from Reference Examples**:
+   - Example 1 shows optimization by early return when possible
+   - Example 4 shows optimization by reducing unnecessary operations when unchanged
+   - Both examples focus on reducing redundant work
+
+4. **Selected Optimization**:
+   - For the FACTOR case, we can optimize by:
+     1. Moving the Vector creation out of the hot path if possible
+     2. Using a more efficient way to create the enum levels
+   - However, the biggest potential gain is in the STRUCT case by:
+     1. Pre-allocating the child_list_t to avoid reallocations
+     2. Using move semantics more effectively
+
+5. **Final Optimization Idea**:
+   - Optimize the STRUCT case by:
+     - Pre-allocating the child_list_t based on known size
+     - Using emplace_back instead of push_back to avoid temporary pairs
+     - Moving strings where possible
+
+Here's the optimized function:

@@ -1,0 +1,20 @@
+Let me analyze the function and propose optimizations:
+
+Analysis:
+1. The function searches for a 32-bit register by name across all register types, then looks for a 64-bit register at the same offset.
+2. Current implementation has O(n*m) complexity where n is number of register types and m is average registers per type.
+3. The main bottlenecks are:
+   - Nested loops through all register types and registers
+   - String comparison for each register name
+   - Two separate passes (first for 32-bit, then for 64-bit)
+
+Optimization Opportunities:
+1. Cache register mappings (but would require structural changes)
+2. Precompute a hash table (but adds memory overhead)
+3. Combine the two passes into one (most impactful simple change)
+4. Early exit when match found (already done)
+
+Selected Optimization:
+Combine the two passes into one - when we find a 32-bit register match, immediately check if there's a corresponding 64-bit register in the same register set before moving to the next type. This avoids the second full scan of all registers.
+
+Final Optimized Function:

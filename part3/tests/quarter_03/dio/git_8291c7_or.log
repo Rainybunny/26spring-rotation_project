@@ -1,0 +1,18 @@
+Let me analyze the `strbuf_getwholeline` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The current implementation reads one character at a time using `getc()`, which is inefficient for bulk data
+   - Each character read triggers a potential `strbuf_grow` call, which may reallocate memory
+   - The function performs many small memory operations which could be batched
+
+2. **Potential Optimizations**:
+   - Read larger chunks at once using `fgets()` or similar
+   - Pre-allocate buffer space to reduce reallocations
+   - Use buffered I/O more effectively
+
+3. **Selected Optimization**:
+   - The highest impact change would be to read in larger chunks while maintaining the same termination behavior
+   - We'll use a local buffer to read chunks and only process up to the terminator character
+   - This reduces the number of I/O operations and memory allocations
+
+Here's the optimized implementation:

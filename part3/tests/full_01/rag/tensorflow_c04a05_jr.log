@@ -1,0 +1,60 @@
+Looking at the original `ValidateHostPortPair` function and the optimized version, I can analyze the changes:
+
+Original function:
+```cpp
+Status ValidateHostPortPair(const string& host_port) {
+  string bns_prefix = "/bns/";
+  if (host_port.substr(0, bns_prefix.length()) == bns_prefix) {
+    return Status::OK();
+  }
+  uint32 port;
+  auto colon_index = host_port.find_last_of(':');
+  if (!strings::safe_strtou32(host_port.substr(colon_index + 1), &port) ||
+      host_port.substr(0, colon_index).find("/") != string::npos) {
+    return errors::InvalidArgument("Could not interpret \"", host_port,
+                                   "\" as a host-port pair.");
+  }
+  return Status::OK();
+}
+```
+
+Optimized function:
+```cpp
+Status ValidateHostPortPair(const string& host_port) {
+  static const string bns_prefix("/bns/");
+  if (host_port.compare(0, bns_prefix.length(), bns_prefix) == 0) {
+    return Status::OK();
+  }
+  uint32 port;
+  auto colon_index = host_port.rfind(':');
+  if (colon_index == string::npos ||
+      !strings::safe_strtou32(host_port.substr(colon_index + 1), &port) ||
+      host_port.substr(0, colon_index).find('/') != string::npos) {
+    return errors::InvalidArgument("Could not interpret \"", host_port,
+                                   "\" as a host-port pair.");
+  }
+  return Status::OK();
+}
+```
+
+Key optimizations made:
+1. **`bns_prefix` made `static const`**: This avoids constructing the string "/bns/" every time the function is called, which is a valid optimization since the string is constant.
+
+2. **Changed `substr(0, bns_prefix.length()) == bns_prefix` to `compare(0, bns_prefix.length(), bns_prefix) == 0`**: This avoids creating a temporary substring for comparison, which is more efficient.
+
+3. **Changed `find_last_of(':')` to `rfind(':')`**: `rfind` searches for the last occurrence of a single character, while `find_last_of` searches for any character in a set. Since we're only looking for ':', `rfind` is more appropriate and potentially more efficient.
+
+4. **Added check for `colon_index == string::npos`**: This handles the case where no colon is found, which the original code didn't explicitly check. This is actually a bug fix, not just an optimization.
+
+5. **Changed `find("/")` to `find('/')`**: Using a character literal instead of a string literal for single character search is more efficient.
+
+The optimized function maintains the same functionality but with several performance improvements:
+- Reduced string constructions
+- More efficient string comparisons
+- More appropriate string search functions
+- Added missing null check for colon_index
+
+The optimization is valid because:
+1. It preserves the original function's behavior (including fixing a potential bug with missing colon)
+2. It improves performance by avoiding unnecessary string allocations and using more efficient string operations
+3. It's a drop-in replacement that doesn't change the function signature or external behavior

@@ -1,0 +1,25 @@
+Let me analyze the function and potential optimizations:
+
+1. Analysis of the current `wake()` function:
+- It's a simple function that locks a mutex, sets a flag, and notifies a condition variable
+- The mutex lock/unlock operations are likely the most expensive parts
+- The function is called during unpark operations which could be performance critical
+
+2. Observations from reference examples:
+- Example 2 shows optimization by avoiding unnecessary operations (sleep) when delay is 0
+- Example 3 shows moving calculations earlier to optimize polling logic
+- Neither example shows direct mutex optimization, but the principle of avoiding unnecessary work applies
+
+3. Potential optimizations:
+- The mutex lock could be avoided if we can safely check `signaled_` first
+- We could use atomic operations for `signaled_` to avoid full mutex lock in some cases
+- The notification could be made conditional on the flag not already being set
+
+4. Selected optimization:
+- First check `signaled_` without locking (using relaxed memory order)
+- Only proceed with full lock/notify if the flag wasn't already set
+- This avoids the mutex overhead in cases where wake() is called multiple times
+
+The optimization follows the pattern seen in Example 2 of avoiding unnecessary work when possible, while maintaining thread safety.
+
+Here's the optimized implementation:

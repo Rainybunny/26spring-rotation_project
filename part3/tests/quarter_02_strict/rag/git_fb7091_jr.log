@@ -1,0 +1,40 @@
+Let’s break this down step by step.  
+
+**1. Original function analysis**  
+The original `rehash_objects` does:  
+- Computes new size as `closest_pow2(nr_objects * 3)` with a minimum of 1024.  
+- Uses `xrealloc` to resize `pdata->index`, then `memset` to zero it.  
+- Rehashes all existing objects into the new index.  
+
+**2. Proposed optimization**  
+Changes from original:  
+- Computes `new_size` into a local variable first.  
+- Uses `xcalloc` to allocate and zero new memory in one step.  
+- Explicitly `free(pdata->index)` before assigning new memory.  
+- Assigns `pdata->index_size` after allocation.  
+
+**3. Reference optimization**  
+Changes from original:  
+- Uses `free(pdata->index)` and `xcalloc` instead of `xrealloc` + `memset`.  
+- Keeps `pdata->index_size` assignment before allocation.  
+
+**4. Validity check**  
+Both proposed and reference replace `xrealloc + memset` with `free + xcalloc`.  
+This is valid because:  
+- The old index is no longer needed after rehashing.  
+- `xcalloc` zero-initializes, matching `memset`.  
+- No functional difference in rehashing logic.  
+
+**5. Performance**  
+`xcalloc` is likely more efficient than `xrealloc` + `memset` for this case because:  
+- `xrealloc` might copy data if it can’t grow in place, but here we don’t need the old data.  
+- `xcalloc` can avoid a separate memset pass if the OS provides zeroed pages.  
+- Explicit `free` avoids unnecessary copying.  
+
+**6. Strategy match**  
+Reference strategy: Replace `xrealloc` + `memset` with `free` + `xcalloc`.  
+Proposed strategy: Exactly the same, with minor variable ordering differences (local `new_size` variable, but same effect).  
+The core optimization idea is identical.  
+
+**7. Conclusion**  
+The proposed optimization is valid, improves performance, and matches the reference’s strategy.

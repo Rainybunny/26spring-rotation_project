@@ -1,0 +1,34 @@
+Looking at the original and optimized versions of `CPCD::findUniqueId()`:
+
+**Original function:**
+- Locks the mutex
+- Loops generating random IDs, checking each time against all processes in the vector
+- Unlocks mutex and returns ID
+
+**Optimized function:**
+- Locks the mutex
+- Creates an `unordered_set` of all used IDs
+- Loops generating random IDs, checking against the set
+- Unlocks mutex and returns ID
+
+**Analysis:**
+
+1. **Correctness:** The optimized version maintains the same logic - it generates random IDs until it finds one that's not zero and not already used. The use of `unordered_set` for lookups is correct.
+
+2. **Performance:** The optimization is actually worse, not better:
+   - Original: O(n) per iteration (checking each ID in vector)
+   - Optimized: O(n) to build the set + O(1) per iteration for lookup
+   
+   However, the key issue is that the while loop typically runs very few iterations (especially as the number of processes grows, since there are 8191 possible IDs). Building the set requires iterating through all processes anyway, which is what the original does in each iteration. For small numbers of iterations, the overhead of building and maintaining the hash set outweighs the benefit of O(1) lookups.
+
+3. **Memory usage:** The optimized version allocates additional memory for the `unordered_set`, which the original doesn't.
+
+4. **Code complexity:** The optimized version introduces STL containers (`unordered_set`) which weren't used elsewhere in the original codebase shown.
+
+5. **Thread safety:** Both versions properly lock/unlock the mutex.
+
+**Conclusion:** While the optimized version technically works correctly, it's not a valid optimization because:
+- It adds unnecessary memory allocation
+- It introduces new dependencies (STL)
+- For the expected use case (few iterations), it's likely slower due to hash table overhead
+- The original code is simpler and more efficient for this specific use case

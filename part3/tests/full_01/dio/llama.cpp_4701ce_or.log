@@ -1,0 +1,23 @@
+Let me analyze the function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function is called frequently during token sampling
+- Main operations are:
+  - Logits processing (copying, applying biases/guidance)
+  - Creating token data array (cur)
+  - Applying penalties and grammar checks
+- The most expensive part appears to be the loop creating `cur` vector (O(n_vocab) operations)
+
+2. **Potential Optimizations**:
+- Pre-allocate `cur` vector to avoid reallocations (but it's already cleared and reused)
+- Use pointer arithmetic instead of vector for logits copy (but safety is important)
+- Optimize the token data array creation loop
+- Move some calculations out of the loop
+
+3. **Selected Optimization**:
+The most impactful change would be to optimize the token data array creation loop by:
+- Using direct memory access instead of emplace_back
+- Pre-sizing the vector and using index-based assignment
+- Moving the nl_logit calculation outside the penalty block since it's used in both paths
+
+Here's the optimized implementation:

@@ -1,0 +1,25 @@
+Let me analyze the `createParameterTypes` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function creates a parameter type array for debug info by:
+  - First adding the return type
+  - Then adding each parameter type
+- It uses `SmallVector` with initial capacity 16, which is reasonable
+- The main costs are:
+  - Memory allocations for the vector
+  - Type lookups and conversions
+  - Metadata creation
+
+2. **Optimization Ideas**:
+- **Pre-allocate vector size**: Since we know the exact number of parameters (FnTy->getParameters().size() + 1 for return type), we can pre-size the vector
+- **Avoid temporary SILType creation**: The SILType conversions could potentially be optimized
+- **Metadata caching**: If parameter types are reused, we could cache them
+
+3. **Selected Optimization**:
+The highest impact change would be to pre-size the vector since:
+- It's simple and safe
+- Avoids multiple reallocations as the vector grows
+- The size is known upfront
+- Doesn't change any behavior
+
+Here's the optimized implementation:

@@ -1,0 +1,26 @@
+Let me analyze the function and identify potential optimization opportunities:
+
+1. **Bottleneck Analysis**:
+   - The function processes nodes to preserve by splitting strings and reconstructing them, which could be expensive for large graphs
+   - The string operations (Split, StrAppend) are called in a loop for each node to preserve
+   - The function makes several conditional checks and logging calls that may not be needed in production
+   - The ConversionParams struct initialization is straightforward but could potentially be optimized
+
+2. **Key Observations**:
+   - The most expensive part appears to be the nodes_to_preserve processing loop
+   - String operations are known to be expensive in C++
+   - The logging calls (VLOG) are conditional but still add overhead
+
+3. **Potential Optimizations**:
+   - Optimize the nodes_to_preserve processing by reducing string operations
+   - Move VLOG calls to higher verbosity levels or make them DEBUG-only
+   - Pre-allocate vector capacity for nodes_to_preserve if possible
+   - Simplify the port number checking logic
+
+4. **Selected Optimization**:
+   - Optimize the nodes_to_preserve processing loop by:
+     - Avoiding unnecessary string copies
+     - Simplifying the port number check
+     - Reducing string concatenation operations
+
+Here's the optimized function implementation:

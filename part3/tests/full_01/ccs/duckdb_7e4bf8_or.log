@@ -1,0 +1,21 @@
+Let me analyze the function and identify optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function initializes several vectors (arg_types, arg_funcs, sort_types, sort_funcs) and fills them in loops
+- Current implementation uses emplace_back() which may cause multiple reallocations as vectors grow
+- The sorted_on_args check does an equality comparison loop that could be optimized
+
+2. **Optimization Strategy Application**:
+- The selected strategy focuses on pre-allocating container capacity to avoid reallocations
+- This perfectly applies here since we know the exact sizes needed for arg_types, arg_funcs, sort_types, sort_funcs
+- We can reserve exact capacities upfront since children.size() and order_bys.orders.size() are known
+
+3. **Optimization Ideas**:
+- Pre-allocate vector capacities using reserve() for all vectors
+- The equality comparison loop could potentially be optimized but it's not a major bottleneck
+- Move semantics are already used for bind_info (std::move)
+
+4. **Selected Optimization**:
+- Pre-allocate all vector capacities upfront to avoid reallocations during emplace_back
+
+Here's the optimized function implementation:

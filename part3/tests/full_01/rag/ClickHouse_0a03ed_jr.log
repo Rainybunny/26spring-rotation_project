@@ -1,0 +1,31 @@
+Looking at the original `readQuoted` function in the `InlineEscapingKeyStateHandler` class, I can see the optimization replaces a manual loop that copies characters one by one with a single `insert` call.  
+
+**Original approach (inefficient):**  
+```cpp
+for (size_t i = pos; i < character_position; ++i)
+{
+    key.push_back(file[i]);
+}
+```
+This does repeated bounds checks and individual `push_back` calls.
+
+**Optimized approach:**  
+```cpp
+key.insert(key.end(), file.begin() + pos, file.begin() + character_position);
+```
+This uses a bulk copy operation, which is more efficient for contiguous memory ranges.
+
+**Correctness analysis:**  
+1. The logic before and after the copy remains identical.  
+2. The `key.clear()` call is still present.  
+3. The conditions for returning `WAITING_KEY` or `READING_KV_DELIMITER` are unchanged.  
+4. Edge cases:  
+   - If `character_position == pos`, the range is empty, `insert` does nothing (same as loop doing nothing).  
+   - The `key.empty()` check after the copy works the same as before.  
+   - All other control flow (escape handling, loop exit) is unchanged.  
+
+**Performance improvement:**  
+- Bulk copy reduces function call overhead and may allow memcpy-like optimizations.  
+- Especially beneficial for longer strings.  
+
+The optimized function is a valid replacement that preserves correctness while improving performance.

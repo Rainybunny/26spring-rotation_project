@@ -1,0 +1,27 @@
+Let me analyze the `OptimizeConsumeItem` function for optimization opportunities:
+
+1. **Bottlenecks Analysis**:
+- The function processes both the main graph and function library optimizations
+- The most expensive parts appear to be:
+  - Function library minimization (reachability analysis)
+  - Multiple passes over function library for optimization
+  - XLA function detection and processing
+  - Function optimization loops
+
+2. **Key Observations**:
+- The function library processing is done in multiple passes
+- There are several nested loops and recursive function traversals
+- Many temporary objects are created during processing
+
+3. **Potential Optimizations**:
+- Cache the results of reachability analysis to avoid recomputing
+- Optimize the function processing loop to reduce passes
+- Pre-allocate data structures where possible
+- Use more efficient data structures for function tracking
+
+4. **Selected Optimization**:
+The highest impact optimization would be to **reduce the number of passes over the function library** by:
+- Combining the differentiable functions and XLA compiled functions detection into a single pass
+- Using more efficient tracking of optimized functions
+
+Here's the optimized implementation:

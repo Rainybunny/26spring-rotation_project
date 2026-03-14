@@ -1,0 +1,29 @@
+Let me analyze the `AddInternalKey` function for optimization opportunities:
+
+1. **Analysis**:
+- The function creates an InternalKey by combining a prefix with a random suffix
+- It uses a static Random object (rnd) initialized once with seed 1023
+- The random string generation happens for every call with fixed length 800
+- The InternalKey is constructed and encoded for each call
+- The value is always a constant "v"
+
+2. **Bottlenecks**:
+- Random string generation is relatively expensive due to:
+  - Memory allocation for the string
+  - Random number generation
+  - Character filling
+- InternalKey construction and encoding has some overhead
+- The function is called multiple times in test cases (like HashIndexTest)
+
+3. **Optimization Ideas**:
+- Cache the random suffix strings since they're always length 800
+- Pre-compute the encoded key if possible
+- Optimize the random string generation
+
+4. **Selected Optimization**:
+The most impactful optimization would be to cache the random suffix strings since:
+- They are always the same length (800)
+- The Random object is static with fixed seed, so it will generate the same sequence
+- This avoids repeated memory allocations and random number generation
+
+Here's the optimized implementation:

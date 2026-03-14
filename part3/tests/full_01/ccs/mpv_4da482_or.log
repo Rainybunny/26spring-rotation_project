@@ -1,0 +1,29 @@
+Let me analyze the `my_draw_bitmap` function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function performs per-pixel blending operations in nested loops
+- Each pixel requires multiple calculations (k, y/u/v blending)
+- Memory access patterns are linear but could be optimized
+- Division operations (/255) are expensive and could be optimized
+
+2. **Optimization Strategy**:
+- Precompute constant values outside the loop (opacity/255)
+- Use pointer arithmetic instead of array indexing
+- Unroll inner loop to reduce loop overhead
+- Replace divisions with bit shifts where possible
+- Process multiple pixels at once if possible
+
+3. **Selected Optimization**:
+The highest impact optimization would be to:
+- Precompute (opacity/255) as a fixed-point value
+- Replace divisions with bit shifts (>>8 instead of /255)
+- Use pointer arithmetic for faster memory access
+- Unroll the inner loop by 4 pixels to reduce loop overhead
+
+4. **Final Optimization Idea**:
+- Precompute k_scale = opacity * (1/255) as fixed-point
+- Replace divisions with right shifts
+- Unroll inner loop 4x
+- Use pointer increments instead of array indexing
+
+Here's the optimized implementation:

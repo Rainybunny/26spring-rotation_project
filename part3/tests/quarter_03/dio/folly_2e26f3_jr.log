@@ -1,0 +1,20 @@
+Looking at the provided code, the function to optimize is `wake()` in `WaitNodeBase`. The original implementation uses `std::unique_lock<std::mutex>` for locking, while the optimized version uses `std::lock_guard<std::mutex>`.
+
+**Analysis:**
+
+1. **Correctness:**  
+   The `wake()` function is called from `unpark()` while holding the bucket mutex (`bucketLock`). However, the `node->wake()` call is made after the node is removed from the bucket (so the bucket mutex is still held). Inside `wake()`, we only need to lock the node's mutex to modify `signaled_` and notify the condition variable. Both `std::unique_lock` and `std::lock_guard` provide mutual exclusion. The `std::lock_guard` is a simpler, lighter-weight RAII lock that doesn't allow unlocking before scope exit. Since `wake()` doesn't need to unlock the mutex before the end of the function (it only sets a flag and notifies), `std::lock_guard` is sufficient and correct.
+
+2. **Performance:**  
+   `std::lock_guard` has less overhead than `std::unique_lock` because it doesn't support deferred locking, time locking, or early unlocking. Since `wake()` only needs to lock the mutex for the entire short duration, `std::lock_guard` is more efficient. This is a valid micro-optimization.
+
+3. **Context:**  
+   The `wake()` function is called in a loop in `unpark()` for each matching node. Optimizing it can reduce overhead when waking multiple waiters.
+
+**Reasoning:**  
+The change from `std::unique_lock` to `std::lock_guard` is safe because:
+- The mutex is locked for the entire scope.
+- No early unlocking is required.
+- The function is short and straightforward.
+
+This is a valid optimization that reduces overhead without changing behavior.

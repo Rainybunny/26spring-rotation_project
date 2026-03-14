@@ -1,0 +1,17 @@
+Looking at the provided original source code and the optimized function for `Node::replace_by`, I can see several issues with the optimization:
+
+1. **Missing ownership transfer for nodes owned by owner**: The original code has a section that collects nodes owned by the data.owner (not just owned by this node) using `find_owned_by` function. The optimized version completely omits this logic, which means nodes that were owned by the original owner but not directly by this node won't have their ownership properly transferred.
+
+2. **Incorrect handling of `data.owned`**: The optimized version iterates over `data.owned` directly, but this list is being modified during the ownership cleanup (`_clean_up_owner()` modifies `data.owned`). The original code creates a copy of `data.owned` before cleaning up ownership to avoid this issue.
+
+3. **Missing `owned_by_owner` list**: The original creates an `owned_by_owner` list to track nodes that need to have their owner set to the original owner, not to p_node. The optimized version doesn't handle this case at all.
+
+4. **Vector allocation for children transfer**: While pre-allocating a vector for children might seem like an optimization, it adds unnecessary complexity and doesn't provide significant performance benefits over the original while loop.
+
+5. **Missing `data.owner` check before `_clean_up_owner()`**: The optimized version calls `_clean_up_owner()` without checking if `data.owner` exists first, which could cause issues.
+
+The optimized function fails to maintain the same behavior as the original, particularly around ownership handling, which is critical for scene management in Godot.
+
+**Correctness issues**: The ownership transfer logic is incomplete and incorrect, which could lead to nodes having wrong owners after replacement.
+
+**Performance**: While the children transfer uses a pre-allocated vector, this doesn't provide meaningful performance improvement and adds complexity.

@@ -1,0 +1,26 @@
+Let me analyze the function for optimization opportunities:
+
+1. **Bottleneck Analysis**:
+- The function is a large switch statement converting R types to DuckDB logical types
+- Most cases are simple value returns (fast)
+- The expensive cases are:
+  - FACTOR: Creates and returns a Vector (duckdb_levels)
+  - LIST: Recursive call
+  - STRUCT: Creates a child list and makes recursive calls
+- The default case throws an error (slow path)
+
+2. **Optimization Opportunities**:
+- The most common path is likely the simple type conversions (LOGICAL, INTEGER, etc.)
+- We can optimize by reordering the switch cases to put most frequent types first
+- The FACTOR case could potentially be optimized by moving the Vector creation
+- The STRUCT case could be optimized by reserving vector capacity upfront
+
+3. **Selected Optimization**:
+The highest impact optimization would be to reorder the switch cases to put the most frequently used types first. This reduces the average number of comparisons needed. Based on typical R usage patterns, the most common types are likely:
+1. NUMERIC (REALSXP)
+2. INTEGER (INTSXP)
+3. LOGICAL (LGLSXP)
+4. STRING (STRSXP)
+5. FACTOR (INTSXP with factor attribute)
+
+Here's the optimized function with reordered cases:
