@@ -10,3 +10,5 @@ README_old.md
 copy_benchmark.py
 repos/
 chroma_db/
+part3/tests/*/*/*
+!part3/tests/*/*/_results.log
