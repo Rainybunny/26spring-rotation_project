@@ -1,1 +1,0 @@
-SmallVector<llvm::Metadata*, 16> ReusableParamTypesStorage;

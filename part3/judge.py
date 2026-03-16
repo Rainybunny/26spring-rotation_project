@@ -33,37 +33,36 @@ def llm_judge(mission: utils.Mission) -> tuple[bool, str]:
 
     chain = prompt | utils.judge_llm
     # chain = prompt | utils.llm 
-    try:
-        # Add a timeout to prevent hanging indefinitely
-        response = chain.invoke({"result_content": mission.show_result()})
-        content = response.content
-        
-        reason = content
-        verdict = False
-        
-        # Check for the verdict line
-        content_lines = content.strip().split('\n')
-        last_line = content_lines[-1].strip()
-        
-        if "VERDICT: TRUE" in last_line.upper():
-            verdict = True
-            reason = "\n".join(content_lines[:-1]).strip()
-        elif "VERDICT: FALSE" in last_line.upper():
-            verdict = False
-            reason = "\n".join(content_lines[:-1]).strip()
-        else:
-            # Fallback if format is not strictly followed but contains keywords
-            if "VERDICT: TRUE" in content.upper():
-                verdict = True
-            elif "VERDICT: FALSE" in content.upper():
-                verdict = False
-            # reason is the whole content in this fallback case
-            
-        return verdict, reason
 
-    except Exception as e:
-        print(f"Error during LLM judging: {e}")
-        return False, f"Error: {str(e)}"
+    # let exception propagate to trigger retry in case of LLM issues,
+    # instead of silently returning False
+
+    # Add a timeout to prevent hanging indefinitely
+    response = chain.invoke({"result_content": mission.show_result()})
+    content = response.content
+    
+    reason = content
+    verdict = False
+    
+    # Check for the verdict line
+    content_lines = content.strip().split('\n')
+    last_line = content_lines[-1].strip()
+    
+    if "VERDICT: TRUE" in last_line.upper():
+        verdict = True
+        reason = "\n".join(content_lines[:-1]).strip()
+    elif "VERDICT: FALSE" in last_line.upper():
+        verdict = False
+        reason = "\n".join(content_lines[:-1]).strip()
+    else:
+        # Fallback if format is not strictly followed but contains keywords
+        if "VERDICT: TRUE" in content.upper():
+            verdict = True
+        elif "VERDICT: FALSE" in content.upper():
+            verdict = False
+        # reason is the whole content in this fallback case
+
+    return verdict, reason
 
 def llm_judge_strict(mission: utils.Mission) -> tuple[bool, str]:
     system_prompt = (
@@ -92,40 +91,39 @@ def llm_judge_strict(mission: utils.Mission) -> tuple[bool, str]:
     ])
 
     chain = prompt | utils.judge_llm
-    # chain = prompt | utils.llm 
-    try:
-        # Add a timeout to prevent hanging indefinitely
-        result_content = mission.show_result()
-        result_content += f"\n\nReference Optimized Function (Ground Truth):\n```{mission.lang}\n{mission.target_func}\n```\n"
-        response = chain.invoke({"result_content": result_content})
-        content = response.content
-        
-        reason = content
-        verdict = False
-        
-        # Check for the verdict line
-        content_lines = content.strip().split('\n')
-        last_line = content_lines[-1].strip()
-        
-        if "VERDICT: TRUE" in last_line.upper():
-            verdict = True
-            reason = "\n".join(content_lines[:-1]).strip()
-        elif "VERDICT: FALSE" in last_line.upper():
-            verdict = False
-            reason = "\n".join(content_lines[:-1]).strip()
-        else:
-            # Fallback if format is not strictly followed but contains keywords
-            if "VERDICT: TRUE" in content.upper():
-                verdict = True
-            elif "VERDICT: FALSE" in content.upper():
-                verdict = False
-            # reason is the whole content in this fallback case
-            
-        return verdict, reason
+    # chain = prompt | utils.llm
 
-    except Exception as e:
-        print(f"Error during LLM judging: {e}")
-        return False, f"Error: {str(e)}"
+    # let exception propagate to trigger retry in case of LLM issues,
+    # instead of silently returning False
+
+    # Add a timeout to prevent hanging indefinitely
+    result_content = mission.show_result()
+    result_content += f"\n\nReference Optimized Function (Ground Truth):\n```{mission.lang}\n{mission.target_func}\n```\n"
+    response = chain.invoke({"result_content": result_content})
+    content = response.content
+    
+    reason = content
+    verdict = False
+    
+    # Check for the verdict line
+    content_lines = content.strip().split('\n')
+    last_line = content_lines[-1].strip()
+    
+    if "VERDICT: TRUE" in last_line.upper():
+        verdict = True
+        reason = "\n".join(content_lines[:-1]).strip()
+    elif "VERDICT: FALSE" in last_line.upper():
+        verdict = False
+        reason = "\n".join(content_lines[:-1]).strip()
+    else:
+        # Fallback if format is not strictly followed but contains keywords
+        if "VERDICT: TRUE" in content.upper():
+            verdict = True
+        elif "VERDICT: FALSE" in content.upper():
+            verdict = False
+        # reason is the whole content in this fallback case
+        
+    return verdict, reason
 
 def run_optimizer(mission_list: list[utils.Mission], optimizer):
     # Determine max workers, default to 10 if not specified (or use user token limit)
@@ -140,22 +138,29 @@ def run_optimizer(mission_list: list[utils.Mission], optimizer):
         
         for future in concurrent.futures.as_completed(future_to_mission):
             mission = future_to_mission[future]
-            try:
-                print(f"Generating {mission.output_file}...", flush=True)
-                mission.output, mission.opt_reason = future.result()
-                with open(mission.output_file, "w") as f:
-                    f.write(mission.output)
-                log_file = mission.output_file.rsplit('.', 1)[0] + "_or.log"
-                with open(log_file, "w") as f:
-                    f.write(mission.opt_reason)
-            except Exception as exc:
-                print(f'{mission.output_file} generated an exception: {exc}', flush=True)
+            ok = False
+            while not ok:
+                try:
+                    print(f"Generating {mission.output_file}...", flush=True)
+                    mission.output, mission.opt_reason = future.result()
+                    with open(mission.output_file, "w") as f:
+                        f.write(mission.output)
+                    log_file = mission.output_file.rsplit('.', 1)[0] + "_or.log"
+                    with open(log_file, "w") as f:
+                        f.write(mission.opt_reason)
+                    prompt_log_file = mission.output_file.rsplit('.', 1)[0] + "_op.log"
+                    with open(prompt_log_file, "w") as f:
+                        f.write(str(mission.opt_prompt) if mission.opt_prompt is not None else "")
+                    ok = True
+                except Exception as exc:
+                    print(f'{mission.output_file} generated an exception: {exc}', flush=True)
+                    print(f'Retrying this...', flush=True)
 
-judge_fn = llm_judge
-# judge_fn = llm_judge_strict
+# judge_fn = llm_judge
+judge_fn = llm_judge_strict
 
 def judge(mission_list: list[utils.Mission]):
-    MAX_WORKERS = 10
+    MAX_WORKERS = 10 # no parallelization
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         future_to_mission = {
@@ -165,13 +170,17 @@ def judge(mission_list: list[utils.Mission]):
         
         for future in concurrent.futures.as_completed(future_to_mission):
             mission = future_to_mission[future]
-            try:
-                print(f"Judging {mission.output_file}...", flush=True)
-                mission.result, mission.judge_reason = future.result()
-            except Exception as exc:
-                print(f'{mission.output_file} generated an exception: {exc}', flush=True)
-                mission.result = False
-                mission.judge_reason = f"Exception: {exc}"
+            ok = False
+            while not ok:
+                try:
+                    print(f"Judging {mission.output_file}...", flush=True)
+                    mission.result, mission.judge_reason = future.result()
+                    ok = True
+                except Exception as exc:
+                    print(f'{mission.output_file} generated an exception: {exc}', flush=True)
+                    mission.result = False
+                    mission.judge_reason = f"Exception: {exc}"
+                    print(f'Retrying this...', flush=True)
             
             # Write judge reason log
             log_file = mission.output_file.rsplit('.', 1)[0] + "_jr.log"
@@ -196,7 +205,9 @@ def judge(mission_list: list[utils.Mission]):
 optimizer_id = {
     "dio": "optimizer_direct_io.py",
     "rag": "optimizer_rag.py",
-    "ccs": "optimizer_ccskill.py"
+    "rgn": "optimizer_rag_noex.py",
+    "rgn2": "optimizer_rag_noex.py", # same, run again for more results
+    "ccs": "optimizer_ccskill.py",
 }
 
 if __name__ == "__main__":

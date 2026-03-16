@@ -32,7 +32,12 @@ def optimize(mission: utils.Mission) -> tuple[str, str]:
     
     # Execute the chain
     try:
-        response = chain.invoke({"user_prompt": mission.show_goal()})
+        user_prompt = mission.show_goal()
+        mission.opt_prompt = (
+            f"[SYSTEM]\n{system_prompt}\n\n"
+            f"[USER]\n{user_prompt}"
+        )
+        response = chain.invoke({"user_prompt": user_prompt})
         content = response.content
         return utils.parse_final_output(content)
     except Exception as e:

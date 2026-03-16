@@ -78,6 +78,7 @@ class Mission(CommitInfo):
         output_name = f"{repo_name}_{trunked_commit_hash}.{self.suffix}"
         self.output_file = os.path.join(test_folder, output_name)
 
+        self.opt_prompt = None # optimization prompt
         self.output = None # output content
         self.opt_reason = None # optimization reason
         self.result = None # judge result

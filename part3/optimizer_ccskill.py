@@ -395,6 +395,10 @@ def optimize(mission: utils.Mission) -> tuple[str, str]:
     chain = prompt | utils.llm
     
     try:
+        mission.opt_prompt = (
+            f"[SYSTEM]\n{system_prompt}\n\n"
+            f"[USER]\n{user_content}"
+        )
         response = chain.invoke({"user_prompt": user_content})
         content = response.content
         return utils.parse_final_output(content)

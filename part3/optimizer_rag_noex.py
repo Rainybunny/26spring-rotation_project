@@ -99,7 +99,7 @@ def query_context(mission: utils.Mission) -> str:
         commit_hash = metadata.get("commit_hash")
         if not repo_name or not commit_hash:
             continue
-        if repo_name == mission.repo_name:
+        if repo_name == mission.repo_name and commit_hash == mission.commit_hash:
             continue
         if distance > distance_threshold:
             continue

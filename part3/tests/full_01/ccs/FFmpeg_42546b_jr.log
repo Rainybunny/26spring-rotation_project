@@ -1,9 +1,0 @@
-Looking at the optimized function, the only change is the replacement of `round(s->limit)` with `lrint(s->limit)`. The rest of the function is identical to the original.
-
-The `round()` function returns a double, while `lrint()` returns a long int (converted to int here). Both functions perform rounding, but `lrint()` uses the current rounding mode and may be more efficient on some platforms as it directly returns an integer.
-
-However, there's a critical issue: `lrint()` returns a `long int`, which is then assigned to an `int`. This could cause overflow on platforms where `long` is larger than `int`, but given that `limit` is derived from a float that's already scaled to pixel depth (max 65535), overflow is unlikely.
-
-More importantly, the behavior difference: `round()` rounds away from zero for halfway cases, while `lrint()` uses the current rounding mode (typically round-to-nearest-even). This could cause different results for values exactly halfway between integers.
-
-Given that `limit` is a threshold for black detection, even a difference of 1 in the rounded value could affect crop detection results. This makes the optimization not behavior-preserving.
