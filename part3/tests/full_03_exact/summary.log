@@ -1,0 +1,187 @@
+Summary for test: full_03_exact
+Total targets: 151
+Optimizer order: ccs, dio, rag, rgn
+
+=== Accuracy Table ===
+optimizer  accepted  total  accuracy  unknown
+---------  --------  -----  --------  -------
+ccs              11    151     7.28%        0
+dio               8    151     5.30%        0
+rag              10    151     6.62%        0
+rgn              12    151     7.95%        0
+
+=== Status Classes ===
+Pattern meaning follows optimizer order above.
+
+[RRRR] count=122
+- git/df7000cd910a5f6991f73991b87d838a5d75e2fc
+- tensorflow/982b79df43b05910cca9fa19777072a02c2529ff
+- rocksdb/b8cea7cc279fe609de85b7ce4f50d4ff4f90047f
+- mysql-server/aea6bd5081a4785593512467f504bcf8242ce5be
+- godot/14913f178ba2e85f37f83f787672c7abf1468a06
+- duckdb/b28e8905ef61429fc694d3b8cf754ad4d69ac66b
+- git/c61b2af7bd2c7225bcf576a39c245cebf9397ead
+- php-src/d3abcae4a25dab4c34fd5f0c8d1d620b2e35fca0
+- godot/50fae2b1a7a7a5f3029c50f9884ccdde0762c8a3
+- tensorflow/d523827b79119333fde39f1d9975ec1390b415c0
+- ladybird/e8f4ae487d228dac491a446ed548400176331ae9
+- tensorflow/7480941f2d6d46dd1c7ce0ebf9f7e311736e928d
+- duckdb/41807ec47f2a1905c5cf3ab0f82ca36f279927a4
+- git/82912d1de86ae3d7f247bc3b16a81afd01aa31c7
+- sumatrapdf/93686bfb8dd11e3f9c95eb30dc233cb56065ba63
+- tensorflow/064772d6f1bc3048dd3c8dd8da5c2a27179b972f
+- qBittorrent/b6cedbe4afdd7623884a3e90057739a5047bf8c2
+- terminal/856081229f644f3282a3af0f69539da389fd1038
+- rocksdb/9f246298e2f0af3973918a0dac0c5f46bc0993c0
+- raylib/fca53c77996ab0b723dd4ee5235671cba9274ca7
+- micropython/e2e663291dd1408cc9c5118d258a568470e32f8c
+- qmk_firmware/85f4c3ebb456c2d6feebf8934ab014436d7f8f17
+- ImHex/74e246feedf23f3b974f7bfd95d81c33222a633f
+- ladybird/759857b597a4c821689fa6c73788a7311cd74106
+- react-native/9b97c09612050420557f2eca8391999e2fea1ca0
+- ladybird/24207d3795c41b0a38c99f14ecff7fda5b32662e
+- FFmpeg/15a1104d73cbd47a67fc14ce2ddc97a92145695e
+- v8/9ee294b302f1520c38af97204cad03cf9b4917e1
+- spdlog/8f6d123586629e29f61418edd1bda8736c72bdeb
+- postgres/6e5d9f278c1209936d973930996857f55e119cd8
+- vlc/317f1f95694cc29b3615a80f016a4b6f29e46ec3
+- git/fb79947487b628ec82bc0ad46a08629539a59091
+- tensorflow/991efbd2f527ca2f4ec50e8df3565d734d1c2ba5
+- rocksdb/b1074ac24f28afd0b5704ed520515b9ce00aae4c
+- FFmpeg/5484cbe9f765124f9e9c704467c6013731d71ed0
+- tensorflow/b85311f03b3165f2e2db08c102e71c7a59e8a9dc
+- FFmpeg/79a1d98676d3284ba5cbed90e63e326fa4764a11
+- react-native/d31c0c9109374ee917d9917d74b54b0d47197e32
+- protobuf/9e44913d434426d4e3dbccbc8ad26ea2c4edd382
+- tensorflow/c849329843d165c090d666f3c5ada4acb0196549
+- git/df786f6efeaa302fa0bf1d39f46fe2528103e9bc
+- tensorflow/e24ab749b4cc14cb90096775874d8c108dad8c5d
+- react-native/00266693b38aa4b055dc6f0fdba7d12a08e23d7e
+- mpv/779031ad8f3b74035b8e64a2353a52557d7b8ece
+- ladybird/3891d6d73afd6408314eeb27713dad0f45718310
+- FFmpeg/2fbdc4faf1bc0740cf18b0267c017e2afafaa99e
+- ClickHouse/0a039a960142e33447135db573ee6fb2824113ed
+- envoy/972fef81ab58dad7ed5207e4eee493ec6b5f4267
+- git/a277d0a67f0324deb58abbeb0c5a2b3abbcde340
+- tensorflow/be7b16681a90829ea6c6a03ca55bb2b20967ea7c
+- envoy/7f4416f164b48d57e682a5a06ef0905f7989920d
+- openssl/d5d007abe357ce4bea5390bf3a872dc85497da38
+- rocksdb/b8b7117e97e649fc65d0a4dd397caf9a39fb71b1
+- tesseract/92cae8f19418d13a0b698d8cd9b866ee0d3867b8
+- folly/2e29c4715e0957e44e8e3fdf8e37ca7f4526b6f3
+- tensorflow/e87692048aabdc692c4bc9e05014d695cded922e
+- ImHex/7f5a32a83b3a7833f283bdd5c05380fad5684aa0
+- mpv/4dab4347f5d7bb3642a2c5918fc29855f8f62482
+- tensorflow/d5ca984c5314d2e683eca87539d03ee4e35e3ee6
+- ClickHouse/c26cc85142d7ee560492c0b8a73c332e4bcb3b01
+- solidity/2a4e8228d7e912febdd6c4570a9143ea9bed11d9
+- ClickHouse/8ab98c8db0003272fcd572c500fd12e966aac3f8
+- mongo/111fb9e41d6fac036c71f2d43763e3c7d3d492fa
+- tensorflow/2f605c58a81522bb86a63aa2c48728ac2cbea6ca
+- php-src/c42d25dc33e6680426a48da7e2b41410f652e8e0
+- llama.cpp/470939d483d1c89b7292f78bac1fd27c42c171ce
+- opencv/7de2e1e7957075ebbd504b2c9aea256e61b2d547
+- tensorflow/c04bf06bfc9660bbe8863b35cf24646e3cad3a05
+- ladybird/6b39c6b1bf62218edf6478c8f55a543e069ea51a
+- FFmpeg/fa5d299496c15e992240914ae05b92d9b74eb3c4
+- tensorflow/4ca1258da5f15f686e7caae3850f4aff30e9a9c0
+- rocksdb/20dc5e74f276bdcb26c44c13bced506a2d920d3f
+- electron/6ef3be23fd9685a803908cf8aaa20acbe482cb68
+- opencv/65d816c3b54149b4943ab6940b0ac93224bb4410
+- rocksdb/53910ddb152fbcba95a3e04b058a997c40f654ae
+- qBittorrent/b4f23d815419a3131b8d4c68f7bb47c68a62f289
+- ladybird/1f5b5d3f9963acf75cf8f892d4e7ef210a6c738b
+- mongo/1da6a0d35bf4645609bece3d24ad59aec19f1f96
+- tensorflow/460d330428b22ca0d762d454cffb47efddca4d50
+- tensorflow/99bf70a2937a4737ccc09488954fd344db6f5cbe
+- swift/db237bc7a93bf74410bfb2a734a4bd53e9689051
+- php-src/f605f0b708a328a29dac894b25444c3cfb933f2d
+- radare2/910bbad2e3747e4fb3e50158e5118041bb3d2b2b
+- tensorflow/cf690d9dc6fd8ac103246168b815e91c3311cd8c
+- godot/81f3d43cc1ba01136795fb2059bbaa55bc514a16
+- tensorflow/d3881dcc330f728aea4900fa058fbc95b686a923
+- ladybird/210448b6ed8fe9768bd5e9ad5e02ab0cc058e826
+- swift/2a8a6b04d851e7c7d1df53bc415b7c41501233ac
+- FFmpeg/ea2f04bffe13fb9f89778766ddab1bd4af71c538
+- php-src/fbc8f3f51dca400637d8b40901b98a16a0d68483
+- whisper.cpp/31aea563a83803c710691fed3e8d700e06ae6788
+- mongo/fed2a61d2bfaaaa5183caa2d67df5b68d27e4080
+- mongo/7e36a45d31a6d5f2c1edcd1a4f009a86bd209210
+- mongo/09853275e93594547e87cff11227a2b49ab16057
+- tensorflow/44ac227766b56c631eceb8779ef73b663add81e1
+- git/3446a59b3950d57960e27f8a2c7e41462bd2bcf4
+- duckdb/8766acd3cf49e6903dbe5f7d687ca3d7a2c18221
+- rocksdb/68ca534169a4f9e1930f6511109e973b43cf5998
+- git/ce163c793d2058056ccc57563c350fd6415397ca
+- FFmpeg/425c0685f245d715f2da7066c5a89564c1ab146b
+- tensorflow/455656d1c4906f0ecbd8ec2df02d648db2eaa475
+- redis/04056b767fbcdc1df6fc536467234c04d88bee9d
+- tensorflow/02f600eb92dce044c75a89dddfede9e6da2c0f44
+- FFmpeg/0a04c2885f02f7db6b410b6d43d120e5eb48dc18
+- swift/b5d83afabaa894ff068f9af7a646be9abc2041a9
+- FFmpeg/9d8533368f55e1f6a0ea30d6492b26399b030066
+- radare2/78ece9fd2b422636ec4ca024ddca2a7e6ceb51ec
+- postgres/6897f0ec024582a570868939d3f34a6853374723
+- v8/f298b11b5e28980cbfba3cf9cde59c27b892e486
+- ClickHouse/7cd7782e4f25b0a2aad9cfa69cd9ffcb4da1e6cc
+- git/b4cf0f1784362fb4aa2383d8d5d829caa92ca3a0
+- git/a4b6d202caad83c6dc29abe9b17e53a1b3fb54a0
+- git/56384e61ead8d41c39bfafb535eedcf67ef4fcc3
+- ClickHouse/32dcbfb6273fffacda1ec09c8cbf737f82ca0d04
+- bitcoin/a60ab0ba89289433563c4c0993904acbca8c99ff
+- ladybird/4fe99ff0d6ca680e19b9022fef4fa52590ca261c
+- tensorflow/57d046953bb581c476db77507201494ccf1fe878
+- obs-studio/ab0c2cf4317e32ddff50d8586d50a3b84b6a5289
+- envoy/45ca67dc40f0ceda0b7c4d199de4432898d4007a
+- react-native/3f98c8e4c2c8f40b81c1a90aa65c1bdc9327faed
+- godot/cebbb2a325cc028f8311e18ea050f91801385597
+- FFmpeg/641cb77f501a7fa1410ab53da4923b1bebc2e690
+
+[ARRR] count=8
+- tensorflow/5e0db672b677752b19ab2c7b52d3a32b7e3ae8b7
+- php-src/42fca623263599100746ce8e02f01b8c52311987
+- duckdb/439b435d74423e6dfae3e198cdf6eeb25f579a84
+- mongo/2e4fe82c3d264917757e9738cf9bfd5d05181a55
+- rocksdb/4704833357a8609e7c42df4f337f938a8e870c08
+- ladybird/fda48d7a6bfa6f0b6e00e66ffbd078df4ec53dbf
+- x64dbg/529e5f1e3a4a1b3bd94c3858fd1fb876a9216859
+- rocksdb/063471bf7613544496a4d4b5a1e1ba4a7aa605cf
+
+[RRRA] count=6
+- git/3449847168c9fa6e23db364e7da9077eadd39547
+- git/63ad8dbf169ec8e2b3cef40ff51499ee751a84a5
+- FFmpeg/7af14b37260d4923cdd75c8a19d6a82dad7470c4
+- git/fec501dae8bf6c8fdcd4124c94f37c4cbc26ba29
+- duckdb/7e47fe642862e7ec2052c776cebe18212a58bbf8
+- duckdb/e1db888231f0cbe856d75ee8db6e677a2e19dd4a
+
+[RARR] count=4
+- FFmpeg/eb73742d6e19d72bced2bfec6f65cd45e93308d1
+- v8/c8e6340a404d02f6644cfd23e7722fe49925e37f
+- react-native/8da5924b57206f10a5d67a61ebfe4b82984edcc8
+- git/be99ec97c8a1f94e723c6cc5331eff921ae49ed3
+
+[RRAR] count=4
+- FFmpeg/2d580d727cf2f6e857a9e46fd2dcdee6473e7c3c
+- ladybird/97f676dbf2eaccfdded1c03265b4aefd62e40b53
+- rocksdb/43c789c8f246a2a35864e3fca9585b55c40c2095
+- nginx/8f3dfde7f7407053b8ea49917576495b817bb70b
+
+[RAAA] count=2
+- sumatrapdf/d0b606e392e1ff80fd7b68905edcbabcfadd19fa
+- ClickHouse/7079b4c885656fba788400002f012d3ff43e01de
+
+[AAAA] count=1
+- mongo/7c38ed67693fe3ee6e16bfc3f62ced1c9e2d855f
+
+[ARAA] count=1
+- ladybird/1e8cc97b731871409316c121e637c32806135122
+
+[ARAR] count=1
+- rocksdb/873f1356a1781e8d638973ea320b722d3240fc5a
+
+[RARA] count=1
+- react-native/cf94a9ea9599ff1325fb31ba34c3ab913f2bf964
+
+[RRAA] count=1
+- serenity/36f87b9a56017f0561edbb14a8a2a5cad2a0ce52
